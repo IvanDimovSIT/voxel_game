@@ -1,0 +1,9 @@
+[package]
+name = "voxel_game"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+bincode = "2.0.1"
+macroquad = "0.4.13"
+
