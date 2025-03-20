@@ -1,17 +1,27 @@
 use std::collections::HashMap;
 
-use crate::{model::{area::{Area, AREA_HEIGHT}, location::Location, voxel::Voxel}, service::persistence};
+use crate::{
+    model::{
+        area::{AREA_HEIGHT, Area},
+        location::Location,
+        voxel::Voxel,
+    },
+    service::persistence,
+};
 
-use super::{area::{AreaLocation, AREA_SIZE}, location::InternalLocation};
-
-
+use super::{
+    area::{AREA_SIZE, AreaLocation},
+    location::InternalLocation,
+};
 
 pub struct World {
-    areas: HashMap<AreaLocation, Area>
+    areas: HashMap<AreaLocation, Area>,
 }
 impl World {
     pub fn new() -> Self {
-        Self { areas: HashMap::new() }
+        Self {
+            areas: HashMap::new(),
+        }
     }
 
     pub fn load_area(&mut self, area_location: AreaLocation) {
@@ -30,22 +40,30 @@ impl World {
         self.areas.remove(&area_location);
     }
 
-    pub fn convert_global_to_local_location(location: InternalLocation) -> (AreaLocation, InternalLocation) {
+    pub fn convert_global_to_local_location(
+        location: InternalLocation,
+    ) -> (AreaLocation, InternalLocation) {
         let area_x = location.x / AREA_SIZE;
         let area_y = location.y / AREA_SIZE;
         let local_x = location.x % AREA_SIZE;
         let local_y = location.y % AREA_SIZE;
 
-        (AreaLocation::new(area_x, area_y), InternalLocation::new(local_x, local_y, location.z))
+        (
+            AreaLocation::new(area_x, area_y),
+            InternalLocation::new(local_x, local_y, location.z),
+        )
     }
 
-    pub fn get_renderable_voxels_for_area(&self, area_location: AreaLocation) -> Vec<(InternalLocation, Voxel)> {
+    pub fn get_renderable_voxels_for_area(
+        &self,
+        area_location: AreaLocation,
+    ) -> Vec<(InternalLocation, Voxel)> {
         let area = match self.areas.get(&area_location) {
             Some(ok) => ok,
             None => {
                 println!("Area {area_location:?} not loaded");
                 return vec![];
-            },
+            }
         };
         let xy_offset = area_location.x * AREA_SIZE;
 
@@ -54,7 +72,7 @@ impl World {
         for z in 0..AREA_HEIGHT {
             for y in 0..AREA_SIZE {
                 for x in 0..AREA_SIZE {
-                    let current_location = InternalLocation::new(x, y, z); 
+                    let current_location = InternalLocation::new(x, y, z);
                     let voxel = area.get(current_location);
                     if voxel == Voxel::None {
                         continue;
@@ -63,7 +81,10 @@ impl World {
                         continue;
                     }
 
-                    result.push((InternalLocation::new(x+xy_offset, y+xy_offset, z), voxel));
+                    result.push((
+                        InternalLocation::new(x + xy_offset, y + xy_offset, z),
+                        voxel,
+                    ));
                 }
             }
         }
@@ -80,7 +101,8 @@ impl World {
 
     pub fn get_without_loading(&self, location: InternalLocation) -> Option<Voxel> {
         let (area_location, local_location) = Self::convert_global_to_local_location(location);
-        self.areas.get(&area_location)
+        self.areas
+            .get(&area_location)
             .map(|area| area.get(local_location))
     }
 

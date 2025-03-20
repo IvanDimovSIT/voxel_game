@@ -1,6 +1,10 @@
 use bincode::{Decode, Encode};
 
-use super::{location::{InternalLocation, Location}, voxel::Voxel, world::World};
+use super::{
+    location::{InternalLocation, Location},
+    voxel::Voxel,
+    world::World,
+};
 
 pub const AREA_SIZE: u32 = 16;
 pub const AREA_HEIGHT: u32 = 64;
@@ -9,7 +13,7 @@ const VOXELS_IN_AREA: usize = (AREA_SIZE * AREA_SIZE * AREA_HEIGHT) as usize;
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, Encode, Decode)]
 pub struct AreaLocation {
     pub x: u32,
-    pub y: u32
+    pub y: u32,
 }
 impl AreaLocation {
     pub fn new(x: u32, y: u32) -> Self {
@@ -30,13 +34,13 @@ impl From<Location> for AreaLocation {
 #[derive(Debug, Encode, Decode)]
 pub struct Area {
     area_location: AreaLocation,
-    voxels: Box<[Voxel]>
+    voxels: Box<[Voxel]>,
 }
 impl Area {
     pub fn new(area_location: AreaLocation) -> Self {
-        Self { 
+        Self {
             area_location,
-            voxels: vec![Voxel::None; VOXELS_IN_AREA].into_boxed_slice()
+            voxels: vec![Voxel::None; VOXELS_IN_AREA].into_boxed_slice(),
         }
     }
 
@@ -62,34 +66,65 @@ impl Area {
 
     /// Check if ALL neighbours WITHIN THE AREA are not None
     pub fn has_nonempty_neighbours(&self, location: InternalLocation) -> bool {
-        if location.x == 0 || 
-            location.x >= AREA_SIZE ||
-            location.y == 0 || 
-            location.y >= AREA_SIZE || 
-            location.z == 0 || 
-            location.z >= AREA_HEIGHT {
+        if location.x == 0
+            || location.x >= AREA_SIZE
+            || location.y == 0
+            || location.y >= AREA_SIZE
+            || location.z == 0
+            || location.z >= AREA_HEIGHT
+        {
             return false;
         }
 
-        if self.get(InternalLocation::new(location.x+1, location.y, location.z)) == Voxel::None {
+        if self.get(InternalLocation::new(
+            location.x + 1,
+            location.y,
+            location.z,
+        )) == Voxel::None
+        {
             return false;
         }
-        if self.get(InternalLocation::new(location.x-1, location.y, location.z)) == Voxel::None {
+        if self.get(InternalLocation::new(
+            location.x - 1,
+            location.y,
+            location.z,
+        )) == Voxel::None
+        {
             return false;
         }
-        if self.get(InternalLocation::new(location.x, location.y+1, location.z)) == Voxel::None {
+        if self.get(InternalLocation::new(
+            location.x,
+            location.y + 1,
+            location.z,
+        )) == Voxel::None
+        {
             return false;
         }
-        if self.get(InternalLocation::new(location.x, location.y-1, location.z)) == Voxel::None {
+        if self.get(InternalLocation::new(
+            location.x,
+            location.y - 1,
+            location.z,
+        )) == Voxel::None
+        {
             return false;
         }
-        if self.get(InternalLocation::new(location.x, location.y, location.z+1)) == Voxel::None {
+        if self.get(InternalLocation::new(
+            location.x,
+            location.y,
+            location.z + 1,
+        )) == Voxel::None
+        {
             return false;
         }
-        if self.get(InternalLocation::new(location.x, location.y, location.z-1)) == Voxel::None {
+        if self.get(InternalLocation::new(
+            location.x,
+            location.y,
+            location.z - 1,
+        )) == Voxel::None
+        {
             return false;
         }
 
-        return true; 
+        return true;
     }
 }

@@ -1,6 +1,12 @@
 use std::f32::consts::PI;
 
-use macroquad::{camera::Camera3D, input::{mouse_position, set_cursor_grab, show_mouse}, math::{vec3, Vec2, Vec3}};
+use macroquad::{
+    camera::Camera3D,
+    input::{mouse_position, set_cursor_grab, show_mouse},
+    math::{Vec2, Vec3, vec3},
+};
+
+use crate::model::{area::AREA_HEIGHT, location::Location};
 
 const LOOK_SPEED: f32 = 0.1;
 
@@ -16,10 +22,9 @@ pub struct CameraController {
     position: Vec3,
 }
 impl CameraController {
-
     pub fn new(position: Vec3) -> Self {
         let world_up = vec3(0.0, 0.0, -1.0);
-        let yaw: f32 = PI/3.0;
+        let yaw: f32 = PI / 3.0;
         let pitch: f32 = 0.0;
         let front = vec3(
             yaw.cos() * pitch.cos(),
@@ -30,7 +35,7 @@ impl CameraController {
         let right = front.cross(world_up).normalize();
         let up = right.cross(front).normalize();
         let last_mouse_position: Vec2 = mouse_position().into();
-        
+
         Self {
             is_focused: false,
             yaw,
@@ -40,7 +45,7 @@ impl CameraController {
             up,
             world_up,
             last_mouse_position,
-            position
+            position,
         }
     }
 
@@ -74,15 +79,14 @@ impl CameraController {
 
         self.right = self.front.cross(self.world_up).normalize();
         self.up = self.right.cross(self.front).normalize();
-
     }
 
     pub fn move_forward(&mut self, speed: f32, delta: f32) {
-        self.position += self.front * speed * delta;   
+        self.position += self.front * speed * delta;
     }
 
     pub fn move_right(&mut self, speed: f32, delta: f32) {
-        self.position += self.right * speed * delta;   
+        self.position += self.right * speed * delta;
     }
 
     pub fn get_position(&self) -> Vec3 {
@@ -100,5 +104,13 @@ impl CameraController {
             target: self.position + self.front,
             ..Default::default()
         }
+    }
+
+    pub fn get_camera_voxel_location(&self) -> Location {
+        let x = self.position.x.round() as i32;
+        let y = self.position.y.round() as i32;
+        let z = (self.position.z.round() as i32).clamp(0, AREA_HEIGHT as i32);
+
+        Location::new(x, y, z)
     }
 }
