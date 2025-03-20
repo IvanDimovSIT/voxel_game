@@ -27,7 +27,6 @@ impl MeshGenerator {
     const INDECIES: [u16; 6] = [0, 1, 2, 0, 2, 3];
 
     pub async fn new() -> Self {
-        // Precompute face geometry then offset?? Maybe just const
         Self { texture_manager: TextureManager::new().await }
     }
 
