@@ -6,7 +6,7 @@ use macroquad::{
 };
 
 use crate::model::{
-    area::{AreaLocation, AREA_HEIGHT},
+    area::{AREA_HEIGHT, AreaLocation},
     location::{InternalLocation, Location},
     voxel::{self, Voxel},
     world::World,
@@ -40,15 +40,13 @@ impl Renderer {
         &mut self,
         world: &mut World,
         global_location: InternalLocation,
-        voxel: Voxel
+        voxel: Voxel,
     ) -> (AreaLocation, Vec<Mesh>) {
-        let area_location =
-            World::convert_global_to_area_location(global_location);
-        
+        let area_location = World::convert_global_to_area_location(global_location);
+
         if voxel == Voxel::None {
             return (area_location, vec![]);
         }
-        
 
         let mut meshes = vec![];
 
@@ -90,9 +88,7 @@ impl Renderer {
                 mesh_generator::FaceDirection::Down,
             ));
         }
-        if global_location.z <= 0
-            || Voxel::None == world.get(global_location.offset_z(-1))
-        {
+        if global_location.z <= 0 || Voxel::None == world.get(global_location.offset_z(-1)) {
             meshes.push(self.mesh_generator.generate_mesh(
                 voxel,
                 global_location,
@@ -126,7 +122,7 @@ impl Renderer {
         &mut self,
         world: &mut World,
         global_location: InternalLocation,
-        voxel: Voxel
+        voxel: Voxel,
     ) {
         let (area_location, meshes) = self.generate_meshes_for_voxel(world, global_location, voxel);
         self.set_meshes(area_location, global_location, meshes);
@@ -194,14 +190,16 @@ impl Renderer {
             .flat_map(|areas| areas.values())
             .map(|voxel_meshes| voxel_meshes.len())
             .sum()
-    } 
+    }
 
     pub fn update_loaded_areas(&mut self, world: &mut World, areas: &[AreaLocation]) {
         for area_location in areas {
             self.load_full_area(world, *area_location);
         }
 
-        let areas_to_unload: Vec<_> = self.meshes.keys()
+        let areas_to_unload: Vec<_> = self
+            .meshes
+            .keys()
             .filter(|loaded| !areas.contains(&loaded))
             .map(|x| *x)
             .collect();
@@ -209,6 +207,5 @@ impl Renderer {
         for area_location in areas_to_unload {
             self.unload_area(area_location);
         }
-
     }
 }

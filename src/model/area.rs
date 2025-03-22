@@ -45,7 +45,8 @@ impl Area {
     }
 
     fn connvert_to_index(local_location: InternalLocation) -> usize {
-        (local_location.x + local_location.y * AREA_SIZE + local_location.z * AREA_SIZE * AREA_SIZE) as usize
+        (local_location.x + local_location.y * AREA_SIZE + local_location.z * AREA_SIZE * AREA_SIZE)
+            as usize
     }
 
     pub fn get(&self, local_location: InternalLocation) -> Voxel {

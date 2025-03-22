@@ -8,20 +8,27 @@ use bincode::{
     decode_from_slice, encode_to_vec,
 };
 use macroquad::logging::{error, info, warn};
+use rayon::{
+    iter::{IntoParallelRefIterator, ParallelIterator},
+    spawn,
+};
 
 use crate::{
     model::area::{Area, AreaLocation},
     service::area_generation::generate_area,
+    utils::Semaphore,
 };
 
 const SERIALIZATION_CONFIG: Configuration = config::standard();
+const CONCURRENT_FILE_IO_COUNT: usize = 16;
+static STORE_SEMAPHORE: Semaphore = Semaphore::new(CONCURRENT_FILE_IO_COUNT);
 
 fn get_filepath(area_x: u32, area_y: u32, world_name: &str) -> String {
     format!("{world_name}/area{area_x}_{area_y}.dat")
 }
 
-pub fn store(area: &Area, world_name: &str) {
-    let filepath = get_filepath(area.get_x(), area.get_y(), world_name);
+fn store_blocking(area: Area, world_name: String) {
+    let filepath = get_filepath(area.get_x(), area.get_y(), &world_name);
 
     let encode_result = match encode_to_vec(area, SERIALIZATION_CONFIG) {
         Ok(ok) => ok,
@@ -47,8 +54,16 @@ pub fn store(area: &Area, world_name: &str) {
     }
 }
 
-pub fn load(area_location: AreaLocation, world_name: &str) -> Area {
-    let filepath = get_filepath(area_location.x, area_location.y, world_name);
+pub fn store(area: Area, world_name: String) {
+    spawn(move || {
+        STORE_SEMAPHORE.acquire();
+        store_blocking(area, world_name);
+        STORE_SEMAPHORE.release();
+    });
+}
+
+pub fn load_blocking(area_location: AreaLocation, world_name: &str) -> Area {
+    let filepath = get_filepath(area_location.x, area_location.y, &world_name);
 
     let mut file = match File::open(&filepath) {
         Ok(ok) => ok,
@@ -74,4 +89,20 @@ pub fn load(area_location: AreaLocation, world_name: &str) -> Area {
     info!("Loaded '{}'", filepath);
 
     area
+}
+
+pub fn batch_load(area_locations: Vec<AreaLocation>, world_name: String) -> Vec<Area> {
+    area_locations
+        .chunks(CONCURRENT_FILE_IO_COUNT)
+        .map(|chunk| {
+            chunk
+                .par_iter()
+                .map(|area_location| {
+                    let world_name_ref = &world_name;
+                    load_blocking(area_location.clone(), world_name_ref)
+                })
+                .collect::<Vec<_>>()
+        })
+        .flatten()
+        .collect()
 }

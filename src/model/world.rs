@@ -8,7 +8,7 @@ use crate::{
         location::Location,
         voxel::Voxel,
     },
-    service::persistence,
+    service::persistence::{self, batch_load},
 };
 
 use super::{
@@ -32,7 +32,7 @@ impl World {
         if self.areas.contains_key(&area_location) {
             return;
         }
-        let area = persistence::load(area_location, &self.world_name);
+        let area = persistence::load_blocking(area_location, &self.world_name);
         self.areas.insert(area_location, area);
     }
 
@@ -40,32 +40,33 @@ impl World {
         if !self.areas.contains_key(&area_location) {
             return;
         }
-        persistence::store(&self.areas[&area_location], &self.world_name);
-        self.areas.remove(&area_location);
+        if let Some(unloaded) = self.areas.remove(&area_location) {
+            persistence::store(unloaded, self.world_name.clone());
+        } else {
+            error!("Missing loaded {:?}", area_location);
+        }
     }
 
-    pub fn convert_global_to_local_location(
-        location: InternalLocation,
-    ) -> InternalLocation {
+    pub fn convert_global_to_local_location(location: InternalLocation) -> InternalLocation {
         let local_x = location.x % AREA_SIZE;
         let local_y = location.y % AREA_SIZE;
 
         InternalLocation::new(local_x, local_y, location.z)
     }
 
-    pub fn convert_global_to_area_location(
-        location: InternalLocation,
-    ) -> AreaLocation {
+    pub fn convert_global_to_area_location(location: InternalLocation) -> AreaLocation {
         let area_x = location.x / AREA_SIZE;
         let area_y = location.y / AREA_SIZE;
 
         AreaLocation::new(area_x, area_y)
     }
 
-    pub fn convert_global_to_area_and_local_location(location: InternalLocation) -> (AreaLocation, InternalLocation) {
+    pub fn convert_global_to_area_and_local_location(
+        location: InternalLocation,
+    ) -> (AreaLocation, InternalLocation) {
         (
             Self::convert_global_to_area_location(location),
-            Self::convert_global_to_local_location(location)
+            Self::convert_global_to_local_location(location),
         )
     }
 
@@ -98,10 +99,7 @@ impl World {
                         continue;
                     }
 
-                    result.push((
-                        InternalLocation::new(x + x_offset, y + y_offset, z),
-                        voxel,
-                    ));
+                    result.push((InternalLocation::new(x + x_offset, y + y_offset, z), voxel));
                 }
             }
         }
@@ -110,32 +108,45 @@ impl World {
     }
 
     pub fn get(&mut self, location: InternalLocation) -> Voxel {
-        let (area_location, local_location) = Self::convert_global_to_area_and_local_location(location);
+        let (area_location, local_location) =
+            Self::convert_global_to_area_and_local_location(location);
         self.load_area(area_location);
         let area = &self.areas[&area_location];
         area.get(local_location)
     }
 
     pub fn get_without_loading(&self, location: InternalLocation) -> Option<Voxel> {
-        let (area_location, local_location) = Self::convert_global_to_area_and_local_location(location);
+        let (area_location, local_location) =
+            Self::convert_global_to_area_and_local_location(location);
         self.areas
             .get(&area_location)
             .map(|area| area.get(local_location))
     }
 
     pub fn set(&mut self, location: InternalLocation, voxel: Voxel) {
-        let (area_location, local_location) = Self::convert_global_to_area_and_local_location(location);
+        let (area_location, local_location) =
+            Self::convert_global_to_area_and_local_location(location);
         self.load_area(area_location);
         let area = self.areas.get_mut(&area_location).expect("Area not loaded");
         area.set(local_location, voxel);
     }
 
     pub fn retain_areas(&mut self, area_locations: &[AreaLocation]) {
-        for area_location in area_locations {
-            self.load_area(*area_location);
+        let area_locations_to_load = area_locations
+            .iter()
+            .filter(|location| !self.areas.contains_key(location))
+            .map(|reference| *reference)
+            .collect();
+
+        let loaded_areas = batch_load(area_locations_to_load, self.world_name.clone());
+        for area in loaded_areas {
+            let area_location = AreaLocation::new(area.get_x(), area.get_y());
+            self.areas.insert(area_location, area);
         }
 
-        let areas_to_unload: Vec<_> = self.areas.keys()
+        let areas_to_unload: Vec<_> = self
+            .areas
+            .keys()
             .filter(|loaded| !area_locations.contains(&loaded))
             .map(|x| *x)
             .collect();
@@ -143,5 +154,5 @@ impl World {
         for area_location in areas_to_unload {
             self.unload_area(area_location);
         }
-    } 
+    }
 }

@@ -13,12 +13,14 @@ use model::{
 };
 use service::{
     camera_controller::{self, CameraController},
-    input::{enter_focus, exit_focus, move_back, move_forward, move_left, move_right}, render_zone::{get_load_zone, get_render_zone},
+    input::{enter_focus, exit_focus, move_back, move_forward, move_left, move_right},
+    render_zone::{get_load_zone, get_render_zone},
 };
 
 mod graphics;
 mod model;
 mod service;
+mod utils;
 
 const RENDER_SIZE: u32 = 2;
 
@@ -66,7 +68,10 @@ async fn main() {
         let camera = camera_controller.create_camera();
         set_camera(&camera);
         let camera_location = camera_controller.get_camera_voxel_location();
-        renderer.update_loaded_areas(&mut world, &get_render_zone(camera_location.into(), RENDER_SIZE));
+        renderer.update_loaded_areas(
+            &mut world,
+            &get_render_zone(camera_location.into(), RENDER_SIZE),
+        );
         world.retain_areas(&get_load_zone(camera_location.into(), RENDER_SIZE));
 
         renderer.render_voxels();
