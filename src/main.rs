@@ -20,11 +20,11 @@ mod graphics;
 mod model;
 mod service;
 
-#[macroquad::main("Game")]
+#[macroquad::main("Voxel World")]
 async fn main() {
     let position = vec3(0.0, 0.0, 10.0);
 
-    let mut world = World::new();
+    let mut world = World::new("test_world");
     let mut renderer = Renderer::new().await;
     let mut camera_controller = CameraController::new(position);
 

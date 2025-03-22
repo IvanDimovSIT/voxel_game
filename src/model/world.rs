@@ -1,5 +1,7 @@
 use std::collections::HashMap;
 
+use macroquad::prelude::error;
+
 use crate::{
     model::{
         area::{AREA_HEIGHT, Area},
@@ -15,11 +17,13 @@ use super::{
 };
 
 pub struct World {
+    world_name: String,
     areas: HashMap<AreaLocation, Area>,
 }
 impl World {
-    pub fn new() -> Self {
+    pub fn new(world_name: impl Into<String>) -> Self {
         Self {
+            world_name: world_name.into(),
             areas: HashMap::new(),
         }
     }
@@ -28,7 +32,7 @@ impl World {
         if self.areas.contains_key(&area_location) {
             return;
         }
-        let area = persistence::load(area_location);
+        let area = persistence::load(area_location, &self.world_name);
         self.areas.insert(area_location, area);
     }
 
@@ -36,7 +40,7 @@ impl World {
         if !self.areas.contains_key(&area_location) {
             return;
         }
-        persistence::store(&self.areas[&area_location]);
+        persistence::store(&self.areas[&area_location], &self.world_name);
         self.areas.remove(&area_location);
     }
 
@@ -61,7 +65,7 @@ impl World {
         let area = match self.areas.get(&area_location) {
             Some(ok) => ok,
             None => {
-                println!("Area {area_location:?} not loaded");
+                error!("Area {area_location:?} not loaded");
                 return vec![];
             }
         };
