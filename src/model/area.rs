@@ -22,12 +22,12 @@ impl AreaLocation {
 }
 impl From<InternalLocation> for AreaLocation {
     fn from(value: InternalLocation) -> Self {
-        World::convert_global_to_local_location(value).0
+        World::convert_global_to_area_location(value)
     }
 }
 impl From<Location> for AreaLocation {
     fn from(value: Location) -> Self {
-        World::convert_global_to_local_location(value.into()).0
+        World::convert_global_to_area_location(value.into())
     }
 }
 

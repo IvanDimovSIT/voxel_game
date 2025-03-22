@@ -46,15 +46,26 @@ impl World {
 
     pub fn convert_global_to_local_location(
         location: InternalLocation,
-    ) -> (AreaLocation, InternalLocation) {
-        let area_x = location.x / AREA_SIZE;
-        let area_y = location.y / AREA_SIZE;
+    ) -> InternalLocation {
         let local_x = location.x % AREA_SIZE;
         let local_y = location.y % AREA_SIZE;
 
+        InternalLocation::new(local_x, local_y, location.z)
+    }
+
+    pub fn convert_global_to_area_location(
+        location: InternalLocation,
+    ) -> AreaLocation {
+        let area_x = location.x / AREA_SIZE;
+        let area_y = location.y / AREA_SIZE;
+
+        AreaLocation::new(area_x, area_y)
+    }
+
+    pub fn convert_global_to_area_and_local_location(location: InternalLocation) -> (AreaLocation, InternalLocation) {
         (
-            AreaLocation::new(area_x, area_y),
-            InternalLocation::new(local_x, local_y, location.z),
+            Self::convert_global_to_area_location(location),
+            Self::convert_global_to_local_location(location)
         )
     }
 
@@ -97,21 +108,21 @@ impl World {
     }
 
     pub fn get(&mut self, location: InternalLocation) -> Voxel {
-        let (area_location, local_location) = Self::convert_global_to_local_location(location);
+        let (area_location, local_location) = Self::convert_global_to_area_and_local_location(location);
         self.load_area(area_location);
         let area = &self.areas[&area_location];
         area.get(local_location)
     }
 
     pub fn get_without_loading(&self, location: InternalLocation) -> Option<Voxel> {
-        let (area_location, local_location) = Self::convert_global_to_local_location(location);
+        let (area_location, local_location) = Self::convert_global_to_area_and_local_location(location);
         self.areas
             .get(&area_location)
             .map(|area| area.get(local_location))
     }
 
     pub fn set(&mut self, location: InternalLocation, voxel: Voxel) {
-        let (area_location, local_location) = Self::convert_global_to_local_location(location);
+        let (area_location, local_location) = Self::convert_global_to_area_and_local_location(location);
         self.load_area(area_location);
         let area = self.areas.get_mut(&area_location).expect("Area not loaded");
         area.set(local_location, voxel);

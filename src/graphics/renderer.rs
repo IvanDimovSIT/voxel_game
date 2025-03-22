@@ -6,9 +6,9 @@ use macroquad::{
 };
 
 use crate::model::{
-    area::{AREA_HEIGHT, AreaLocation},
+    area::{AreaLocation, AREA_HEIGHT},
     location::{InternalLocation, Location},
-    voxel::Voxel,
+    voxel::{self, Voxel},
     world::World,
 };
 
@@ -40,16 +40,13 @@ impl Renderer {
         &mut self,
         world: &World,
         global_location: InternalLocation,
+        voxel: Voxel
     ) -> (AreaLocation, Vec<Mesh>) {
-        let (area_location, _local_location) =
-            World::convert_global_to_local_location(global_location);
-        let voxel = {
-            let v = world.get_without_loading(global_location);
-            if Voxel::is_empty(v) {
-                return (area_location, vec![]);
-            }
-            v.unwrap()
-        };
+        let area_location =
+            World::convert_global_to_area_location(global_location);
+        if voxel == Voxel::None {
+            return (area_location, vec![]);
+        }
 
         let mut meshes = vec![];
 
@@ -127,9 +124,9 @@ impl Renderer {
         &mut self,
         world: &World,
         global_location: InternalLocation,
-        voxel: Voxel,
+        voxel: Voxel
     ) {
-        let (area_location, meshes) = self.generate_meshes_for_voxel(world, global_location);
+        let (area_location, meshes) = self.generate_meshes_for_voxel(world, global_location, voxel);
         self.set_meshes(area_location, global_location, meshes);
     }
 
@@ -160,8 +157,8 @@ impl Renderer {
         }
 
         for neighbor in neighbors {
-            if let Some(voxel) = world.get_without_loading(neighbor) {
-                self.update_meshes_for_voxel(world, neighbor, voxel);
+            if let Some(neighbour_voxel) = world.get_without_loading(neighbor) {
+                self.update_meshes_for_voxel(world, neighbor, neighbour_voxel);
             }
         }
     }
@@ -183,4 +180,13 @@ impl Renderer {
             }
         }
     }
+
+    pub fn get_voxel_face_count(&self) -> usize {
+        self.meshes
+            .values()
+            .into_iter()
+            .flat_map(|areas| areas.values())
+            .map(|voxel_meshes| voxel_meshes.len())
+            .sum()
+    } 
 }

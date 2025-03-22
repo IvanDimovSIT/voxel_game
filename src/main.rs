@@ -28,10 +28,10 @@ async fn main() {
     let mut renderer = Renderer::new().await;
     let mut camera_controller = CameraController::new(position);
 
-    world.set(Location::new(10, 0, 10).into(), model::voxel::Voxel::Stone);
-    world.set(Location::new(10, 1, 10).into(), model::voxel::Voxel::Stone);
-    world.set(Location::new(9, 0, 10).into(), model::voxel::Voxel::Stone);
-    world.set(Location::new(10, 0, 9).into(), model::voxel::Voxel::Stone);
+    //world.set(Location::new(10, 0, 10).into(), model::voxel::Voxel::Stone);
+    //world.set(Location::new(10, 1, 10).into(), model::voxel::Voxel::Stone);
+    //world.set(Location::new(9, 0, 10).into(), model::voxel::Voxel::Stone);
+    //world.set(Location::new(10, 0, 9).into(), model::voxel::Voxel::Stone);
     let area = Location::new(10, 0, 10).into();
     world.unload_area(area);
     world.load_area(area);
