@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use macroquad::prelude::error;
+use macroquad::prelude::{error, warn};
 
 use crate::{
     model::{
@@ -70,17 +70,19 @@ impl World {
     }
 
     pub fn get_renderable_voxels_for_area(
-        &self,
+        &mut self,
         area_location: AreaLocation,
     ) -> Vec<(InternalLocation, Voxel)> {
+        self.load_area(area_location);
         let area = match self.areas.get(&area_location) {
             Some(ok) => ok,
             None => {
-                error!("Area {area_location:?} not loaded");
+                error!("Area {:?} not loaded", area_location);
                 return vec![];
             }
         };
-        let xy_offset = area_location.x * AREA_SIZE;
+        let x_offset = area_location.x * AREA_SIZE;
+        let y_offset = area_location.y * AREA_SIZE;
 
         let mut result = vec![];
 
@@ -97,7 +99,7 @@ impl World {
                     }
 
                     result.push((
-                        InternalLocation::new(x + xy_offset, y + xy_offset, z),
+                        InternalLocation::new(x + x_offset, y + y_offset, z),
                         voxel,
                     ));
                 }
@@ -127,4 +129,19 @@ impl World {
         let area = self.areas.get_mut(&area_location).expect("Area not loaded");
         area.set(local_location, voxel);
     }
+
+    pub fn retain_areas(&mut self, area_locations: &[AreaLocation]) {
+        for area_location in area_locations {
+            self.load_area(*area_location);
+        }
+
+        let areas_to_unload: Vec<_> = self.areas.keys()
+            .filter(|loaded| !area_locations.contains(&loaded))
+            .map(|x| *x)
+            .collect();
+
+        for area_location in areas_to_unload {
+            self.unload_area(area_location);
+        }
+    } 
 }

@@ -6,7 +6,7 @@ use super::{
     world::World,
 };
 
-pub const AREA_SIZE: u32 = 16;
+pub const AREA_SIZE: u32 = 32;
 pub const AREA_HEIGHT: u32 = 64;
 const VOXELS_IN_AREA: usize = (AREA_SIZE * AREA_SIZE * AREA_HEIGHT) as usize;
 
@@ -44,16 +44,16 @@ impl Area {
         }
     }
 
-    fn connvert_to_index(location: InternalLocation) -> usize {
-        (location.x + location.y * AREA_SIZE + location.z * AREA_SIZE * AREA_SIZE) as usize
+    fn connvert_to_index(local_location: InternalLocation) -> usize {
+        (local_location.x + local_location.y * AREA_SIZE + local_location.z * AREA_SIZE * AREA_SIZE) as usize
     }
 
-    pub fn get(&self, location: InternalLocation) -> Voxel {
-        self.voxels[Self::connvert_to_index(location)]
+    pub fn get(&self, local_location: InternalLocation) -> Voxel {
+        self.voxels[Self::connvert_to_index(local_location)]
     }
 
-    pub fn set(&mut self, location: InternalLocation, voxel: Voxel) {
-        self.voxels[Self::connvert_to_index(location)] = voxel;
+    pub fn set(&mut self, local_location: InternalLocation, voxel: Voxel) {
+        self.voxels[Self::connvert_to_index(local_location)] = voxel;
     }
 
     pub fn get_x(&self) -> u32 {
@@ -67,11 +67,11 @@ impl Area {
     /// Check if ALL neighbours WITHIN THE AREA are not None
     pub fn has_nonempty_neighbours(&self, location: InternalLocation) -> bool {
         if location.x == 0
-            || location.x >= AREA_SIZE
+            || location.x + 1 >= AREA_SIZE
             || location.y == 0
-            || location.y >= AREA_SIZE
+            || location.y + 1 >= AREA_SIZE
             || location.z == 0
-            || location.z >= AREA_HEIGHT
+            || location.z + 1 >= AREA_HEIGHT
         {
             return false;
         }

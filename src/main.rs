@@ -13,12 +13,14 @@ use model::{
 };
 use service::{
     camera_controller::{self, CameraController},
-    input::{enter_focus, exit_focus, move_back, move_forward, move_left, move_right},
+    input::{enter_focus, exit_focus, move_back, move_forward, move_left, move_right}, render_zone::{get_load_zone, get_render_zone},
 };
 
 mod graphics;
 mod model;
 mod service;
+
+const RENDER_SIZE: u32 = 2;
 
 #[macroquad::main("Voxel World")]
 async fn main() {
@@ -35,7 +37,7 @@ async fn main() {
     let area = Location::new(10, 0, 10).into();
     world.unload_area(area);
     world.load_area(area);
-    renderer.load_full_area(&world, area);
+    renderer.load_full_area(&mut world, area);
     camera_controller.set_focus(true);
     loop {
         let delta = get_frame_time();
@@ -43,16 +45,16 @@ async fn main() {
 
         camera_controller.update_look(delta);
         if move_forward() {
-            camera_controller.move_forward(1.0, delta);
+            camera_controller.move_forward(10.0, delta);
         }
         if move_back() {
-            camera_controller.move_forward(-1.0, delta);
+            camera_controller.move_forward(-10.0, delta);
         }
         if move_left() {
-            camera_controller.move_right(-1.0, delta);
+            camera_controller.move_right(-10.0, delta);
         }
         if move_right() {
-            camera_controller.move_right(1.0, delta);
+            camera_controller.move_right(10.0, delta);
         }
         if enter_focus() {
             camera_controller.set_focus(true);
@@ -63,6 +65,10 @@ async fn main() {
 
         let camera = camera_controller.create_camera();
         set_camera(&camera);
+        let camera_location = camera_controller.get_camera_voxel_location();
+        renderer.update_loaded_areas(&mut world, &get_render_zone(camera_location.into(), RENDER_SIZE));
+        world.retain_areas(&get_load_zone(camera_location.into(), RENDER_SIZE));
+
         renderer.render_voxels();
 
         next_frame().await;
