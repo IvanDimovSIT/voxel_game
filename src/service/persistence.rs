@@ -1,5 +1,9 @@
 use std::{
-    collections::HashSet, fs::{self, File}, io::{Read, Write}, mem::take, sync::{Arc, Mutex}
+    collections::HashSet,
+    fs::{self, File},
+    io::{Read, Write},
+    mem::take,
+    sync::{Arc, Mutex},
 };
 
 use bincode::{
@@ -23,7 +27,7 @@ fn get_filepath(area_x: u32, area_y: u32, world_name: &str) -> String {
 }
 
 pub fn store_blocking(area: &Area, world_name: &str) {
-    let filepath = get_filepath(area.get_x(), area.get_y(), &world_name);
+    let filepath = get_filepath(area.get_x(), area.get_y(), world_name);
 
     let encode_result = match encode_to_vec(area, SERIALIZATION_CONFIG) {
         Ok(ok) => ok,
@@ -58,7 +62,7 @@ pub fn store(area: Area, world_name: String) {
 }
 
 pub fn load_blocking(area_location: AreaLocation, world_name: &str) -> Area {
-    let filepath = get_filepath(area_location.x, area_location.y, &world_name);
+    let filepath = get_filepath(area_location.x, area_location.y, world_name);
 
     let mut file = match File::open(&filepath) {
         Ok(ok) => ok,
@@ -89,22 +93,23 @@ pub fn load_blocking(area_location: AreaLocation, world_name: &str) -> Area {
 pub struct AreaLoader {
     semaphore: Arc<Semaphore>,
     to_load: Arc<Mutex<HashSet<AreaLocation>>>,
-    loaded: Arc<Mutex<Vec<Area>>>
-} 
+    loaded: Arc<Mutex<Vec<Area>>>,
+}
 impl AreaLoader {
     pub fn new() -> Self {
-        Self { 
-            semaphore: Arc::new(Semaphore::new(CONCURRENT_FILE_IO_COUNT)), 
-            to_load: Arc::new(Mutex::new(HashSet::new())), 
-            loaded: Arc::new(Mutex::new(vec![]))
+        Self {
+            semaphore: Arc::new(Semaphore::new(CONCURRENT_FILE_IO_COUNT)),
+            to_load: Arc::new(Mutex::new(HashSet::new())),
+            loaded: Arc::new(Mutex::new(vec![])),
         }
     }
 
     pub fn batch_load(&mut self, areas_to_load: &[AreaLocation], world_name: &str) {
         let to_load_lock = self.to_load.lock().unwrap();
-        let areas_to_load = areas_to_load.iter()
+        let areas_to_load = areas_to_load
+            .iter()
             .filter(|area_location| !to_load_lock.contains(area_location))
-            .map(|loc| *loc)
+            .copied()
             .collect::<Vec<_>>();
         drop(to_load_lock);
 

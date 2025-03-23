@@ -4,11 +4,11 @@ use macroquad::prelude::{error, info, warn};
 
 use crate::{
     model::{
-        area::{Area, AREA_HEIGHT},
+        area::{AREA_HEIGHT, Area},
         location::Location,
         voxel::Voxel,
     },
-    service::persistence::{self, store_blocking, AreaLoader},
+    service::persistence::{self, AreaLoader, store_blocking},
 };
 
 use super::{
@@ -142,21 +142,21 @@ impl World {
             }
             self.areas.insert(area_location, area);
         }
-        
+
         let area_locations_to_load = area_locations
             .iter()
             .filter(|location| !self.areas.contains_key(location))
-            .map(|reference| *reference)
+            .copied()
             .collect::<Vec<_>>();
 
-        self.area_loader.batch_load(&area_locations_to_load, &self.world_name);
-        
+        self.area_loader
+            .batch_load(&area_locations_to_load, &self.world_name);
 
         let areas_to_unload: Vec<_> = self
             .areas
             .keys()
-            .filter(|loaded| !area_locations.contains(&loaded))
-            .map(|x| *x)
+            .filter(|loaded| !area_locations.contains(loaded))
+            .copied()
             .collect();
 
         for area_location in areas_to_unload {

@@ -32,7 +32,6 @@ impl Renderer {
         let remove_result = self.meshes.remove(&area_location);
         if remove_result.is_none() {
             debug!("Area {:?} is already unloaded", area_location);
-            return;
         }
     }
 
@@ -186,7 +185,6 @@ impl Renderer {
     pub fn get_voxel_face_count(&self) -> usize {
         self.meshes
             .values()
-            .into_iter()
             .flat_map(|areas| areas.values())
             .map(|voxel_meshes| voxel_meshes.len())
             .sum()
@@ -200,8 +198,8 @@ impl Renderer {
         let areas_to_unload: Vec<_> = self
             .meshes
             .keys()
-            .filter(|loaded| !areas.contains(&loaded))
-            .map(|x| *x)
+            .filter(|loaded| !areas.contains(loaded))
+            .copied()
             .collect();
 
         for area_location in areas_to_unload {

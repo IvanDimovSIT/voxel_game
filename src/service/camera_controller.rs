@@ -6,7 +6,10 @@ use macroquad::{
     math::{Vec2, Vec3, vec3},
 };
 
-use crate::model::{area::AREA_HEIGHT, location::Location};
+use crate::{
+    model::location::Location,
+    utils::vector_to_location,
+};
 
 const LOOK_SPEED: f32 = 0.1;
 
@@ -107,11 +110,7 @@ impl CameraController {
     }
 
     pub fn get_camera_voxel_location(&self) -> Location {
-        let x = self.position.x.round() as i32;
-        let y = self.position.y.round() as i32;
-        let z = (self.position.z.round() as i32).clamp(0, AREA_HEIGHT as i32);
-
-        Location::new(x, y, z)
+        vector_to_location(self.position)
     }
 
     pub fn is_focused(&self) -> bool {

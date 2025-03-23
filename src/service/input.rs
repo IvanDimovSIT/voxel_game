@@ -1,4 +1,6 @@
-use macroquad::input::{is_key_down, is_key_pressed, is_key_released, is_mouse_button_pressed, is_mouse_button_released};
+use macroquad::input::{
+    is_key_down, is_key_released, is_mouse_button_pressed, is_mouse_button_released,
+};
 
 use super::camera_controller::CameraController;
 
@@ -32,4 +34,8 @@ pub fn toggle_debug() -> bool {
 
 pub fn is_place_voxel(camera_controller: &CameraController) -> bool {
     camera_controller.is_focused() && is_mouse_button_pressed(macroquad::input::MouseButton::Right)
+}
+
+pub fn is_destroy_voxel(camera_controller: &CameraController) -> bool {
+    camera_controller.is_focused() && is_mouse_button_pressed(macroquad::input::MouseButton::Left)
 }

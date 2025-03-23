@@ -130,6 +130,6 @@ impl Area {
             return false;
         }
 
-        return true;
+        true
     }
 }
