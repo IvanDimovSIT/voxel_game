@@ -10,12 +10,3 @@ impl Default for Voxel {
         Self::None
     }
 }
-impl Voxel {
-    pub fn is_empty(voxel: Option<Self>) -> bool {
-        if let Some(some) = voxel {
-            some == Voxel::None
-        } else {
-            true
-        }
-    }
-}

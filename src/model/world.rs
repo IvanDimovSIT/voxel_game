@@ -1,6 +1,6 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, time::Instant};
 
-use macroquad::prelude::{error, warn};
+use macroquad::prelude::{error, info, warn};
 
 use crate::{
     model::{
@@ -8,7 +8,7 @@ use crate::{
         location::Location,
         voxel::Voxel,
     },
-    service::persistence::{self, AreaLoader},
+    service::persistence::{self, store_blocking, AreaLoader},
 };
 
 use super::{
@@ -166,5 +166,20 @@ impl World {
 
     pub fn get_loaded_areas_count(&self) -> usize {
         self.areas.len()
+    }
+
+    pub fn save_all_blocking(&self) {
+        let start = Instant::now();
+        info!("Saving world...");
+        for area in self.areas.values() {
+            store_blocking(area, &self.world_name);
+        }
+        let end = start.elapsed();
+        info!("Saved in {}ms", end.as_millis());
+    }
+}
+impl Drop for World {
+    fn drop(&mut self) {
+        self.save_all_blocking();
     }
 }

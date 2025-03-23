@@ -13,7 +13,7 @@ use model::{
 };
 use service::{
     camera_controller::{self, CameraController},
-    input::{enter_focus, exit_focus, move_back, move_forward, move_left, move_right, toggle_debug},
+    input::{enter_focus, exit_focus, is_place_voxel, move_back, move_forward, move_left, move_right, toggle_debug},
     render_zone::{get_load_zone, get_render_zone},
 };
 
@@ -47,6 +47,12 @@ async fn main() {
         clear_background(BEIGE);
 
         camera_controller.update_look(delta);
+        if is_place_voxel(&camera_controller) {
+            let mut at = camera_controller.get_camera_voxel_location();
+            at.z += 1;
+            world.set(at.into(), model::voxel::Voxel::Stone);
+            renderer.update_location(&mut world, at.into());
+        }
         if move_forward() {
             camera_controller.move_forward(10.0, delta);
         }

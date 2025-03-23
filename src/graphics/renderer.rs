@@ -7,8 +7,8 @@ use macroquad::{
 
 use crate::model::{
     area::{AREA_HEIGHT, AreaLocation},
-    location::{InternalLocation, Location},
-    voxel::{self, Voxel},
+    location::InternalLocation,
+    voxel::Voxel,
     world::World,
 };
 

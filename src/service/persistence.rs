@@ -1,5 +1,5 @@
 use std::{
-    collections::HashSet, fs::{self, File}, io::{Read, Write}, mem::{replace, take}, sync::{Arc, Mutex}
+    collections::HashSet, fs::{self, File}, io::{Read, Write}, mem::take, sync::{Arc, Mutex}
 };
 
 use bincode::{
@@ -7,10 +7,6 @@ use bincode::{
     decode_from_slice, encode_to_vec,
 };
 use macroquad::logging::{error, info, warn};
-use rayon::{
-    iter::{IntoParallelRefIterator, ParallelIterator},
-    spawn,
-};
 
 use crate::{
     model::area::{Area, AreaLocation},
@@ -26,7 +22,7 @@ fn get_filepath(area_x: u32, area_y: u32, world_name: &str) -> String {
     format!("{world_name}/area{area_x}_{area_y}.dat")
 }
 
-fn store_blocking(area: Area, world_name: String) {
+pub fn store_blocking(area: &Area, world_name: &str) {
     let filepath = get_filepath(area.get_x(), area.get_y(), &world_name);
 
     let encode_result = match encode_to_vec(area, SERIALIZATION_CONFIG) {
@@ -54,9 +50,9 @@ fn store_blocking(area: Area, world_name: String) {
 }
 
 pub fn store(area: Area, world_name: String) {
-    spawn(move || {
+    rayon::spawn(move || {
         STORE_SEMAPHORE.acquire();
-        store_blocking(area, world_name);
+        store_blocking(&area, &world_name);
         STORE_SEMAPHORE.release();
     });
 }
@@ -117,7 +113,7 @@ impl AreaLoader {
             let to_load = self.to_load.clone();
             let loaded = self.loaded.clone();
             let world_name_owned = world_name.to_owned();
-            spawn(move || {
+            rayon::spawn(move || {
                 semaphore.acquire();
                 let area = load_blocking(area_to_load, &world_name_owned);
                 semaphore.release();

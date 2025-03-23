@@ -113,4 +113,8 @@ impl CameraController {
 
         Location::new(x, y, z)
     }
+
+    pub fn is_focused(&self) -> bool {
+        self.is_focused
+    }
 }
