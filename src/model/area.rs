@@ -57,6 +57,10 @@ impl Area {
         self.voxels[Self::connvert_to_index(local_location)] = voxel;
     }
 
+    pub fn get_area_location(&self) -> AreaLocation {
+        self.area_location
+    }
+
     pub fn get_x(&self) -> u32 {
         self.area_location.x
     }

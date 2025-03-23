@@ -146,7 +146,7 @@ impl Renderer {
                 location.z - 1,
             ));
         }
-        if location.z < (AREA_HEIGHT + 1) {
+        if location.z < (AREA_HEIGHT - 1) {
             neighbors.push(InternalLocation::new(
                 location.x,
                 location.y,

@@ -1,6 +1,5 @@
 use std::{
-    fs::{self, File},
-    io::{Read, Write},
+    collections::HashSet, fs::{self, File}, io::{Read, Write}, mem::{replace, take}, sync::{Arc, Mutex}
 };
 
 use bincode::{
@@ -91,18 +90,48 @@ pub fn load_blocking(area_location: AreaLocation, world_name: &str) -> Area {
     area
 }
 
-pub fn batch_load(area_locations: Vec<AreaLocation>, world_name: String) -> Vec<Area> {
-    area_locations
-        .chunks(CONCURRENT_FILE_IO_COUNT)
-        .map(|chunk| {
-            chunk
-                .par_iter()
-                .map(|area_location| {
-                    let world_name_ref = &world_name;
-                    load_blocking(area_location.clone(), world_name_ref)
-                })
-                .collect::<Vec<_>>()
-        })
-        .flatten()
-        .collect()
+pub struct AreaLoader {
+    semaphore: Arc<Semaphore>,
+    to_load: Arc<Mutex<HashSet<AreaLocation>>>,
+    loaded: Arc<Mutex<Vec<Area>>>
+} 
+impl AreaLoader {
+    pub fn new() -> Self {
+        Self { 
+            semaphore: Arc::new(Semaphore::new(CONCURRENT_FILE_IO_COUNT)), 
+            to_load: Arc::new(Mutex::new(HashSet::new())), 
+            loaded: Arc::new(Mutex::new(vec![]))
+        }
+    }
+
+    pub fn batch_load(&mut self, areas_to_load: &[AreaLocation], world_name: &str) {
+        let to_load_lock = self.to_load.lock().unwrap();
+        let areas_to_load = areas_to_load.iter()
+            .filter(|area_location| !to_load_lock.contains(area_location))
+            .map(|loc| *loc)
+            .collect::<Vec<_>>();
+        drop(to_load_lock);
+
+        for area_to_load in areas_to_load {
+            let semaphore = self.semaphore.clone();
+            let to_load = self.to_load.clone();
+            let loaded = self.loaded.clone();
+            let world_name_owned = world_name.to_owned();
+            spawn(move || {
+                semaphore.acquire();
+                let area = load_blocking(area_to_load, &world_name_owned);
+                semaphore.release();
+                let mut to_load_lock = to_load.lock().unwrap();
+                let mut loaded_lock = loaded.lock().unwrap();
+                to_load_lock.remove(&area.get_area_location());
+                loaded_lock.push(area);
+            });
+        }
+    }
+
+    pub fn get_loaded(&mut self) -> Vec<Area> {
+        let areas = take(self.loaded.lock().unwrap().as_mut());
+
+        areas
+    }
 }

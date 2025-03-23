@@ -1,7 +1,7 @@
 use crate::model::area::AreaLocation;
 
 const MAX_RENDER_SIZE: u32 = 100;
-const LOAD_GRACE: u32 = 2;
+const LOAD_EXTRA: u32 = 2;
 
 pub fn get_render_zone(area_location: AreaLocation, render_size: u32) -> Vec<AreaLocation> {
     debug_assert!(
@@ -27,14 +27,6 @@ pub fn get_render_zone(area_location: AreaLocation, render_size: u32) -> Vec<Are
     areas
 }
 
-fn clamp_to_interval(val: u32, interval: u32) -> u32 {
-    (val / interval) * interval
-}
-
 pub fn get_load_zone(area_location: AreaLocation, render_size: u32) -> Vec<AreaLocation> {
-    let clamped_area = AreaLocation {
-        x: clamp_to_interval(area_location.x, LOAD_GRACE),
-        y: clamp_to_interval(area_location.y, LOAD_GRACE),
-    };
-    get_render_zone(clamped_area, render_size + LOAD_GRACE)
+    get_render_zone(area_location, render_size + LOAD_EXTRA)
 }

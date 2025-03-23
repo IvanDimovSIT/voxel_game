@@ -4,11 +4,11 @@ use macroquad::prelude::{error, warn};
 
 use crate::{
     model::{
-        area::{AREA_HEIGHT, Area},
+        area::{Area, AREA_HEIGHT},
         location::Location,
         voxel::Voxel,
     },
-    service::persistence::{self, batch_load},
+    service::persistence::{self, AreaLoader},
 };
 
 use super::{
@@ -19,12 +19,14 @@ use super::{
 pub struct World {
     world_name: String,
     areas: HashMap<AreaLocation, Area>,
+    area_loader: AreaLoader,
 }
 impl World {
     pub fn new(world_name: impl Into<String>) -> Self {
         Self {
             world_name: world_name.into(),
             areas: HashMap::new(),
+            area_loader: AreaLoader::new(),
         }
     }
 
@@ -132,17 +134,23 @@ impl World {
     }
 
     pub fn retain_areas(&mut self, area_locations: &[AreaLocation]) {
+        let loaded = self.area_loader.get_loaded();
+        for area in loaded {
+            let area_location = area.get_area_location();
+            if self.areas.contains_key(&area_location) {
+                continue;
+            }
+            self.areas.insert(area_location, area);
+        }
+        
         let area_locations_to_load = area_locations
             .iter()
             .filter(|location| !self.areas.contains_key(location))
             .map(|reference| *reference)
-            .collect();
+            .collect::<Vec<_>>();
 
-        let loaded_areas = batch_load(area_locations_to_load, self.world_name.clone());
-        for area in loaded_areas {
-            let area_location = AreaLocation::new(area.get_x(), area.get_y());
-            self.areas.insert(area_location, area);
-        }
+        self.area_loader.batch_load(&area_locations_to_load, &self.world_name);
+        
 
         let areas_to_unload: Vec<_> = self
             .areas
