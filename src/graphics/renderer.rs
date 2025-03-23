@@ -79,8 +79,8 @@ impl Renderer {
                 mesh_generator::FaceDirection::Back,
             ));
         }
-        if global_location.z + 1 >= AREA_HEIGHT
-            || Voxel::None == world.get(global_location.offset_z(1))
+        if global_location.z + 1 < AREA_HEIGHT
+            && Voxel::None == world.get(global_location.offset_z(1))
         {
             meshes.push(self.mesh_generator.generate_mesh(
                 voxel,
@@ -88,7 +88,7 @@ impl Renderer {
                 mesh_generator::FaceDirection::Down,
             ));
         }
-        if global_location.z <= 0 || Voxel::None == world.get(global_location.offset_z(-1)) {
+        if global_location.z > 0 && Voxel::None == world.get(global_location.offset_z(-1)) {
             meshes.push(self.mesh_generator.generate_mesh(
                 voxel,
                 global_location,

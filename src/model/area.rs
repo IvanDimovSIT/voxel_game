@@ -8,7 +8,7 @@ use super::{
 
 pub const AREA_SIZE: u32 = 32;
 pub const AREA_HEIGHT: u32 = 64;
-const VOXELS_IN_AREA: usize = (AREA_SIZE * AREA_SIZE * AREA_HEIGHT) as usize;
+pub const VOXELS_IN_AREA: usize = (AREA_SIZE * AREA_SIZE * AREA_HEIGHT) as usize;
 
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, Encode, Decode)]
 pub struct AreaLocation {

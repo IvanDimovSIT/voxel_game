@@ -163,4 +163,8 @@ impl World {
             self.unload_area(area_location);
         }
     }
+
+    pub fn get_loaded_areas_count(&self) -> usize {
+        self.areas.len()
+    }
 }

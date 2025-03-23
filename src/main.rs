@@ -1,4 +1,4 @@
-use graphics::renderer::Renderer;
+use graphics::{debug_display::DebugDisplay, renderer::Renderer};
 use macroquad::{
     camera::{Camera3D, set_camera},
     color::{BEIGE, Color},
@@ -13,7 +13,7 @@ use model::{
 };
 use service::{
     camera_controller::{self, CameraController},
-    input::{enter_focus, exit_focus, move_back, move_forward, move_left, move_right},
+    input::{enter_focus, exit_focus, move_back, move_forward, move_left, move_right, toggle_debug},
     render_zone::{get_load_zone, get_render_zone},
 };
 
@@ -31,6 +31,7 @@ async fn main() {
     let mut world = World::new("test_world");
     let mut renderer = Renderer::new().await;
     let mut camera_controller = CameraController::new(position);
+    let mut debug_display = DebugDisplay::new();
 
     //world.set(Location::new(10, 0, 10).into(), model::voxel::Voxel::Stone);
     //world.set(Location::new(10, 1, 10).into(), model::voxel::Voxel::Stone);
@@ -64,6 +65,9 @@ async fn main() {
         if exit_focus() {
             camera_controller.set_focus(false);
         }
+        if toggle_debug() {
+            debug_display.toggle_display();
+        }
 
         let camera = camera_controller.create_camera();
         set_camera(&camera);
@@ -75,6 +79,7 @@ async fn main() {
         world.retain_areas(&get_load_zone(camera_location.into(), RENDER_SIZE));
 
         renderer.render_voxels();
+        debug_display.draw_debug_display(&world, &renderer, &camera_controller, &camera);
 
         next_frame().await;
     }

@@ -1,4 +1,4 @@
-use macroquad::input::{is_key_down, is_mouse_button_released};
+use macroquad::input::{is_key_down, is_key_released, is_mouse_button_released};
 
 pub fn move_left() -> bool {
     is_key_down(macroquad::input::KeyCode::A) || is_key_down(macroquad::input::KeyCode::Left)
@@ -22,4 +22,8 @@ pub fn enter_focus() -> bool {
 
 pub fn exit_focus() -> bool {
     is_key_down(macroquad::input::KeyCode::Escape)
+}
+
+pub fn toggle_debug() -> bool {
+    is_key_released(macroquad::input::KeyCode::GraveAccent)
 }
