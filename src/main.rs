@@ -27,7 +27,7 @@ mod service;
 mod utils;
 
 const RENDER_SIZE: u32 = 2;
-const VOXEL_REACH: f32 = 5.0;
+const VOXEL_REACH: f32 = 7.0;
 
 #[macroquad::main("Voxel World")]
 async fn main() {
@@ -110,8 +110,8 @@ async fn main() {
         );
         world.retain_areas(&get_load_zone(camera_location.into(), RENDER_SIZE));
 
-        renderer.render_voxels();
-        debug_display.draw_debug_display(&world, &renderer, &camera_controller, &camera);
+        let rendered = renderer.render_voxels(&camera);
+        debug_display.draw_debug_display(&world, &renderer, &camera, rendered);
 
         next_frame().await;
     }

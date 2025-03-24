@@ -1,16 +1,16 @@
 use std::collections::HashMap;
 
 use macroquad::{
-    models::{Mesh, draw_mesh},
-    prelude::debug,
+    camera::Camera3D, math::{vec2, vec3, Vec2, Vec3}, models::{draw_mesh, Mesh}, prelude::debug
 };
+use rayon::iter::{ParallelBridge, ParallelIterator};
 
-use crate::model::{
-    area::{AREA_HEIGHT, AreaLocation},
-    location::InternalLocation,
+use crate::{model::{
+    area::{AreaLocation, AREA_HEIGHT, AREA_SIZE},
+    location::{InternalLocation, Location, LOCATION_OFFSET},
     voxel::Voxel,
     world::World,
-};
+}, service::camera_controller::{self, CameraController}};
 
 use super::mesh_generator::{self, MeshGenerator};
 
@@ -110,11 +110,12 @@ impl Renderer {
             area = self.meshes.get_mut(&area_location);
         }
         let area = area.unwrap();
-        if let Some(some) = area.get_mut(&location) {
-            *some = meshes;
-        } else {
-            area.insert(location, meshes);
+        if meshes.is_empty() {
+            area.remove(&location);
+            return;
         }
+
+        area.insert(location, meshes);
     }
 
     fn update_meshes_for_voxel(
@@ -172,14 +173,45 @@ impl Renderer {
         }
     }
 
-    pub fn render_voxels(&self) {
-        for area in self.meshes.values() {
-            for meshes in area.values() {
+    fn is_area_visible(area_location: AreaLocation, camera: &Camera3D, look: Vec3) -> bool {
+        let area_middle = [
+            (area_location.x * AREA_SIZE + AREA_SIZE/2) as i32 - LOCATION_OFFSET,
+            (area_location.y * AREA_SIZE + AREA_SIZE/2) as i32 - LOCATION_OFFSET,
+        ]; 
+        let area_vec = vec3(area_middle[0] as f32, area_middle[1] as f32, camera.target.z);
+        if camera.position.distance(area_vec) <= AREA_SIZE as f32 {
+            return true;
+        }
+
+        let area_look = (area_vec - camera.position)
+            .normalize_or_zero();
+
+        area_look.dot(look) >= -0.1
+    }
+
+    /// Returns the number of rendered areas and faces
+    pub fn render_voxels(&self, camera: &Camera3D) -> (usize, usize) {
+        let position = camera.position;
+        let look = (camera.target - position).normalize_or_zero();
+
+        let visible_areas: Vec<_> = self.meshes.iter()
+            .filter(|(area, _meshes)| 
+                Self::is_area_visible(**area, camera, look))
+            .collect();
+
+        let mut faces_visible = 0;
+        
+        for (_, areas) in &visible_areas {
+            for meshes in areas.values() {
+                debug_assert!(meshes.len() > 0, "Meshes map is storing empty voxels");
+                faces_visible += meshes.len();
                 for mesh in meshes {
                     draw_mesh(mesh);
                 }
             }
         }
+
+        (visible_areas.len(), faces_visible)
     }
 
     pub fn get_voxel_face_count(&self) -> usize {
