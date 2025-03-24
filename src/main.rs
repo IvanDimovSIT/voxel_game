@@ -102,7 +102,6 @@ async fn main() {
             debug_display.toggle_display();
         }
 
-        set_camera(&camera);
         let camera_location = camera_controller.get_camera_voxel_location();
         renderer.update_loaded_areas(
             &mut world,

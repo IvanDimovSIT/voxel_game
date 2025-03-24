@@ -1,7 +1,7 @@
 use macroquad::{
-    camera::{Camera3D, set_default_camera},
+    camera::{set_default_camera, Camera3D},
     color::WHITE,
-    prelude::info,
+    prelude::{gl_use_default_material, info},
     text::draw_text,
     time::{get_fps, get_frame_time},
 };
@@ -51,6 +51,7 @@ impl DebugDisplay {
         let areas_memory_kb = loaded_areas * size_of::<Voxel>() * VOXELS_IN_AREA / KILOBYTE;
 
         set_default_camera();
+        gl_use_default_material();
         draw_text(
             &format!("FPS:{fps}({frame_time_ms:.2}ms)"),
             10.0,

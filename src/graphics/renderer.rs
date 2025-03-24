@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use macroquad::{
-    camera::Camera3D, math::{vec2, vec3, Vec2, Vec3}, models::{draw_mesh, Mesh}, prelude::debug
+    camera::{set_camera, Camera3D}, math::{vec2, vec3, Vec2, Vec3}, models::{draw_mesh, Mesh}, prelude::debug
 };
 use rayon::iter::{ParallelBridge, ParallelIterator};
 
@@ -12,19 +12,21 @@ use crate::{model::{
     world::World,
 }, service::camera_controller::{self, CameraController}};
 
-use super::mesh_generator::{self, MeshGenerator};
+use super::{mesh_generator::{self, MeshGenerator}, voxel_shader::VoxelShader};
 
 type Meshes = HashMap<AreaLocation, HashMap<InternalLocation, Vec<Mesh>>>;
 
 pub struct Renderer {
     meshes: Meshes,
     mesh_generator: MeshGenerator,
+    shader: VoxelShader
 }
 impl Renderer {
     pub async fn new() -> Self {
         Self {
             meshes: Meshes::new(),
             mesh_generator: MeshGenerator::new().await,
+            shader: VoxelShader::new(),
         }
     }
 
@@ -191,6 +193,8 @@ impl Renderer {
 
     /// Returns the number of rendered areas and faces
     pub fn render_voxels(&self, camera: &Camera3D) -> (usize, usize) {
+        set_camera(camera);
+        self.shader.set_material();
         let position = camera.position;
         let look = (camera.target - position).normalize_or_zero();
 

@@ -76,14 +76,8 @@ impl MeshGenerator {
             FaceDirection::Front => {
                 vec![
                     Vertex {
-                        position: Vec3::new(offset_x - 0.5, offset_y + 0.5, offset_z - 0.5),
-                        uv: Vec2::new(0.0, 0.0),
-                        color,
-                        normal: Self::FRONT_NORMAL,
-                    },
-                    Vertex {
-                        position: Vec3::new(offset_x + 0.5, offset_y + 0.5, offset_z - 0.5),
-                        uv: Vec2::new(1.0, 0.0),
+                        position: Vec3::new(offset_x - 0.5, offset_y + 0.5, offset_z + 0.5),
+                        uv: Vec2::new(0.0, 1.0),
                         color,
                         normal: Self::FRONT_NORMAL,
                     },
@@ -94,8 +88,14 @@ impl MeshGenerator {
                         normal: Self::FRONT_NORMAL,
                     },
                     Vertex {
-                        position: Vec3::new(offset_x - 0.5, offset_y + 0.5, offset_z + 0.5),
-                        uv: Vec2::new(0.0, 1.0),
+                        position: Vec3::new(offset_x + 0.5, offset_y + 0.5, offset_z - 0.5),
+                        uv: Vec2::new(1.0, 0.0),
+                        color,
+                        normal: Self::FRONT_NORMAL,
+                    },
+                    Vertex {
+                        position: Vec3::new(offset_x - 0.5, offset_y + 0.5, offset_z - 0.5),
+                        uv: Vec2::new(0.0, 0.0),
                         color,
                         normal: Self::FRONT_NORMAL,
                     },
@@ -104,14 +104,8 @@ impl MeshGenerator {
             FaceDirection::Back => {
                 vec![
                     Vertex {
-                        position: Vec3::new(offset_x - 0.5, offset_y - 0.5, offset_z + 0.5),
-                        uv: Vec2::new(0.0, 0.0),
-                        color,
-                        normal: Self::BACK_NORMAL,
-                    },
-                    Vertex {
-                        position: Vec3::new(offset_x + 0.5, offset_y - 0.5, offset_z + 0.5),
-                        uv: Vec2::new(1.0, 0.0),
+                        position: Vec3::new(offset_x - 0.5, offset_y - 0.5, offset_z - 0.5),
+                        uv: Vec2::new(0.0, 1.0),
                         color,
                         normal: Self::BACK_NORMAL,
                     },
@@ -122,8 +116,14 @@ impl MeshGenerator {
                         normal: Self::BACK_NORMAL,
                     },
                     Vertex {
-                        position: Vec3::new(offset_x - 0.5, offset_y - 0.5, offset_z - 0.5),
-                        uv: Vec2::new(0.0, 1.0),
+                        position: Vec3::new(offset_x + 0.5, offset_y - 0.5, offset_z + 0.5),
+                        uv: Vec2::new(1.0, 0.0),
+                        color,
+                        normal: Self::BACK_NORMAL,
+                    },
+                    Vertex {
+                        position: Vec3::new(offset_x - 0.5, offset_y - 0.5, offset_z + 0.5),
+                        uv: Vec2::new(0.0, 0.0),
                         color,
                         normal: Self::BACK_NORMAL,
                     },
