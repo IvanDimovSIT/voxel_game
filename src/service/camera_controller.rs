@@ -6,10 +6,7 @@ use macroquad::{
     math::{Vec2, Vec3, vec3},
 };
 
-use crate::{
-    model::location::Location,
-    utils::vector_to_location,
-};
+use crate::{model::location::Location, utils::vector_to_location};
 
 const LOOK_SPEED: f32 = 0.1;
 
@@ -115,5 +112,11 @@ impl CameraController {
 
     pub fn is_focused(&self) -> bool {
         self.is_focused
+    }
+}
+impl Drop for CameraController {
+    fn drop(&mut self) {
+        set_cursor_grab(false);
+        show_mouse(true);
     }
 }

@@ -6,10 +6,7 @@ use macroquad::{
     time::get_frame_time,
     window::{clear_background, next_frame},
 };
-use model::{
-    location::Location,
-    world::World,
-};
+use model::{location::Location, world::World};
 use service::{
     camera_controller::CameraController,
     input::{

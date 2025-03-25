@@ -1,10 +1,6 @@
 use crate::{
     graphics::renderer::Renderer,
-    model::{
-        location::Location,
-        voxel::Voxel,
-        world::World,
-    },
+    model::{location::Location, voxel::Voxel, world::World},
 };
 
 pub fn place_voxel(

@@ -1,5 +1,5 @@
 use macroquad::{
-    camera::{set_default_camera, Camera3D},
+    camera::{Camera3D, set_default_camera},
     color::WHITE,
     prelude::{gl_use_default_material, info},
     text::draw_text,
@@ -8,7 +8,8 @@ use macroquad::{
 
 use crate::{
     model::{area::VOXELS_IN_AREA, voxel::Voxel, world::World},
-    service::camera_controller::CameraController, utils::vector_to_location,
+    service::camera_controller::CameraController,
+    utils::vector_to_location,
 };
 
 use super::renderer::Renderer;
@@ -36,7 +37,7 @@ impl DebugDisplay {
         world: &World,
         renderer: &Renderer,
         camera: &Camera3D,
-        rendered_areas_faces: (usize, usize)
+        rendered_areas_faces: (usize, usize),
     ) {
         if !self.should_display {
             return;
@@ -67,7 +68,10 @@ impl DebugDisplay {
             WHITE,
         );
         draw_text(
-            &format!("Visible: {} ({} areas)", rendered_areas_faces.1, rendered_areas_faces.0),
+            &format!(
+                "Visible: {} ({} areas)",
+                rendered_areas_faces.1, rendered_areas_faces.0
+            ),
             10.0,
             3.0 * FONT_SIZE,
             FONT_SIZE,

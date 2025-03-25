@@ -1,9 +1,7 @@
 use macroquad::math::Vec3;
 
 use crate::{
-    model::{
-        area::AREA_HEIGHT, location::Location, voxel::Voxel, world::World
-    },
+    model::{area::AREA_HEIGHT, location::Location, voxel::Voxel, world::World},
     utils::vector_to_location,
 };
 

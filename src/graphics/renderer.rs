@@ -1,25 +1,34 @@
 use std::collections::HashMap;
 
 use macroquad::{
-    camera::{set_camera, Camera3D}, math::{vec2, vec3, Vec2, Vec3}, models::{draw_mesh, Mesh}, prelude::debug
+    camera::{Camera3D, set_camera},
+    math::{Vec2, Vec3, vec2, vec3},
+    models::{Mesh, draw_mesh},
+    prelude::debug,
 };
 use rayon::iter::{ParallelBridge, ParallelIterator};
 
-use crate::{model::{
-    area::{AreaLocation, AREA_HEIGHT, AREA_SIZE},
-    location::{InternalLocation, Location, LOCATION_OFFSET},
-    voxel::Voxel,
-    world::World,
-}, service::camera_controller::{self, CameraController}};
+use crate::{
+    model::{
+        area::{AREA_HEIGHT, AREA_SIZE, AreaLocation},
+        location::{InternalLocation, LOCATION_OFFSET, Location},
+        voxel::Voxel,
+        world::World,
+    },
+    service::camera_controller::{self, CameraController},
+};
 
-use super::{mesh_generator::{self, MeshGenerator}, voxel_shader::VoxelShader};
+use super::{
+    mesh_generator::{self, MeshGenerator},
+    voxel_shader::VoxelShader,
+};
 
 type Meshes = HashMap<AreaLocation, HashMap<InternalLocation, Vec<Mesh>>>;
 
 pub struct Renderer {
     meshes: Meshes,
     mesh_generator: MeshGenerator,
-    shader: VoxelShader
+    shader: VoxelShader,
 }
 impl Renderer {
     pub async fn new() -> Self {
@@ -177,16 +186,19 @@ impl Renderer {
 
     fn is_area_visible(area_location: AreaLocation, camera: &Camera3D, look: Vec3) -> bool {
         let area_middle = [
-            (area_location.x * AREA_SIZE + AREA_SIZE/2) as i32 - LOCATION_OFFSET,
-            (area_location.y * AREA_SIZE + AREA_SIZE/2) as i32 - LOCATION_OFFSET,
-        ]; 
-        let area_vec = vec3(area_middle[0] as f32, area_middle[1] as f32, camera.target.z);
+            (area_location.x * AREA_SIZE + AREA_SIZE / 2) as i32 - LOCATION_OFFSET,
+            (area_location.y * AREA_SIZE + AREA_SIZE / 2) as i32 - LOCATION_OFFSET,
+        ];
+        let area_vec = vec3(
+            area_middle[0] as f32,
+            area_middle[1] as f32,
+            camera.target.z,
+        );
         if camera.position.distance(area_vec) <= AREA_SIZE as f32 {
             return true;
         }
 
-        let area_look = (area_vec - camera.position)
-            .normalize_or_zero();
+        let area_look = (area_vec - camera.position).normalize_or_zero();
 
         area_look.dot(look) >= -0.1
     }
@@ -198,13 +210,14 @@ impl Renderer {
         let position = camera.position;
         let look = (camera.target - position).normalize_or_zero();
 
-        let visible_areas: Vec<_> = self.meshes.iter()
-            .filter(|(area, _meshes)| 
-                Self::is_area_visible(**area, camera, look))
+        let visible_areas: Vec<_> = self
+            .meshes
+            .iter()
+            .filter(|(area, _meshes)| Self::is_area_visible(**area, camera, look))
             .collect();
 
         let mut faces_visible = 0;
-        
+
         for (_, areas) in &visible_areas {
             for meshes in areas.values() {
                 debug_assert!(meshes.len() > 0, "Meshes map is storing empty voxels");
