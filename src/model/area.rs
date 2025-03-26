@@ -6,7 +6,7 @@ use super::{
     world::World,
 };
 
-pub const AREA_SIZE: u32 = 32;
+pub const AREA_SIZE: u32 = 16;
 pub const AREA_HEIGHT: u32 = 64;
 pub const VOXELS_IN_AREA: usize = (AREA_SIZE * AREA_SIZE * AREA_HEIGHT) as usize;
 
@@ -33,12 +33,14 @@ impl From<Location> for AreaLocation {
 
 #[derive(Debug, Encode, Decode)]
 pub struct Area {
+    pub has_changed: bool,
     area_location: AreaLocation,
     voxels: Box<[Voxel]>,
 }
 impl Area {
     pub fn new(area_location: AreaLocation) -> Self {
         Self {
+            has_changed: true,
             area_location,
             voxels: vec![Voxel::None; VOXELS_IN_AREA].into_boxed_slice(),
         }

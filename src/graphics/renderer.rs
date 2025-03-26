@@ -23,6 +23,8 @@ use super::{
     voxel_shader::VoxelShader,
 };
 
+const RENDER_THRESHOLD: f32 = 0.41;
+const LOOK_DOWN_RENDER_MULTIPLIER: f32 = 0.7;
 type Meshes = HashMap<AreaLocation, HashMap<InternalLocation, Vec<Mesh>>>;
 
 pub struct Renderer {
@@ -184,7 +186,7 @@ impl Renderer {
         }
     }
 
-    fn is_area_visible(area_location: AreaLocation, camera: &Camera3D, look: Vec3) -> bool {
+    fn is_area_visible(area_location: AreaLocation, camera: &Camera3D, look: Vec3, render_distance: f32) -> bool {
         let area_middle = [
             (area_location.x * AREA_SIZE + AREA_SIZE / 2) as i32 - LOCATION_OFFSET,
             (area_location.y * AREA_SIZE + AREA_SIZE / 2) as i32 - LOCATION_OFFSET,
@@ -194,26 +196,33 @@ impl Renderer {
             area_middle[1] as f32,
             camera.target.z,
         );
-        if camera.position.distance(area_vec) <= AREA_SIZE as f32 {
+        if camera.position.distance(area_vec) <= render_distance {
             return true;
         }
 
         let area_look = (area_vec - camera.position).normalize_or_zero();
 
-        area_look.dot(look) >= -0.1
+        area_look.dot(look) >= RENDER_THRESHOLD
+    }
+
+    fn calculate_render_distance(look: Vec3, render_size: u32) -> f32 {
+        const DOWN: Vec3 = vec3(0.0, 0.0, 1.0); 
+        let dot_product = look.dot(DOWN).abs() * (AREA_SIZE * render_size) as f32;
+        (dot_product * LOOK_DOWN_RENDER_MULTIPLIER).max(AREA_SIZE as f32)
     }
 
     /// Returns the number of rendered areas and faces
-    pub fn render_voxels(&self, camera: &Camera3D) -> (usize, usize) {
+    pub fn render_voxels(&self, camera: &Camera3D, render_size: u32) -> (usize, usize) {
         set_camera(camera);
         self.shader.set_material();
         let position = camera.position;
         let look = (camera.target - position).normalize_or_zero();
+        let render_distance = Self::calculate_render_distance(look, render_size);
 
         let visible_areas: Vec<_> = self
             .meshes
             .iter()
-            .filter(|(area, _meshes)| Self::is_area_visible(**area, camera, look))
+            .filter(|(area, _meshes)| Self::is_area_visible(**area, camera, look, render_distance))
             .collect();
 
         let mut faces_visible = 0;

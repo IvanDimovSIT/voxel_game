@@ -114,9 +114,3 @@ impl CameraController {
         self.is_focused
     }
 }
-impl Drop for CameraController {
-    fn drop(&mut self) {
-        set_cursor_grab(false);
-        show_mouse(true);
-    }
-}

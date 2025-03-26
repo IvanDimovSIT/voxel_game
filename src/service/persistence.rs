@@ -27,6 +27,7 @@ fn get_filepath(area_x: u32, area_y: u32, world_name: &str) -> String {
 }
 
 pub fn store_blocking(area: &Area, world_name: &str) {
+    debug_assert!(area.has_changed);
     let filepath = get_filepath(area.get_x(), area.get_y(), world_name);
 
     let encode_result = match encode_to_vec(area, SERIALIZATION_CONFIG) {
@@ -54,6 +55,7 @@ pub fn store_blocking(area: &Area, world_name: &str) {
 }
 
 pub fn store(area: Area, world_name: String) {
+    debug_assert!(area.has_changed);
     rayon::spawn(move || {
         STORE_SEMAPHORE.acquire();
         store_blocking(&area, &world_name);
@@ -78,13 +80,14 @@ pub fn load_blocking(area_location: AreaLocation, world_name: &str) -> Area {
         return generate_area(area_location);
     };
 
-    let (area, _read): (Area, usize) = match decode_from_slice(&buf, SERIALIZATION_CONFIG) {
+    let (mut area, _read): (Area, usize) = match decode_from_slice(&buf, SERIALIZATION_CONFIG) {
         Ok(ok) => ok,
         Err(err) => {
             error!("Error decoding file '{}': {}", filepath, err);
             return generate_area(area_location);
         }
     };
+    area.has_changed = false;
     info!("Loaded '{}'", filepath);
 
     area

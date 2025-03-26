@@ -43,7 +43,9 @@ impl World {
             return;
         }
         if let Some(unloaded) = self.areas.remove(&area_location) {
-            persistence::store(unloaded, self.world_name.clone());
+            if unloaded.has_changed {
+                persistence::store(unloaded, self.world_name.clone());
+            }
         } else {
             error!("Missing loaded {:?}", area_location);
         }
@@ -130,6 +132,7 @@ impl World {
             Self::convert_global_to_area_and_local_location(location);
         self.load_area(area_location);
         let area = self.areas.get_mut(&area_location).expect("Area not loaded");
+        area.has_changed = true;
         area.set(local_location, voxel);
     }
 
@@ -172,7 +175,9 @@ impl World {
         let start = Instant::now();
         info!("Saving world...");
         for area in self.areas.values() {
-            store_blocking(area, &self.world_name);
+            if area.has_changed {
+                store_blocking(area, &self.world_name);
+            }
         }
         let end = start.elapsed();
         info!("Saved in {}ms", end.as_millis());
