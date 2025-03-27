@@ -4,6 +4,8 @@ use bincode::{Decode, Encode};
 pub enum Voxel {
     None,
     Stone,
+    Sand,
+    Grass,
 }
 impl Default for Voxel {
     fn default() -> Self {

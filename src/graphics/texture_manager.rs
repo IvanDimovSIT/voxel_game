@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use macroquad::{
     logging::error,
-    texture::{Texture2D, load_texture},
+    texture::{Texture2D, build_textures_atlas, load_texture},
 };
 
 use crate::model::voxel::Voxel;
@@ -17,6 +17,15 @@ impl TextureManager {
             Voxel::Stone,
             Self::load_image("resources/images/stone.png").await,
         );
+        textures.insert(
+            Voxel::Sand,
+            Self::load_image("resources/images/sand.png").await,
+        );
+        textures.insert(
+            Voxel::Grass,
+            Self::load_image("resources/images/grass.png").await,
+        );
+        build_textures_atlas();
         Self { textures }
     }
 

@@ -8,14 +8,15 @@ use macroquad::{
 
 use crate::{
     model::{area::VOXELS_IN_AREA, voxel::Voxel, world::World},
-    service::camera_controller::CameraController,
     utils::vector_to_location,
 };
 
 use super::renderer::Renderer;
 
 const KILOBYTE: usize = 1024;
+const MS_IN_SECONDS: f32 = 1000.0;
 const FONT_SIZE: f32 = 30.0;
+const LEFT_MARGIN: f32 = 10.0;
 
 pub struct DebugDisplay {
     should_display: bool,
@@ -44,7 +45,7 @@ impl DebugDisplay {
         }
 
         let fps = get_fps();
-        let frame_time_ms = get_frame_time() * 1000.0;
+        let frame_time_ms = get_frame_time() * MS_IN_SECONDS;
         let meshes = renderer.get_voxel_face_count();
         let camera_location = vector_to_location(camera.position);
         let look_target = camera.target;
@@ -55,14 +56,14 @@ impl DebugDisplay {
         gl_use_default_material();
         draw_text(
             &format!("FPS:{fps}({frame_time_ms:.2}ms)"),
-            10.0,
+            LEFT_MARGIN,
             FONT_SIZE,
             FONT_SIZE,
             WHITE,
         );
         draw_text(
             &format!("Voxel faces:{meshes}"),
-            10.0,
+            LEFT_MARGIN,
             2.0 * FONT_SIZE,
             FONT_SIZE,
             WHITE,
@@ -72,14 +73,14 @@ impl DebugDisplay {
                 "Visible: {} ({} areas)",
                 rendered_areas_faces.1, rendered_areas_faces.0
             ),
-            10.0,
+            LEFT_MARGIN,
             3.0 * FONT_SIZE,
             FONT_SIZE,
             WHITE,
         );
         draw_text(
             &format!("Loaded areas:{loaded_areas}({areas_memory_kb}KB)"),
-            10.0,
+            LEFT_MARGIN,
             4.0 * FONT_SIZE,
             FONT_SIZE,
             WHITE,
@@ -89,7 +90,7 @@ impl DebugDisplay {
                 "X:{:.2}, Y:{:.2}, Z:{:.2}",
                 camera.position.x, camera.position.y, camera.position.z
             ),
-            10.0,
+            LEFT_MARGIN,
             5.0 * FONT_SIZE,
             FONT_SIZE,
             WHITE,
@@ -99,7 +100,7 @@ impl DebugDisplay {
                 "(X:{}, Y:{}, Z:{})",
                 camera_location.x, camera_location.y, camera_location.z
             ),
-            10.0,
+            LEFT_MARGIN,
             6.0 * FONT_SIZE,
             FONT_SIZE,
             WHITE,
@@ -109,7 +110,7 @@ impl DebugDisplay {
                 "Look: X:{:.2}, Y:{:.2}, Z:{:.2}",
                 look_target.x, look_target.y, look_target.z
             ),
-            10.0,
+            LEFT_MARGIN,
             7.0 * FONT_SIZE,
             FONT_SIZE,
             WHITE,

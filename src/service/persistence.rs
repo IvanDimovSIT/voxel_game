@@ -70,21 +70,21 @@ pub fn load_blocking(area_location: AreaLocation, world_name: &str) -> Area {
         Ok(ok) => ok,
         Err(err) => {
             warn!("Couldn't open file '{}': {}", filepath, err);
-            return generate_area(area_location);
+            return generate_area(area_location, world_name);
         }
     };
 
     let mut buf = vec![];
     if let Err(err) = file.read_to_end(&mut buf) {
         error!("Error reading file '{}': {}", filepath, err);
-        return generate_area(area_location);
+        return generate_area(area_location, world_name);
     };
 
     let (mut area, _read): (Area, usize) = match decode_from_slice(&buf, SERIALIZATION_CONFIG) {
         Ok(ok) => ok,
         Err(err) => {
             error!("Error decoding file '{}': {}", filepath, err);
-            return generate_area(area_location);
+            return generate_area(area_location, world_name);
         }
     };
     area.has_changed = false;

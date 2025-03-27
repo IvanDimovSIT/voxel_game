@@ -25,6 +25,7 @@ mod utils;
 
 const RENDER_SIZE: u32 = 6;
 const VOXEL_REACH: f32 = 7.0;
+const MOVE_SPEED: f32 = 15.0;
 
 #[macroquad::main("Voxel World")]
 async fn main() {
@@ -74,16 +75,16 @@ async fn main() {
         }
 
         if move_forward() {
-            camera_controller.move_forward(10.0, delta);
+            camera_controller.move_forward(MOVE_SPEED, delta);
         }
         if move_back() {
-            camera_controller.move_forward(-10.0, delta);
+            camera_controller.move_forward(-MOVE_SPEED, delta);
         }
         if move_left() {
-            camera_controller.move_right(-10.0, delta);
+            camera_controller.move_right(-MOVE_SPEED, delta);
         }
         if move_right() {
-            camera_controller.move_right(10.0, delta);
+            camera_controller.move_right(MOVE_SPEED, delta);
         }
         if enter_focus() {
             camera_controller.set_focus(true);

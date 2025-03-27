@@ -2,24 +2,20 @@ use std::collections::HashMap;
 
 use macroquad::{
     camera::{Camera3D, set_camera},
-    math::{Vec2, Vec3, vec2, vec3},
+    math::{Vec3, vec3},
     models::{Mesh, draw_mesh},
     prelude::debug,
 };
-use rayon::iter::{ParallelBridge, ParallelIterator};
 
-use crate::{
-    model::{
-        area::{AREA_HEIGHT, AREA_SIZE, AreaLocation},
-        location::{InternalLocation, LOCATION_OFFSET, Location},
-        voxel::Voxel,
-        world::World,
-    },
-    service::camera_controller::{self, CameraController},
+use crate::model::{
+    area::{AREA_HEIGHT, AREA_SIZE, AreaLocation},
+    location::{InternalLocation, LOCATION_OFFSET},
+    voxel::Voxel,
+    world::World,
 };
 
 use super::{
-    mesh_generator::{self, MeshGenerator},
+    mesh_generator::{FaceDirection, MeshGenerator},
     voxel_shader::VoxelShader,
 };
 
@@ -62,33 +58,32 @@ impl Renderer {
 
         let mut meshes = vec![];
 
-        //TODO: Extract into seperate function
         if Voxel::None == world.get(global_location.offset_x(1)) {
             meshes.push(self.mesh_generator.generate_mesh(
                 voxel,
                 global_location,
-                mesh_generator::FaceDirection::Left,
+                FaceDirection::Left,
             ));
         }
         if Voxel::None == world.get(global_location.offset_x(-1)) {
             meshes.push(self.mesh_generator.generate_mesh(
                 voxel,
                 global_location,
-                mesh_generator::FaceDirection::Right,
+                FaceDirection::Right,
             ));
         }
         if Voxel::None == world.get(global_location.offset_y(1)) {
             meshes.push(self.mesh_generator.generate_mesh(
                 voxel,
                 global_location,
-                mesh_generator::FaceDirection::Front,
+                FaceDirection::Front,
             ));
         }
         if Voxel::None == world.get(global_location.offset_y(-1)) {
             meshes.push(self.mesh_generator.generate_mesh(
                 voxel,
                 global_location,
-                mesh_generator::FaceDirection::Back,
+                FaceDirection::Back,
             ));
         }
         if global_location.z + 1 < AREA_HEIGHT
@@ -97,14 +92,14 @@ impl Renderer {
             meshes.push(self.mesh_generator.generate_mesh(
                 voxel,
                 global_location,
-                mesh_generator::FaceDirection::Down,
+                FaceDirection::Down,
             ));
         }
         if global_location.z > 0 && Voxel::None == world.get(global_location.offset_z(-1)) {
             meshes.push(self.mesh_generator.generate_mesh(
                 voxel,
                 global_location,
-                mesh_generator::FaceDirection::Up,
+                FaceDirection::Up,
             ));
         }
 
@@ -186,7 +181,12 @@ impl Renderer {
         }
     }
 
-    fn is_area_visible(area_location: AreaLocation, camera: &Camera3D, look: Vec3, render_distance: f32) -> bool {
+    fn is_area_visible(
+        area_location: AreaLocation,
+        camera: &Camera3D,
+        look: Vec3,
+        render_distance: f32,
+    ) -> bool {
         let area_middle = [
             (area_location.x * AREA_SIZE + AREA_SIZE / 2) as i32 - LOCATION_OFFSET,
             (area_location.y * AREA_SIZE + AREA_SIZE / 2) as i32 - LOCATION_OFFSET,
@@ -206,7 +206,7 @@ impl Renderer {
     }
 
     fn calculate_render_distance(look: Vec3, render_size: u32) -> f32 {
-        const DOWN: Vec3 = vec3(0.0, 0.0, 1.0); 
+        const DOWN: Vec3 = vec3(0.0, 0.0, 1.0);
         let dot_product = look.dot(DOWN).abs() * (AREA_SIZE * render_size) as f32;
         (dot_product * LOOK_DOWN_RENDER_MULTIPLIER).max(AREA_SIZE as f32)
     }
