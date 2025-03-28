@@ -1,6 +1,5 @@
 use macroquad::prelude::{
-    Comparison, Material, MaterialParams, PipelineParams, ShaderSource, gl_use_material,
-    load_material,
+    gl_use_material, load_material, Comparison, Material, MaterialParams, PipelineParams, ShaderSource
 };
 
 pub const VERTEX_SHADER: &str = include_str!("../../resources/shaders/vertex.glsl");

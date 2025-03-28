@@ -7,7 +7,7 @@ varying vec3 fragNormal;
 
 uniform sampler2D Texture;
 
-const vec3 lightDir = normalize(vec3(0.2, 0.4, -1.0));
+const vec3 lightDir = normalize(vec3(0.2, 0.8, -1.0));
 
 void main() {
     vec4 texColor = texture2D(Texture, uv);
