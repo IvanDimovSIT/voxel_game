@@ -32,35 +32,39 @@ pub fn cast_ray(world: &mut World, from: Vec3, to: Vec3, max_distance: f32) -> R
     let mut previous_position = current_position;
 
     let next_boundary_x = if step_x < 0 {
-        current_position.x - 1
+        current_position.x as f32 - 0.5
     } else {
-        current_position.x + 1
+        current_position.x as f32 + 0.5 
     };
+    
     let next_boundary_y = if step_y < 0 {
-        current_position.y - 1
+        current_position.y as f32 - 0.5
     } else {
-        current_position.y + 1
+        current_position.y as f32 + 0.5
     };
+    
     let next_boundary_z = if step_z < 0 {
-        current_position.z - 1
+        current_position.z as f32 - 0.5
     } else {
-        current_position.z + 1
+        current_position.z as f32 + 0.5
     };
 
     let mut t_max_x = if ray.x.abs() <= f32::EPSILON {
         f32::INFINITY
     } else {
-        ((next_boundary_x as f32 - from.x) / ray.x).abs()
+        ((next_boundary_x - from.x) / ray.x).abs()
     };
+    
     let mut t_max_y = if ray.y.abs() <= f32::EPSILON {
         f32::INFINITY
     } else {
-        ((next_boundary_y as f32 - from.y) / ray.y).abs()
+        ((next_boundary_y - from.y) / ray.y).abs()
     };
+    
     let mut t_max_z = if ray.z.abs() <= f32::EPSILON {
         f32::INFINITY
     } else {
-        ((next_boundary_z as f32 - from.z) / ray.z).abs()
+        ((next_boundary_z - from.z) / ray.z).abs()
     };
 
     let delta_x = (1.0 / ray.x).abs();
@@ -80,26 +84,36 @@ pub fn cast_ray(world: &mut World, from: Vec3, to: Vec3, max_distance: f32) -> R
     }
 
     while distance_traveled < max_distance {
-        if t_max_x < t_max_y && t_max_x < t_max_z {
-            previous_position = current_position;
-            current_position.x += step_x;
-            distance_traveled = t_max_x;
-            t_max_x += delta_x
-        } else if t_max_y < t_max_z {
-            previous_position = current_position;
-            current_position.y += step_y;
-            distance_traveled = t_max_y;
-            t_max_y += delta_y;
+        if t_max_x < t_max_y {
+            if t_max_x < t_max_z {
+                previous_position = current_position;
+                current_position.x += step_x;
+                distance_traveled = t_max_x;
+                t_max_x += delta_x;
+            } else {
+                previous_position = current_position;
+                current_position.z += step_z;
+                distance_traveled = t_max_z;
+                t_max_z += delta_z;
+            }
         } else {
-            previous_position = current_position;
-            current_position.z += step_z;
-            distance_traveled = t_max_z;
-            t_max_z += delta_z;
+            if t_max_y < t_max_z {
+                previous_position = current_position;
+                current_position.y += step_y;
+                distance_traveled = t_max_y;
+                t_max_y += delta_y;
+            } else {
+                previous_position = current_position;
+                current_position.z += step_z;
+                distance_traveled = t_max_z;
+                t_max_z += delta_z;
+            }
         }
 
         if current_position.z < 0 || current_position.z >= AREA_HEIGHT as i32 {
             return RaycastResult::NoneHit;
         }
+
         if is_hit(world, current_position) {
             return RaycastResult::Hit {
                 first_non_empty: current_position,

@@ -1,17 +1,14 @@
 use macroquad::{
-    camera,
-    color::BEIGE,
-    math::vec3,
-    window::{clear_background, next_frame},
+    camera::set_default_camera, color::BEIGE, math::vec3, prelude::gl_use_default_material, window::{clear_background, next_frame, screen_height, screen_width}
 };
 
 use crate::{
-    graphics::{debug_display::DebugDisplay, renderer::Renderer},
+    graphics::{debug_display::DebugDisplay, renderer::Renderer, ui_display::draw_crosshair},
     model::{voxel::Voxel, world::World},
     service::{
         camera_controller::CameraController,
         input::*,
-        raycast::{RaycastResult, cast_ray},
+        raycast::{cast_ray, RaycastResult},
         render_zone::{get_load_zone, get_render_zone},
         world_actions::{destroy_voxel, place_voxel},
     },
@@ -44,7 +41,7 @@ impl VoxelEngine {
             renderer: Renderer::new().await,
             player_info,
             debug_display: DebugDisplay::new(),
-            render_size: 6,
+            render_size: 7,
         }
     }
 
@@ -141,8 +138,13 @@ impl VoxelEngine {
     pub async fn draw_scene(&mut self) {
         clear_background(BEIGE);
 
+        let width = screen_width();
+        let height = screen_height();
         let camera = self.player_info.camera_controller.create_camera();
         let rendered = self.renderer.render_voxels(&camera, self.render_size);
+        set_default_camera();
+        gl_use_default_material();
+        draw_crosshair(width, height);
         self.debug_display
             .draw_debug_display(&self.world, &self.renderer, &camera, rendered);
 

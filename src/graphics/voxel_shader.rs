@@ -1,6 +1,6 @@
-use macroquad::prelude::{
-    gl_use_material, load_material, Comparison, Material, MaterialParams, PipelineParams, ShaderSource
-};
+use macroquad::{camera::Camera3D, prelude::{
+    gl_use_material, load_material, Comparison, Material, MaterialParams, PipelineParams, ShaderSource, UniformDesc, UniformType
+}};
 
 pub const VERTEX_SHADER: &str = include_str!("../../resources/shaders/vertex.glsl");
 pub const FRAGMENT_SHADER: &str = include_str!("../../resources/shaders/fragment.glsl");
@@ -17,6 +17,9 @@ impl VoxelShader {
             ..Default::default()
         };
 
+        let camera_uniform = UniformDesc::new("cameraPos", UniformType::Float3);
+        let look_uniform = UniformDesc::new("cameraTarget", UniformType::Float3);
+
         let material = load_material(
             ShaderSource::Glsl {
                 vertex: VERTEX_SHADER,
@@ -24,6 +27,7 @@ impl VoxelShader {
             },
             MaterialParams {
                 pipeline_params,
+                uniforms: vec![camera_uniform, look_uniform],
                 ..Default::default()
             },
         )
@@ -32,7 +36,9 @@ impl VoxelShader {
         Self { material }
     }
 
-    pub fn set_material(&self) {
+    pub fn set_material(&self, camera: &Camera3D) {
+        self.material.set_uniform("cameraPos", [camera.position.x, camera.position.y, camera.position.z]);
+        self.material.set_uniform("cameraTarget", [camera.target.x, camera.target.y, camera.target.z]);
         gl_use_material(&self.material);
     }
 }

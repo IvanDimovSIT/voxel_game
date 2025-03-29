@@ -52,8 +52,6 @@ impl DebugDisplay {
         let loaded_areas = world.get_loaded_areas_count();
         let areas_memory_kb = loaded_areas * size_of::<Voxel>() * VOXELS_IN_AREA / KILOBYTE;
 
-        set_default_camera();
-        gl_use_default_material();
         draw_text(
             &format!("FPS:{fps}({frame_time_ms:.2}ms)"),
             LEFT_MARGIN,

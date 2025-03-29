@@ -56,6 +56,7 @@ impl CameraController {
     }
 
     pub fn update_look(&mut self, delta: f32) {
+        let delta = delta.min(0.03);
         let mouse_position: Vec2 = mouse_position().into();
         let mouse_delta = mouse_position - self.last_mouse_position;
         self.last_mouse_position = mouse_position;

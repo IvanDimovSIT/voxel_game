@@ -19,8 +19,8 @@ use super::{
     voxel_shader::VoxelShader,
 };
 
-const RENDER_THRESHOLD: f32 = 0.41;
-const LOOK_DOWN_RENDER_MULTIPLIER: f32 = 0.7;
+const RENDER_THRESHOLD: f32 = 0.5;
+const LOOK_DOWN_RENDER_MULTIPLIER: f32 = 0.5;
 type Meshes = HashMap<AreaLocation, HashMap<InternalLocation, Vec<Mesh>>>;
 
 pub struct Renderer {
@@ -207,14 +207,16 @@ impl Renderer {
 
     fn calculate_render_distance(look: Vec3, render_size: u32) -> f32 {
         const DOWN: Vec3 = vec3(0.0, 0.0, 1.0);
-        let dot_product = look.dot(DOWN).abs() * (AREA_SIZE * render_size) as f32;
-        (dot_product * LOOK_DOWN_RENDER_MULTIPLIER).max(AREA_SIZE as f32)
+        let dot_product = look.dot(DOWN).abs();
+        let dot_product_smooth = 1.0 - (1.0 - dot_product)*(1.0 - dot_product);
+        let render_distance = dot_product_smooth * (AREA_SIZE * render_size) as f32;
+        (render_distance * LOOK_DOWN_RENDER_MULTIPLIER).max(AREA_SIZE as f32)
     }
 
     /// Returns the number of rendered areas and faces
     pub fn render_voxels(&self, camera: &Camera3D, render_size: u32) -> (usize, usize) {
         set_camera(camera);
-        self.shader.set_material();
+        self.shader.set_material(camera);
         let position = camera.position;
         let look = (camera.target - position).normalize_or_zero();
         let render_distance = Self::calculate_render_distance(look, render_size);

@@ -9,15 +9,15 @@ mod voxel_engine;
 
 fn config() -> Conf {
     Conf {
-        draw_call_vertex_capacity: 40000,
-        draw_call_index_capacity: 20000,
-        ..Default::default()
+        draw_call_vertex_capacity: 400,
+        draw_call_index_capacity: 200,
+        ..Default::default()        
     }
 }
 
 #[macroquad::main("Voxel World", config)]
 async fn main() {
-    let mut voxel_engine = VoxelEngine::new("text_world").await;
+    let mut voxel_engine = VoxelEngine::new("test_world").await;
 
     loop {
         let delta = get_frame_time();
