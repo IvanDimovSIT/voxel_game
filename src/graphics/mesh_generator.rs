@@ -69,7 +69,6 @@ impl MeshGenerator {
         offset_y: f32,
         offset_z: f32,
     ) -> Vec<Vertex> {
-        // full brighbess
         let color = [255, 255, 255, 255];
 
         match direction {

@@ -5,6 +5,7 @@ use crate::{
     utils::vector_to_location,
 };
 
+#[derive(Debug, Clone, Copy)]
 pub enum RaycastResult {
     NoneHit,
     Hit {

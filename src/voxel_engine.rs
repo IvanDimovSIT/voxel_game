@@ -3,7 +3,7 @@ use macroquad::{
 };
 
 use crate::{
-    graphics::{debug_display::DebugDisplay, renderer::Renderer, ui_display::draw_crosshair},
+    graphics::{debug_display::DebugDisplay, renderer::Renderer, ui_display::{draw_crosshair, draw_selected_voxel}},
     model::{voxel::Voxel, world::World},
     service::{
         camera_controller::CameraController,
@@ -45,17 +45,18 @@ impl VoxelEngine {
         }
     }
 
-    pub fn process_input(&mut self, delta: f32) {
+    /// returns the looked at voxel from the camera
+    pub fn process_input(&mut self, delta: f32) -> RaycastResult {
         self.player_info.camera_controller.update_look(delta);
         let camera = self.player_info.camera_controller.create_camera();
+        let raycast_result = cast_ray(
+            &mut self.world,
+            camera.position,
+            camera.target,
+            self.player_info.voxel_reach,
+        );
         if is_place_voxel(&self.player_info.camera_controller) {
-            let result = cast_ray(
-                &mut self.world,
-                camera.position,
-                camera.target,
-                self.player_info.voxel_reach,
-            );
-            match result {
+            match raycast_result {
                 RaycastResult::NoneHit => {}
                 RaycastResult::Hit {
                     first_non_empty: _,
@@ -74,13 +75,7 @@ impl VoxelEngine {
             }
         }
         if is_destroy_voxel(&self.player_info.camera_controller) {
-            let result = cast_ray(
-                &mut self.world,
-                camera.position,
-                camera.target,
-                self.player_info.voxel_reach,
-            );
-            match result {
+            match raycast_result {
                 RaycastResult::NoneHit => {}
                 RaycastResult::Hit {
                     first_non_empty,
@@ -120,6 +115,8 @@ impl VoxelEngine {
         if toggle_debug() {
             self.debug_display.toggle_display();
         }
+
+        raycast_result
     }
 
     pub fn update_loaded_areas(&mut self) {
@@ -135,19 +132,22 @@ impl VoxelEngine {
             .retain_areas(&get_load_zone(camera_location.into(), self.render_size));
     }
 
-    pub async fn draw_scene(&mut self) {
+    pub async fn draw_scene(&mut self, raycast_result: RaycastResult) {
         clear_background(BEIGE);
 
         let width = screen_width();
         let height = screen_height();
         let camera = self.player_info.camera_controller.create_camera();
         let rendered = self.renderer.render_voxels(&camera, self.render_size);
-        set_default_camera();
         gl_use_default_material();
+        if let RaycastResult::Hit { first_non_empty, last_empty: _ } = raycast_result {
+            draw_selected_voxel(first_non_empty);
+        }
+        set_default_camera();
         draw_crosshair(width, height);
         self.debug_display
             .draw_debug_display(&self.world, &self.renderer, &camera, rendered);
-
+    
         next_frame().await;
     }
 }
