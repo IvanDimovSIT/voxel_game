@@ -7,7 +7,7 @@ use crate::{
     model::{voxel::Voxel, world::World},
     service::{
         camera_controller::CameraController,
-        input::*,
+        input::{self, *},
         raycast::{cast_ray, RaycastResult},
         render_zone::{get_load_zone, get_render_zone},
         world_actions::{destroy_voxel, place_voxel},
@@ -45,10 +45,21 @@ impl VoxelEngine {
         }
     }
 
+    fn check_change_render_distance(&mut self) {
+        const MIN_RENDER_DISTANCE: u32 = 3;
+        const MAX_RENDER_DISTANCE: u32 = 12;
+        if input::decrease_render_distance() && self.render_size > MIN_RENDER_DISTANCE {
+            self.render_size -= 1;
+        }else if input::increase_render_distance() && self.render_size < MAX_RENDER_DISTANCE {
+            self.render_size += 1;
+        }
+    }
+
     /// returns the looked at voxel from the camera
     pub fn process_input(&mut self, delta: f32) -> RaycastResult {
         self.player_info.camera_controller.update_look(delta);
         let camera = self.player_info.camera_controller.create_camera();
+        self.check_change_render_distance();
         let raycast_result = cast_ray(
             &mut self.world,
             camera.position,

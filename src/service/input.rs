@@ -39,3 +39,11 @@ pub fn is_place_voxel(camera_controller: &CameraController) -> bool {
 pub fn is_destroy_voxel(camera_controller: &CameraController) -> bool {
     camera_controller.is_focused() && is_mouse_button_pressed(macroquad::input::MouseButton::Left)
 }
+
+pub fn increase_render_distance() -> bool {
+    is_key_released(macroquad::input::KeyCode::F2)
+}
+
+pub fn decrease_render_distance() -> bool {
+    is_key_released(macroquad::input::KeyCode::F1)
+}
