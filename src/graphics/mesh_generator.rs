@@ -58,8 +58,8 @@ impl MeshGenerator {
         let middle_y = location.y as f32;
         let middle_z = location.z as f32;
 
-        let mut vertices = vec![];
-        let mut indices = vec![];
+        let mut vertices = Vec::with_capacity(4);
+        let mut indices = Vec::with_capacity(Self::INDECIES.len());
         let mut index_offset = 0;
 
         for direction in directions {

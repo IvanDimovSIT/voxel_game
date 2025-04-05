@@ -9,8 +9,8 @@ mod voxel_engine;
 
 fn config() -> Conf {
     Conf {
-        draw_call_vertex_capacity: 400,
-        draw_call_index_capacity: 200,
+        draw_call_vertex_capacity: 50,
+        draw_call_index_capacity: 50,
         ..Default::default()        
     }
 }

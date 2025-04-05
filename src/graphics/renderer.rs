@@ -55,7 +55,7 @@ impl Renderer {
         }
     }
 
-    fn generate_meshes_for_voxel(
+    fn generate_mesh_for_voxel(
         &mut self,
         world: &mut World,
         global_location: InternalLocation,
@@ -139,7 +139,7 @@ impl Renderer {
         global_location: InternalLocation,
         voxel: Voxel,
     ) {
-        let meshing_result = self.generate_meshes_for_voxel(world, global_location, voxel);
+        let meshing_result = self.generate_mesh_for_voxel(world, global_location, voxel);
         self.set_voxel_mesh(
             meshing_result.area_location,
             global_location,
