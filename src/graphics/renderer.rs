@@ -21,7 +21,18 @@ use super::{
 
 const RENDER_THRESHOLD: f32 = 0.5;
 const LOOK_DOWN_RENDER_MULTIPLIER: f32 = 0.5;
-type Meshes = HashMap<AreaLocation, HashMap<InternalLocation, Vec<Mesh>>>;
+type Meshes = HashMap<AreaLocation, HashMap<InternalLocation, (usize, Mesh)>>;
+
+struct GeneratedMeshResult {
+    pub mesh: Option<Mesh>,
+    pub area_location: AreaLocation,
+    pub face_count: usize
+}
+impl GeneratedMeshResult {
+    pub fn new_empty(area_location: AreaLocation) -> Self {
+        Self { mesh: None, area_location, face_count: 0 }
+    }
+}
 
 pub struct Renderer {
     meshes: Meshes,
@@ -49,81 +60,77 @@ impl Renderer {
         world: &mut World,
         global_location: InternalLocation,
         voxel: Voxel,
-    ) -> (AreaLocation, Vec<Mesh>) {
+    ) -> GeneratedMeshResult {
         let area_location = World::convert_global_to_area_location(global_location);
 
         if voxel == Voxel::None {
-            return (area_location, vec![]);
+            return GeneratedMeshResult::new_empty(area_location);
         }
 
-        let mut meshes = vec![];
+        let mut face_directions = Vec::with_capacity(6);
 
         if Voxel::None == world.get(global_location.offset_x(1)) {
-            meshes.push(self.mesh_generator.generate_mesh(
-                voxel,
-                global_location,
-                FaceDirection::Left,
-            ));
+            face_directions.push(FaceDirection::Left);
         }
         if Voxel::None == world.get(global_location.offset_x(-1)) {
-            meshes.push(self.mesh_generator.generate_mesh(
-                voxel,
-                global_location,
-                FaceDirection::Right,
-            ));
+            face_directions.push(FaceDirection::Right);
         }
         if Voxel::None == world.get(global_location.offset_y(1)) {
-            meshes.push(self.mesh_generator.generate_mesh(
-                voxel,
-                global_location,
-                FaceDirection::Front,
-            ));
+            face_directions.push(FaceDirection::Front);
         }
         if Voxel::None == world.get(global_location.offset_y(-1)) {
-            meshes.push(self.mesh_generator.generate_mesh(
-                voxel,
-                global_location,
-                FaceDirection::Back,
-            ));
+            face_directions.push(FaceDirection::Back);
         }
         if global_location.z + 1 < AREA_HEIGHT
             && Voxel::None == world.get(global_location.offset_z(1))
         {
-            meshes.push(self.mesh_generator.generate_mesh(
-                voxel,
-                global_location,
-                FaceDirection::Down,
-            ));
+            face_directions.push(FaceDirection::Down);
         }
         if global_location.z > 0 && Voxel::None == world.get(global_location.offset_z(-1)) {
-            meshes.push(self.mesh_generator.generate_mesh(
-                voxel,
-                global_location,
-                FaceDirection::Up,
-            ));
+            face_directions.push(FaceDirection::Up);
         }
 
-        (area_location, meshes)
+        if face_directions.len() <= 0 {
+            return GeneratedMeshResult::new_empty(area_location);
+        }
+
+        let mesh = self.mesh_generator.generate_mesh(
+            voxel,
+            global_location,
+            &face_directions,
+        );
+
+        GeneratedMeshResult { 
+            mesh: Some(mesh),
+            area_location,
+            face_count: face_directions.len() 
+        }
     }
 
-    fn set_meshes(
+    fn set_voxel_mesh(
         &mut self,
         area_location: AreaLocation,
         location: InternalLocation,
-        meshes: Vec<Mesh>,
+        mesh: Option<Mesh>,
+        face_count: usize
     ) {
+        debug_assert!(
+            (mesh.is_none() && face_count == 0) ||
+            (mesh.is_some() && face_count >= 1)
+        );
+
         let mut area = self.meshes.get_mut(&area_location);
         if area.is_none() {
             self.meshes.insert(area_location, HashMap::new());
             area = self.meshes.get_mut(&area_location);
         }
         let area = area.unwrap();
-        if meshes.is_empty() {
-            area.remove(&location);
-            return;
-        }
 
-        area.insert(location, meshes);
+        if let Some(some_mesh) = mesh {
+            area.insert(location, (face_count, some_mesh));
+        } else {
+            area.remove(&location);
+        }
     }
 
     fn update_meshes_for_voxel(
@@ -132,8 +139,13 @@ impl Renderer {
         global_location: InternalLocation,
         voxel: Voxel,
     ) {
-        let (area_location, meshes) = self.generate_meshes_for_voxel(world, global_location, voxel);
-        self.set_meshes(area_location, global_location, meshes);
+        let meshing_result = self.generate_meshes_for_voxel(world, global_location, voxel);
+        self.set_voxel_mesh(
+            meshing_result.area_location,
+            global_location,
+            meshing_result.mesh,
+            meshing_result.face_count
+        );
     }
 
     pub fn update_location(&mut self, world: &mut World, location: InternalLocation) {
@@ -230,12 +242,10 @@ impl Renderer {
         let mut faces_visible = 0;
 
         for (_, areas) in &visible_areas {
-            for meshes in areas.values() {
-                debug_assert!(meshes.len() > 0, "Meshes map is storing empty voxels");
-                faces_visible += meshes.len();
-                for mesh in meshes {
-                    draw_mesh(mesh);
-                }
+            for (face_count, mesh) in areas.values() {
+                debug_assert!(*face_count > 0, "Meshes map is storing empty voxels");
+                faces_visible += *face_count;
+                draw_mesh(mesh);
             }
         }
 
@@ -246,7 +256,7 @@ impl Renderer {
         self.meshes
             .values()
             .flat_map(|areas| areas.values())
-            .map(|voxel_meshes| voxel_meshes.len())
+            .map(|voxel_meshes| voxel_meshes.0)
             .sum()
     }
 
