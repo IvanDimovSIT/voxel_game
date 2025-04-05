@@ -7,11 +7,14 @@ use macroquad::{
     prelude::debug,
 };
 
-use crate::model::{
-    area::{AREA_HEIGHT, AREA_SIZE, AreaLocation},
-    location::{InternalLocation, LOCATION_OFFSET},
-    voxel::Voxel,
-    world::World,
+use crate::{
+    model::{
+        area::{AREA_HEIGHT, AREA_SIZE, AreaLocation},
+        location::{InternalLocation, LOCATION_OFFSET},
+        voxel::Voxel,
+        world::World,
+    },
+    service::camera_controller::CameraController,
 };
 
 use super::{
@@ -26,11 +29,15 @@ type Meshes = HashMap<AreaLocation, HashMap<InternalLocation, (usize, Mesh)>>;
 struct GeneratedMeshResult {
     pub mesh: Option<Mesh>,
     pub area_location: AreaLocation,
-    pub face_count: usize
+    pub face_count: usize,
 }
 impl GeneratedMeshResult {
     pub fn new_empty(area_location: AreaLocation) -> Self {
-        Self { mesh: None, area_location, face_count: 0 }
+        Self {
+            mesh: None,
+            area_location,
+            face_count: 0,
+        }
     }
 }
 
@@ -94,16 +101,14 @@ impl Renderer {
             return GeneratedMeshResult::new_empty(area_location);
         }
 
-        let mesh = self.mesh_generator.generate_mesh(
-            voxel,
-            global_location,
-            &face_directions,
-        );
+        let mesh = self
+            .mesh_generator
+            .generate_mesh(voxel, global_location, &face_directions);
 
-        GeneratedMeshResult { 
+        GeneratedMeshResult {
             mesh: Some(mesh),
             area_location,
-            face_count: face_directions.len() 
+            face_count: face_directions.len(),
         }
     }
 
@@ -112,12 +117,9 @@ impl Renderer {
         area_location: AreaLocation,
         location: InternalLocation,
         mesh: Option<Mesh>,
-        face_count: usize
+        face_count: usize,
     ) {
-        debug_assert!(
-            (mesh.is_none() && face_count == 0) ||
-            (mesh.is_some() && face_count >= 1)
-        );
+        debug_assert!((mesh.is_none() && face_count == 0) || (mesh.is_some() && face_count >= 1));
 
         let mut area = self.meshes.get_mut(&area_location);
         if area.is_none() {
@@ -144,7 +146,7 @@ impl Renderer {
             meshing_result.area_location,
             global_location,
             meshing_result.mesh,
-            meshing_result.face_count
+            meshing_result.face_count,
         );
     }
 
@@ -220,16 +222,17 @@ impl Renderer {
     fn calculate_render_distance(look: Vec3, render_size: u32) -> f32 {
         const DOWN: Vec3 = vec3(0.0, 0.0, 1.0);
         let dot_product = look.dot(DOWN).abs();
-        let dot_product_smooth = 1.0 - (1.0 - dot_product)*(1.0 - dot_product);
+        let dot_product_smooth = 1.0 - (1.0 - dot_product) * (1.0 - dot_product);
         let render_distance = dot_product_smooth * (AREA_SIZE * render_size) as f32;
         (render_distance * LOOK_DOWN_RENDER_MULTIPLIER).max(AREA_SIZE as f32)
     }
 
     /// Returns the number of rendered areas and faces
     pub fn render_voxels(&self, camera: &Camera3D, render_size: u32) -> (usize, usize) {
-        set_camera(camera);
+        let normalised_camera = CameraController::normalize_camera_3d(camera);
+        set_camera(&normalised_camera);
         self.shader.set_material(camera);
-        let position = camera.position;
+        let position: Vec3 = camera.position;
         let look = (camera.target - position).normalize_or_zero();
         let render_distance = Self::calculate_render_distance(look, render_size);
 
@@ -240,7 +243,6 @@ impl Renderer {
             .collect();
 
         let mut faces_visible = 0;
-
         for (_, areas) in &visible_areas {
             for (face_count, mesh) in areas.values() {
                 debug_assert!(*face_count > 0, "Meshes map is storing empty voxels");

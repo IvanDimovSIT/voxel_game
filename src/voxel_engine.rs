@@ -1,14 +1,22 @@
 use macroquad::{
-    camera::set_default_camera, color::BEIGE, math::vec3, prelude::gl_use_default_material, window::{clear_background, next_frame, screen_height, screen_width}
+    camera::set_default_camera,
+    color::BEIGE,
+    math::vec3,
+    prelude::gl_use_default_material,
+    window::{clear_background, next_frame, screen_height, screen_width},
 };
 
 use crate::{
-    graphics::{debug_display::DebugDisplay, renderer::Renderer, ui_display::{draw_crosshair, draw_selected_voxel}},
+    graphics::{
+        debug_display::DebugDisplay,
+        renderer::Renderer,
+        ui_display::{draw_crosshair, draw_selected_voxel},
+    },
     model::{voxel::Voxel, world::World},
     service::{
         camera_controller::CameraController,
         input::{self, *},
-        raycast::{cast_ray, RaycastResult},
+        raycast::{RaycastResult, cast_ray},
         render_zone::{get_load_zone, get_render_zone},
         world_actions::{destroy_voxel, place_voxel},
     },
@@ -50,7 +58,7 @@ impl VoxelEngine {
         const MAX_RENDER_DISTANCE: u32 = 12;
         if input::decrease_render_distance() && self.render_size > MIN_RENDER_DISTANCE {
             self.render_size -= 1;
-        }else if input::increase_render_distance() && self.render_size < MAX_RENDER_DISTANCE {
+        } else if input::increase_render_distance() && self.render_size < MAX_RENDER_DISTANCE {
             self.render_size += 1;
         }
     }
@@ -151,14 +159,18 @@ impl VoxelEngine {
         let camera = self.player_info.camera_controller.create_camera();
         let rendered = self.renderer.render_voxels(&camera, self.render_size);
         gl_use_default_material();
-        if let RaycastResult::Hit { first_non_empty, last_empty: _ } = raycast_result {
-            draw_selected_voxel(first_non_empty);
+        if let RaycastResult::Hit {
+            first_non_empty,
+            last_empty: _,
+        } = raycast_result
+        {
+            draw_selected_voxel(first_non_empty, &camera);
         }
         set_default_camera();
         draw_crosshair(width, height);
         self.debug_display
             .draw_debug_display(&self.world, &self.renderer, &camera, rendered);
-    
+
         next_frame().await;
     }
 }

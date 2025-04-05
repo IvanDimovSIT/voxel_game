@@ -14,8 +14,8 @@ uniform	vec3 cameraPos;
 uniform vec3 cameraTarget;
 
 void main() {
-    gl_Position = Projection * Model * vec4(position, 1.0);
+    facePosition = position - cameraPos;
+    gl_Position = Projection * Model * vec4(facePosition, 1.0);
     uv = texcoord;
-    facePosition = position;
     fragNormal = normalize(mat3(Model) * normal);
 }

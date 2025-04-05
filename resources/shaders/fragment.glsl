@@ -23,14 +23,14 @@ void main() {
     vec3 normal = normalize(fragNormal);
     
     float diffuse = max(dot(normal, lightDir), 0.0);
-    if (facePosition.z > cameraPos.z && 
-        distance(vec2(cameraPos.x, cameraPos.y), vec2(facePosition.x, facePosition.y)) < dropShadowRadius) {
+    if (facePosition.z > 0.0 && 
+        distance(vec2(0.0, 0.0), vec2(facePosition.x, facePosition.y)) < dropShadowRadius) {
         diffuse = dropShadowLight;
     }
 
     float lighting = ambient + diffuse * (1.0 - ambient);
     
-    vec3 viewDir = normalize(cameraPos - facePosition);
+    vec3 viewDir = normalize(-facePosition);
     vec3 reflectDir = reflect(-lightDir, normal);
     float specular = pow(max(dot(reflectDir, viewDir), 0.0), 32.0) * specularStrength;
     

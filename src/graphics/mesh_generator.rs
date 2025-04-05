@@ -51,7 +51,10 @@ impl MeshGenerator {
         location: InternalLocation,
         directions: &[FaceDirection],
     ) -> Mesh {
-        debug_assert!(!directions.is_empty(), "Need at least one face direction to generate mesh");
+        debug_assert!(
+            !directions.is_empty(),
+            "Need at least one face direction to generate mesh"
+        );
 
         let location: Location = location.into();
         let middle_x = location.x as f32;
@@ -63,11 +66,13 @@ impl MeshGenerator {
         let mut index_offset = 0;
 
         for direction in directions {
-            let face_verticies = Self::get_verticies_for_voxel(*direction, middle_x, middle_y, middle_z);    
-            let face_indecies: Vec<_> = Self::INDECIES.iter()
+            let face_verticies =
+                Self::get_verticies_for_voxel(*direction, middle_x, middle_y, middle_z);
+            let face_indecies: Vec<_> = Self::INDECIES
+                .iter()
                 .map(|ind| ind + index_offset)
                 .collect();
-        
+
             index_offset += face_verticies.len() as u16;
             vertices.extend(face_verticies);
             indices.extend(face_indecies);

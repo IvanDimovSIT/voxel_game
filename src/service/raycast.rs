@@ -35,15 +35,15 @@ pub fn cast_ray(world: &mut World, from: Vec3, to: Vec3, max_distance: f32) -> R
     let next_boundary_x = if step_x < 0 {
         current_position.x as f32 - 0.5
     } else {
-        current_position.x as f32 + 0.5 
+        current_position.x as f32 + 0.5
     };
-    
+
     let next_boundary_y = if step_y < 0 {
         current_position.y as f32 - 0.5
     } else {
         current_position.y as f32 + 0.5
     };
-    
+
     let next_boundary_z = if step_z < 0 {
         current_position.z as f32 - 0.5
     } else {
@@ -55,13 +55,13 @@ pub fn cast_ray(world: &mut World, from: Vec3, to: Vec3, max_distance: f32) -> R
     } else {
         ((next_boundary_x - from.x) / ray.x).abs()
     };
-    
+
     let mut t_max_y = if ray.y.abs() <= f32::EPSILON {
         f32::INFINITY
     } else {
         ((next_boundary_y - from.y) / ray.y).abs()
     };
-    
+
     let mut t_max_z = if ray.z.abs() <= f32::EPSILON {
         f32::INFINITY
     } else {

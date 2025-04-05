@@ -114,4 +114,20 @@ impl CameraController {
     pub fn is_focused(&self) -> bool {
         self.is_focused
     }
+
+    /// Normalise the camera position to (0,0,0)
+    pub fn normalize_camera_3d(camera: &Camera3D) -> Camera3D {
+        Camera3D {
+            position: Vec3::ZERO,
+            target: camera.target - camera.position,
+            up: camera.up,
+            fovy: camera.fovy,
+            aspect: camera.aspect,
+            projection: camera.projection,
+            render_target: camera.render_target.clone(),
+            viewport: camera.viewport,
+            z_near: camera.z_near,
+            z_far: camera.z_far,
+        }
+    }
 }
