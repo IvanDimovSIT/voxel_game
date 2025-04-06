@@ -18,7 +18,7 @@ impl Semaphore {
 
     pub fn acquire(&self) {
         let mut count = self.count.lock().unwrap();
-        while *count <= 0 {
+        while *count == 0 {
             count = self.condvar.wait(count).unwrap();
         }
         *count -= 1;

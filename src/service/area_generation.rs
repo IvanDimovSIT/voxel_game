@@ -1,7 +1,4 @@
-use std::{
-    hash::{DefaultHasher, Hash, Hasher},
-    u64,
-};
+use std::hash::{DefaultHasher, Hash, Hasher};
 
 use libnoise::{Generator, Simplex};
 use macroquad::logging::info;

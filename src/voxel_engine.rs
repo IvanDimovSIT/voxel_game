@@ -55,7 +55,7 @@ impl VoxelEngine {
 
     fn check_change_render_distance(&mut self) {
         const MIN_RENDER_DISTANCE: u32 = 3;
-        const MAX_RENDER_DISTANCE: u32 = 12;
+        const MAX_RENDER_DISTANCE: u32 = 14;
         if input::decrease_render_distance() && self.render_size > MIN_RENDER_DISTANCE {
             self.render_size -= 1;
         } else if input::increase_render_distance() && self.render_size < MAX_RENDER_DISTANCE {

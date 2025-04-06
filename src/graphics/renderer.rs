@@ -25,7 +25,8 @@ use super::{
 
 const AREA_RENDER_THRESHOLD: f32 = 0.5;
 const LOOK_DOWN_RENDER_MULTIPLIER: f32 = 0.5;
-const VOXEL_RENDER_THRESHOLD: f32 = 0.82;
+const VOXEL_RENDER_THRESHOLD: f32 = 0.71;
+const VOXEL_PROXIMITY_THRESHOLD: f32 = 5.5;
 type Meshes = HashMap<AreaLocation, HashMap<InternalLocation, (usize, Mesh)>>;
 
 struct GeneratedMeshResult {
@@ -99,7 +100,7 @@ impl Renderer {
             face_directions.push(FaceDirection::Up);
         }
 
-        if face_directions.len() <= 0 {
+        if face_directions.is_empty() {
             return GeneratedMeshResult::new_empty(area_location);
         }
 
@@ -232,12 +233,17 @@ impl Renderer {
 
     fn is_voxel_visible(internal_location: &InternalLocation, look: Vec3, camera_position: Vec3) -> bool {
         let location: Location = (*internal_location).into();
+        let location_vec = vec3(location.x as f32, location.y as f32, location.z as f32);
         // norm(location - camera)
-        let direction_to_location = (vec3(location.x as f32, location.y as f32, location.z as f32) - camera_position)
+        let direction_to_location = (location_vec - camera_position)
             .normalize_or_zero();
         let dot_product = direction_to_location.dot(look);
 
-        dot_product > VOXEL_RENDER_THRESHOLD
+        dot_product > VOXEL_RENDER_THRESHOLD || !(
+            (location_vec.x - camera_position.x).abs() > VOXEL_PROXIMITY_THRESHOLD ||
+            (location_vec.y - camera_position.y).abs() > VOXEL_PROXIMITY_THRESHOLD ||
+            (location_vec.z - camera_position.z).abs() > VOXEL_PROXIMITY_THRESHOLD
+        ) 
     }
 
     /// Returns the number of rendered areas and faces
@@ -258,11 +264,11 @@ impl Renderer {
         let visible_voxels: Vec<_> = visible_areas
             .par_iter()
             .flat_map(|(_, y)| *y)
-            .filter(|(location, _)| Self::is_voxel_visible(location, look, position))
+            .filter(|(location, _mesh_with_face_count)| Self::is_voxel_visible(location, look, position))
             .collect();
 
         let mut faces_visible = 0;
-        for (_, (face_count, mesh)) in visible_voxels {
+        for (_location, (face_count, mesh)) in visible_voxels {
             debug_assert!(*face_count > 0, "Meshes map is storing empty voxels");
             faces_visible += face_count;
             draw_mesh(mesh);

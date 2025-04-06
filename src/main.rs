@@ -1,4 +1,4 @@
-use macroquad::{conf::Conf, time::get_frame_time};
+use macroquad::{conf::Conf, texture::FilterMode, time::get_frame_time};
 use voxel_engine::VoxelEngine;
 
 mod graphics;
@@ -11,6 +11,7 @@ fn config() -> Conf {
     Conf {
         draw_call_vertex_capacity: 50,
         draw_call_index_capacity: 50,
+        default_filter_mode: FilterMode::Nearest,
         ..Default::default()
     }
 }

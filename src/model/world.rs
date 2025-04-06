@@ -1,11 +1,10 @@
 use std::{collections::HashMap, time::Instant};
 
-use macroquad::prelude::{error, info, warn};
+use macroquad::prelude::{error, info};
 
 use crate::{
     model::{
         area::{AREA_HEIGHT, Area},
-        location::Location,
         voxel::Voxel,
     },
     service::persistence::{self, AreaLoader, store_blocking},
