@@ -1,16 +1,17 @@
 use std::collections::HashMap;
 
 use macroquad::{
-    camera::{Camera3D, set_camera},
-    math::{Vec3, vec3},
-    models::{Mesh, draw_mesh},
+    camera::{set_camera, Camera3D},
+    math::{vec3, Vec3},
+    models::{draw_mesh, Mesh},
     prelude::debug,
 };
+use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 
 use crate::{
     model::{
-        area::{AREA_HEIGHT, AREA_SIZE, AreaLocation},
-        location::{InternalLocation, LOCATION_OFFSET},
+        area::{AreaLocation, AREA_HEIGHT, AREA_SIZE},
+        location::{InternalLocation, Location, LOCATION_OFFSET},
         voxel::Voxel,
         world::World,
     },
@@ -22,8 +23,9 @@ use super::{
     voxel_shader::VoxelShader,
 };
 
-const RENDER_THRESHOLD: f32 = 0.5;
+const AREA_RENDER_THRESHOLD: f32 = 0.5;
 const LOOK_DOWN_RENDER_MULTIPLIER: f32 = 0.5;
+const VOXEL_RENDER_THRESHOLD: f32 = 0.82;
 type Meshes = HashMap<AreaLocation, HashMap<InternalLocation, (usize, Mesh)>>;
 
 struct GeneratedMeshResult {
@@ -216,15 +218,26 @@ impl Renderer {
 
         let area_look = (area_vec - camera.position).normalize_or_zero();
 
-        area_look.dot(look) >= RENDER_THRESHOLD
+        area_look.dot(look) >= AREA_RENDER_THRESHOLD
     }
 
     fn calculate_render_distance(look: Vec3, render_size: u32) -> f32 {
         const DOWN: Vec3 = vec3(0.0, 0.0, 1.0);
         let dot_product = look.dot(DOWN).abs();
+        // 1 - (1 - dot_product)^2
         let dot_product_smooth = 1.0 - (1.0 - dot_product) * (1.0 - dot_product);
         let render_distance = dot_product_smooth * (AREA_SIZE * render_size) as f32;
         (render_distance * LOOK_DOWN_RENDER_MULTIPLIER).max(AREA_SIZE as f32)
+    }
+
+    fn is_voxel_visible(internal_location: &InternalLocation, look: Vec3, camera_position: Vec3) -> bool {
+        let location: Location = (*internal_location).into();
+        // norm(location - camera)
+        let direction_to_location = (vec3(location.x as f32, location.y as f32, location.z as f32) - camera_position)
+            .normalize_or_zero();
+        let dot_product = direction_to_location.dot(look);
+
+        dot_product > VOXEL_RENDER_THRESHOLD
     }
 
     /// Returns the number of rendered areas and faces
@@ -242,13 +255,17 @@ impl Renderer {
             .filter(|(area, _meshes)| Self::is_area_visible(**area, camera, look, render_distance))
             .collect();
 
+        let visible_voxels: Vec<_> = visible_areas
+            .par_iter()
+            .flat_map(|(_, y)| *y)
+            .filter(|(location, _)| Self::is_voxel_visible(location, look, position))
+            .collect();
+
         let mut faces_visible = 0;
-        for (_, areas) in &visible_areas {
-            for (face_count, mesh) in areas.values() {
-                debug_assert!(*face_count > 0, "Meshes map is storing empty voxels");
-                faces_visible += *face_count;
-                draw_mesh(mesh);
-            }
+        for (_, (face_count, mesh)) in visible_voxels {
+            debug_assert!(*face_count > 0, "Meshes map is storing empty voxels");
+            faces_visible += face_count;
+            draw_mesh(mesh);
         }
 
         (visible_areas.len(), faces_visible)
