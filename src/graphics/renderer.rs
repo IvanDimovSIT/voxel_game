@@ -1,21 +1,22 @@
 use std::collections::HashMap;
 
 use macroquad::{
-    camera::{set_camera, Camera3D},
-    math::{vec3, Vec3},
-    models::{draw_mesh, Mesh},
+    camera::{Camera3D, set_camera},
+    math::{Vec3, vec3},
+    models::{Mesh, draw_mesh},
     prelude::debug,
 };
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 
 use crate::{
     model::{
-        area::{AreaLocation, AREA_HEIGHT, AREA_SIZE},
-        location::{InternalLocation, Location, LOCATION_OFFSET},
+        area::{AREA_HEIGHT, AREA_SIZE, AreaLocation},
+        location::{InternalLocation, LOCATION_OFFSET, Location},
         voxel::Voxel,
         world::World,
     },
     service::camera_controller::CameraController,
+    utils::StackVec,
 };
 
 use super::{
@@ -77,7 +78,7 @@ impl Renderer {
             return GeneratedMeshResult::new_empty(area_location);
         }
 
-        let mut face_directions = Vec::with_capacity(6);
+        let mut face_directions = StackVec::<FaceDirection, 6>::new();
 
         if Voxel::None == world.get(global_location.offset_x(1)) {
             face_directions.push(FaceDirection::Left);
@@ -158,12 +159,27 @@ impl Renderer {
             self.update_meshes_for_voxel(world, location, voxel);
         }
 
-        let mut neighbors = vec![
-            InternalLocation::new(location.x + 1, location.y, location.z),
-            InternalLocation::new(location.x - 1, location.y, location.z),
-            InternalLocation::new(location.x, location.y + 1, location.z),
-            InternalLocation::new(location.x, location.y - 1, location.z),
-        ];
+        let mut neighbors = StackVec::<InternalLocation, 6>::new();
+        neighbors.push(InternalLocation::new(
+            location.x + 1,
+            location.y,
+            location.z,
+        ));
+        neighbors.push(InternalLocation::new(
+            location.x - 1,
+            location.y,
+            location.z,
+        ));
+        neighbors.push(InternalLocation::new(
+            location.x,
+            location.y + 1,
+            location.z,
+        ));
+        neighbors.push(InternalLocation::new(
+            location.x,
+            location.y - 1,
+            location.z,
+        ));
         if location.z > 0 {
             neighbors.push(InternalLocation::new(
                 location.x,
@@ -231,19 +247,21 @@ impl Renderer {
         (render_distance * LOOK_DOWN_RENDER_MULTIPLIER).max(AREA_SIZE as f32)
     }
 
-    fn is_voxel_visible(internal_location: &InternalLocation, look: Vec3, camera_position: Vec3) -> bool {
+    fn is_voxel_visible(
+        internal_location: &InternalLocation,
+        look: Vec3,
+        camera_position: Vec3,
+    ) -> bool {
         let location: Location = (*internal_location).into();
         let location_vec = vec3(location.x as f32, location.y as f32, location.z as f32);
         // norm(location - camera)
-        let direction_to_location = (location_vec - camera_position)
-            .normalize_or_zero();
+        let direction_to_location = (location_vec - camera_position).normalize_or_zero();
         let dot_product = direction_to_location.dot(look);
 
-        dot_product > VOXEL_RENDER_THRESHOLD || !(
-            (location_vec.x - camera_position.x).abs() > VOXEL_PROXIMITY_THRESHOLD ||
-            (location_vec.y - camera_position.y).abs() > VOXEL_PROXIMITY_THRESHOLD ||
-            (location_vec.z - camera_position.z).abs() > VOXEL_PROXIMITY_THRESHOLD
-        ) 
+        dot_product > VOXEL_RENDER_THRESHOLD
+            || !((location_vec.x - camera_position.x).abs() > VOXEL_PROXIMITY_THRESHOLD
+                || (location_vec.y - camera_position.y).abs() > VOXEL_PROXIMITY_THRESHOLD
+                || (location_vec.z - camera_position.z).abs() > VOXEL_PROXIMITY_THRESHOLD)
     }
 
     /// Returns the number of rendered areas and faces
@@ -264,7 +282,9 @@ impl Renderer {
         let visible_voxels: Vec<_> = visible_areas
             .par_iter()
             .flat_map(|(_, y)| *y)
-            .filter(|(location, _mesh_with_face_count)| Self::is_voxel_visible(location, look, position))
+            .filter(|(location, _mesh_with_face_count)| {
+                Self::is_voxel_visible(location, look, position)
+            })
             .collect();
 
         let mut faces_visible = 0;
