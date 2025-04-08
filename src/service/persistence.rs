@@ -14,7 +14,7 @@ use macroquad::logging::{error, info, warn};
 
 use crate::{
     model::area::{Area, AreaLocation},
-    service::area_generation::generate_area,
+    service::area_generation::generator::generate_area,
     utils::Semaphore,
 };
 

@@ -78,9 +78,7 @@ where
     type Target = [T];
 
     fn deref(&self) -> &Self::Target {
-        unsafe {
-            std::slice::from_raw_parts(self.array.as_ptr() as *const T, self.size)
-        }
+        unsafe { std::slice::from_raw_parts(self.array.as_ptr() as *const T, self.size) }
     }
 }
 impl<T, const MAX: usize> IntoIterator for StackVec<T, MAX>
@@ -120,13 +118,12 @@ where
             Some(result)
         }
     }
-    
+
     fn size_hint(&self) -> (usize, Option<usize>) {
-        (self.stack_vec.array.len()-self.index, Some(self.stack_vec.array.len()-self.index))
-    }    
+        (
+            self.stack_vec.array.len() - self.index,
+            Some(self.stack_vec.array.len() - self.index),
+        )
+    }
 }
-impl<T, const MAX: usize> ExactSizeIterator for StackVecIterator<T, MAX>
-where
-    T: Copy,
-{
-} 
+impl<T, const MAX: usize> ExactSizeIterator for StackVecIterator<T, MAX> where T: Copy {}
