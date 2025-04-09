@@ -9,8 +9,11 @@ use crate::{
         voxel::Voxel,
     },
     service::area_generation::{
-        biome_type::BiomeTypeGenerator, terrain_type::TerrainTypeGenerator,
+        biome_type::BiomeTypeGenerator,
+        terrain_type::TerrainTypeGenerator,
+        trees::{generate_trees, should_generate_tree},
     },
+    utils::StackVec,
 };
 
 use super::biome_type::BiomeType;
@@ -52,6 +55,8 @@ pub fn generate_area(area_location: AreaLocation, world_name: &str) -> Area {
     let seed = hash_world_name(world_name);
     let height_noise = TerrainTypeGenerator::new(seed);
     let type_noise = BiomeTypeGenerator::new(seed);
+    const AREA_SURFACE: usize = (AREA_SIZE * AREA_SIZE) as usize;
+    let mut trees_location: StackVec<InternalLocation, AREA_SURFACE> = StackVec::new();
 
     let mut area = Area::new(area_location);
     for x in 0..AREA_SIZE {
@@ -62,8 +67,13 @@ pub fn generate_area(area_location: AreaLocation, world_name: &str) -> Area {
                 let current_voxel = calculate_voxel_type(z, height, biome_type);
                 area.set(InternalLocation::new(x, y, AREA_HEIGHT - z), current_voxel);
             }
+            let local = InternalLocation::new(x, y, AREA_HEIGHT - height);
+            if should_generate_tree(area.get(local), seed, area_location, local) {
+                trees_location.push(local);
+            }
         }
     }
+    generate_trees(&mut area, &trees_location);
 
     debug_assert!(area.has_changed);
     area

@@ -83,7 +83,7 @@ impl VoxelEngine {
                 } => {
                     let _ = place_voxel(
                         last_empty,
-                        Voxel::Stone,
+                        Voxel::Leaves,
                         self.player_info
                             .camera_controller
                             .get_camera_voxel_location(),

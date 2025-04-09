@@ -25,6 +25,14 @@ impl TextureManager {
             Voxel::Grass,
             Self::load_image("resources/images/grass.png").await,
         );
+        textures.insert(
+            Voxel::Wood,
+            Self::load_image("resources/images/wood.png").await,
+        );
+        textures.insert(
+            Voxel::Leaves,
+            Self::load_image("resources/images/leaves.png").await,
+        );
         build_textures_atlas();
         Self { textures }
     }
