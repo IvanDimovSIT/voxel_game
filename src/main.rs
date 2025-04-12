@@ -23,6 +23,7 @@ async fn main() {
     loop {
         let delta = get_frame_time();
         let raycast_result = voxel_engine.process_input(delta);
+        voxel_engine.process_physics(delta);
         voxel_engine.update_loaded_areas();
         voxel_engine.draw_scene(raycast_result).await;
     }

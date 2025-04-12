@@ -3,7 +3,7 @@ use std::f32::consts::PI;
 use macroquad::{
     camera::Camera3D,
     input::{mouse_position, set_cursor_grab, show_mouse},
-    math::{Vec2, Vec3, vec3},
+    math::{vec3, Vec2, Vec3},
 };
 
 use crate::{model::location::Location, utils::vector_to_location};
@@ -83,15 +83,19 @@ impl CameraController {
     }
 
     pub fn move_forward(&mut self, speed: f32, delta: f32) {
-        self.position += self.front * speed * delta;
+        self.position += Self::ignore_z(self.front) * speed * delta;
     }
 
     pub fn move_right(&mut self, speed: f32, delta: f32) {
-        self.position += self.right * speed * delta;
+        self.position += Self::ignore_z(self.right) * speed * delta;
     }
 
     pub fn get_position(&self) -> Vec3 {
         self.position
+    }
+
+    pub fn get_bottom_position(&self) -> Vec3 {
+        self.position + vec3(0.0, 0.0, 1.5)
     }
 
     pub fn set_position(&mut self, position: Vec3) {
@@ -129,5 +133,9 @@ impl CameraController {
             z_near: camera.z_near,
             z_far: camera.z_far,
         }
+    }
+
+    fn ignore_z(vec: Vec3) -> Vec3 {
+        vec3(vec.x, vec.y, 0.0).normalize_or_zero()
     }
 }

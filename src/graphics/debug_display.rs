@@ -1,7 +1,7 @@
 use macroquad::{
-    camera::{Camera3D, set_default_camera},
+    camera::Camera3D,
     color::WHITE,
-    prelude::{gl_use_default_material, info},
+    prelude::info,
     text::draw_text,
     time::{get_fps, get_frame_time},
 };

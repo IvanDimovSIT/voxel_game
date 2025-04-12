@@ -1,5 +1,5 @@
 use macroquad::input::{
-    is_key_down, is_key_released, is_mouse_button_pressed, is_mouse_button_released,
+    is_key_down, is_key_pressed, is_key_released, is_mouse_button_pressed, is_mouse_button_released
 };
 
 use super::camera_controller::CameraController;
@@ -18,6 +18,10 @@ pub fn move_forward() -> bool {
 
 pub fn move_back() -> bool {
     is_key_down(macroquad::input::KeyCode::S) || is_key_down(macroquad::input::KeyCode::Down)
+}
+
+pub fn jump() -> bool {
+    is_key_pressed(macroquad::input::KeyCode::Space)
 }
 
 pub fn enter_focus() -> bool {
