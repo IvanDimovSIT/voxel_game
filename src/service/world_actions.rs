@@ -1,6 +1,6 @@
 use crate::{
     graphics::renderer::Renderer,
-    model::{location::Location, voxel::Voxel, world::World},
+    model::{area::AREA_HEIGHT, location::Location, voxel::Voxel, world::World},
 };
 
 pub fn place_voxel(
@@ -27,7 +27,7 @@ pub fn place_voxel(
 }
 
 pub fn destroy_voxel(location: Location, world: &mut World, renderer: &mut Renderer) -> bool {
-    if world.get(location.into()) == Voxel::None {
+    if world.get(location.into()) == Voxel::None || location.z == AREA_HEIGHT as i32 - 1 {
         return false;
     }
 

@@ -2,7 +2,7 @@ use macroquad::{
     camera::set_default_camera,
     color::BEIGE,
     math::{Vec3, vec3},
-    prelude::gl_use_default_material,
+    prelude::{error, gl_use_default_material},
     window::{clear_background, next_frame, screen_height, screen_width},
 };
 
@@ -285,6 +285,16 @@ impl VoxelEngine {
             camera_top_position -= vec3(0.0, 0.0, offset);
             camera_bottom_position -= vec3(0.0, 0.0, offset);
             self.player_info.velocity = 0.0;
+        }
+
+        if self
+            .world
+            .get(vector_to_location(camera_bottom_position - vec3(0.0, 0.0, 0.1)).into())
+            != Voxel::None
+        {
+            camera_top_position -= vec3(0.0, 0.0, 1.0);
+            self.player_info.velocity = 0.0;
+            error!("Stuck, moving up");
         }
 
         self.player_info
