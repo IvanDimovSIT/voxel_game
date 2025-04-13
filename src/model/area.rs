@@ -31,7 +31,7 @@ impl From<Location> for AreaLocation {
     }
 }
 
-#[derive(Debug, Encode, Decode)]
+#[derive(Debug)]
 pub struct Area {
     pub has_changed: bool,
     area_location: AreaLocation,
@@ -133,5 +133,25 @@ impl Area {
         }
 
         true
+    }
+}
+
+
+#[derive(Debug, Encode, Decode)]
+pub struct AreaDTO {
+    pub voxels: Box<[Voxel]>,
+}
+impl AreaDTO {
+    pub fn into_area(self, area_location: AreaLocation, has_changed: bool) -> Area {
+        Area {
+            has_changed,
+            area_location,
+            voxels: self.voxels,
+        }
+    }
+}
+impl From<Area> for AreaDTO {
+    fn from(value: Area) -> Self {
+        Self { voxels: value.voxels }
     }
 }

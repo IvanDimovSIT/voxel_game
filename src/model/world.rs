@@ -170,12 +170,17 @@ impl World {
         self.areas.len()
     }
 
-    pub fn save_all_blocking(&self) {
+    pub fn save_all_blocking(&mut self) {
         let start = Instant::now();
         info!("Saving world...");
-        for area in self.areas.values() {
-            if area.has_changed {
-                store_blocking(area, &self.world_name);
+        let area_locations: Vec<AreaLocation> = self.areas.keys()
+            .copied()
+            .collect();
+        for area_location in area_locations {
+            if let Some(area) = self.areas.remove(&area_location) {
+                if area.has_changed {
+                    store_blocking(area, &self.world_name);
+                }
             }
         }
         let end = start.elapsed();

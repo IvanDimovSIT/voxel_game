@@ -21,7 +21,7 @@ async fn main() {
     let mut voxel_engine = VoxelEngine::new("test_world").await;
 
     loop {
-        let delta = get_frame_time();
+        let delta = get_frame_time().min(0.2);
         let raycast_result = voxel_engine.process_input(delta);
         voxel_engine.process_physics(delta);
         voxel_engine.update_loaded_areas();

@@ -13,7 +13,7 @@ use bincode::{
 use macroquad::logging::{error, info, warn};
 
 use crate::{
-    model::area::{Area, AreaLocation},
+    model::area::{Area, AreaDTO, AreaLocation},
     service::area_generation::generator::generate_area,
     utils::Semaphore,
 };
@@ -26,11 +26,12 @@ fn get_filepath(area_x: u32, area_y: u32, world_name: &str) -> String {
     format!("{world_name}/area{area_x}_{area_y}.dat")
 }
 
-pub fn store_blocking(area: &Area, world_name: &str) {
+pub fn store_blocking(area: Area, world_name: &str) {
     debug_assert!(area.has_changed);
     let filepath = get_filepath(area.get_x(), area.get_y(), world_name);
 
-    let encode_result = match encode_to_vec(area, SERIALIZATION_CONFIG) {
+    let area_dto: AreaDTO = area.into();
+    let encode_result = match encode_to_vec(area_dto, SERIALIZATION_CONFIG) {
         Ok(ok) => ok,
         Err(err) => {
             error!("Error encoding area: {}", err);
@@ -58,7 +59,7 @@ pub fn store(area: Area, world_name: String) {
     debug_assert!(area.has_changed);
     rayon::spawn(move || {
         STORE_SEMAPHORE.acquire();
-        store_blocking(&area, &world_name);
+        store_blocking(area, &world_name);
         STORE_SEMAPHORE.release();
     });
 }
@@ -80,17 +81,16 @@ pub fn load_blocking(area_location: AreaLocation, world_name: &str) -> Area {
         return generate_area(area_location, world_name);
     };
 
-    let (mut area, _read): (Area, usize) = match decode_from_slice(&buf, SERIALIZATION_CONFIG) {
+    let (area_dto, _read): (AreaDTO, usize) = match decode_from_slice(&buf, SERIALIZATION_CONFIG) {
         Ok(ok) => ok,
         Err(err) => {
             error!("Error decoding file '{}': {}", filepath, err);
             return generate_area(area_location, world_name);
         }
     };
-    area.has_changed = false;
     info!("Loaded '{}'", filepath);
 
-    area
+    area_dto.into_area(area_location, false)
 }
 
 pub struct AreaLoader {

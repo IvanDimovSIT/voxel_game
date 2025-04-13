@@ -17,7 +17,7 @@ impl PlayerInfo {
             move_speed: 10.0,
             voxel_reach: 7.0,
             velocity: 0.0,
-            jump_velocity: -0.15,
+            jump_velocity: -15.0,
         }
     }
 }

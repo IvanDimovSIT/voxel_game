@@ -100,15 +100,15 @@ impl VoxelEngine {
     }
 
     pub fn process_physics(&mut self, delta: f32) {
-        const GRAVITY: f32 = 0.2;
-        const MAX_FALL_SPEED: f32 = 2.5;
+        const GRAVITY: f32 = 25.0;
+        const MAX_FALL_SPEED: f32 = 60.0;
 
         self.player_info.velocity =
             (self.player_info.velocity + GRAVITY * delta).min(MAX_FALL_SPEED);
 
         self.player_info.camera_controller.set_position(
             self.player_info.camera_controller.get_position()
-                + vec3(0.0, 0.0, self.player_info.velocity),
+                + vec3(0.0, 0.0, self.player_info.velocity * delta),
         );
         self.process_collisions();
     }
