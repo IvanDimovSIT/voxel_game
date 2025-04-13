@@ -3,13 +3,14 @@ use std::f32::consts::PI;
 use macroquad::{
     camera::Camera3D,
     input::{mouse_position, set_cursor_grab, show_mouse},
-    math::{vec3, Vec2, Vec3},
+    math::{Vec2, Vec3, vec3},
 };
 
 use crate::{model::location::Location, utils::vector_to_location};
 
 const LOOK_SPEED: f32 = 0.1;
 
+#[derive(Debug)]
 pub struct CameraController {
     is_focused: bool,
     yaw: f32,
@@ -82,12 +83,20 @@ impl CameraController {
         self.up = self.right.cross(self.front).normalize();
     }
 
+    pub fn get_forward_displacement(&self, speed: f32, delta: f32) -> Vec3 {
+        Self::ignore_z(self.front) * speed * delta
+    }
+
+    pub fn get_right_displacement(&self, speed: f32, delta: f32) -> Vec3 {
+        Self::ignore_z(self.right) * speed * delta
+    }
+
     pub fn move_forward(&mut self, speed: f32, delta: f32) {
-        self.position += Self::ignore_z(self.front) * speed * delta;
+        self.position += self.get_forward_displacement(speed, delta);
     }
 
     pub fn move_right(&mut self, speed: f32, delta: f32) {
-        self.position += Self::ignore_z(self.right) * speed * delta;
+        self.position += self.get_right_displacement(speed, delta);
     }
 
     pub fn get_position(&self) -> Vec3 {

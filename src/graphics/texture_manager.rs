@@ -7,32 +7,24 @@ use macroquad::{
 
 use crate::model::voxel::Voxel;
 
+const TEXTURES: [(Voxel, &str); 5] = [
+    (Voxel::Stone, "resources/images/stone.png"),
+    (Voxel::Sand, "resources/images/sand.png"),
+    (Voxel::Grass, "resources/images/grass.png"),
+    (Voxel::Wood, "resources/images/wood.png"),
+    (Voxel::Leaves, "resources/images/leaves.png"),
+];
+
 pub struct TextureManager {
     textures: HashMap<Voxel, Texture2D>,
 }
 impl TextureManager {
     pub async fn new() -> Self {
         let mut textures = HashMap::new();
-        textures.insert(
-            Voxel::Stone,
-            Self::load_image("resources/images/stone.png").await,
-        );
-        textures.insert(
-            Voxel::Sand,
-            Self::load_image("resources/images/sand.png").await,
-        );
-        textures.insert(
-            Voxel::Grass,
-            Self::load_image("resources/images/grass.png").await,
-        );
-        textures.insert(
-            Voxel::Wood,
-            Self::load_image("resources/images/wood.png").await,
-        );
-        textures.insert(
-            Voxel::Leaves,
-            Self::load_image("resources/images/leaves.png").await,
-        );
+        for (texture_type, texture_path) in TEXTURES {
+            textures.insert(texture_type, Self::load_image(texture_path).await);
+        }
+
         build_textures_atlas();
         Self { textures }
     }
@@ -40,7 +32,7 @@ impl TextureManager {
     async fn load_image(path: &str) -> Texture2D {
         load_texture(path)
             .await
-            .expect("Error loading texture '{path}'")
+            .expect(&format!("Error loading texture '{path}'"))
     }
 
     pub fn get(&self, voxel: Voxel) -> Texture2D {

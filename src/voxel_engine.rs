@@ -1,7 +1,7 @@
 use macroquad::{
     camera::set_default_camera,
     color::BEIGE,
-    math::vec3,
+    math::{Vec3, vec3},
     prelude::gl_use_default_material,
     window::{clear_background, next_frame, screen_height, screen_width},
 };
@@ -12,23 +12,16 @@ use crate::{
         renderer::Renderer,
         ui_display::{draw_crosshair, draw_selected_voxel},
     },
-    model::{voxel::Voxel, world::World},
+    model::{player_info::PlayerInfo, voxel::Voxel, world::World},
     service::{
         camera_controller::CameraController,
         input::{self, *},
-        raycast::{cast_ray, RaycastResult},
+        raycast::{RaycastResult, cast_ray},
         render_zone::{get_load_zone, get_render_zone},
         world_actions::{destroy_voxel, place_voxel},
-    }, utils::vector_to_location,
+    },
+    utils::vector_to_location,
 };
-
-struct PlayerInfo {
-    camera_controller: CameraController,
-    move_speed: f32,
-    voxel_reach: f32,
-    velocity: f32,
-    jump_velocity: f32
-}
 
 pub struct VoxelEngine {
     world: World,
@@ -39,13 +32,7 @@ pub struct VoxelEngine {
 }
 impl VoxelEngine {
     pub async fn new(world_name: impl Into<String>) -> Self {
-        let mut player_info = PlayerInfo {
-            camera_controller: CameraController::new(vec3(0.0, 0.0, 20.0)),
-            move_speed: 10.0,
-            voxel_reach: 7.0,
-            velocity: 0.0,
-            jump_velocity: -0.15,
-        };
+        let mut player_info = PlayerInfo::new(vec3(0.0, 0.0, 20.0));
 
         player_info.camera_controller.set_focus(true);
         Self {
@@ -116,10 +103,12 @@ impl VoxelEngine {
         const GRAVITY: f32 = 0.2;
         const MAX_FALL_SPEED: f32 = 2.5;
 
-        self.player_info.velocity = (self.player_info.velocity + GRAVITY * delta).min(MAX_FALL_SPEED);
+        self.player_info.velocity =
+            (self.player_info.velocity + GRAVITY * delta).min(MAX_FALL_SPEED);
 
         self.player_info.camera_controller.set_position(
-            self.player_info.camera_controller.get_position() + vec3(0.0, 0.0, self.player_info.velocity)
+            self.player_info.camera_controller.get_position()
+                + vec3(0.0, 0.0, self.player_info.velocity),
         );
         self.process_collisions();
     }
@@ -148,6 +137,7 @@ impl VoxelEngine {
         if let RaycastResult::Hit {
             first_non_empty,
             last_empty: _,
+            distance: _,
         } = raycast_result
         {
             draw_selected_voxel(first_non_empty, &camera);
@@ -166,6 +156,7 @@ impl VoxelEngine {
             RaycastResult::Hit {
                 first_non_empty: _,
                 last_empty,
+                distance: _,
             } => {
                 let _ = place_voxel(
                     last_empty,
@@ -186,6 +177,7 @@ impl VoxelEngine {
             RaycastResult::Hit {
                 first_non_empty,
                 last_empty: _,
+                distance: _,
             } => {
                 let _ = destroy_voxel(first_non_empty, &mut self.world, &mut self.renderer);
             }
@@ -194,55 +186,90 @@ impl VoxelEngine {
 
     fn try_jump(&mut self) {
         let bottom_voxel_position = self.player_info.camera_controller.get_bottom_position();
-        let voxel = self.world.get(vector_to_location(bottom_voxel_position).into());
+        let voxel = self
+            .world
+            .get(vector_to_location(bottom_voxel_position).into());
         if voxel != Voxel::None {
             self.player_info.velocity = self.player_info.jump_velocity;
         }
     }
 
+    fn try_move<D, M>(&mut self, velocity: f32, delta: f32, get_displacement: D, move_fn: M)
+    where
+        D: Fn(&CameraController, f32, f32) -> Vec3,
+        M: Fn(&mut CameraController, f32, f32),
+    {
+        let top_position = self.player_info.camera_controller.get_position();
+        let bottom_position =
+            self.player_info.camera_controller.get_bottom_position() - vec3(0.0, 0.0, 0.05);
+        let displacement = get_displacement(&self.player_info.camera_controller, velocity, delta);
+        let displacement_magnitude = displacement.length();
+
+        let top_result = cast_ray(
+            &mut self.world,
+            top_position,
+            top_position + displacement,
+            displacement_magnitude,
+        );
+        let bottom_result = cast_ray(
+            &mut self.world,
+            bottom_position,
+            bottom_position + displacement,
+            displacement_magnitude,
+        );
+
+        if matches!(top_result, RaycastResult::NoneHit)
+            && matches!(bottom_result, RaycastResult::NoneHit)
+        {
+            move_fn(&mut self.player_info.camera_controller, velocity, delta);
+        } else {
+            let top_displacement = match top_result {
+                RaycastResult::NoneHit => displacement_magnitude,
+                RaycastResult::Hit { distance, .. } => distance,
+            };
+            let bottom_displacement = match bottom_result {
+                RaycastResult::NoneHit => displacement_magnitude,
+                RaycastResult::Hit { distance, .. } => distance,
+            };
+            let new_displacement = top_displacement.min(bottom_displacement) * 0.95;
+
+            if new_displacement.abs() <= 0.05 {
+                return;
+            }
+
+            move_fn(
+                &mut self.player_info.camera_controller,
+                new_displacement,
+                if velocity < 0.0 { -1.0 } else { 1.0 },
+            );
+        }
+    }
+
     fn try_move_forward(&mut self, velocity: f32, delta: f32) {
-        self.player_info
-            .camera_controller
-            .move_forward(velocity, delta);
-
-        let top_position = self.player_info.camera_controller.get_position() - vec3(0.0, 0.0, 0.1);
-        let bottom_position = self.player_info.camera_controller.get_bottom_position() - vec3(0.0, 0.0, 0.1);
-        let top_voxel = self.world.get(vector_to_location(top_position).into());
-        let bottom_voxel = self.world.get(vector_to_location(bottom_position).into());
-
-        if top_voxel == Voxel::None && bottom_voxel == Voxel::None {
-            return;
-        }        
-
-        self.player_info
-            .camera_controller
-            .move_forward(-velocity, delta);
+        self.try_move(
+            velocity,
+            delta,
+            |camera_controller, v, d| camera_controller.get_forward_displacement(v, d),
+            |camera_controller, v, d| camera_controller.move_forward(v, d),
+        );
     }
 
     fn try_move_right(&mut self, velocity: f32, delta: f32) {
-        self.player_info
-            .camera_controller
-            .move_right(velocity, delta);
-
-        let top_position = self.player_info.camera_controller.get_position() - vec3(0.0, 0.0, 0.1);
-        let bottom_position = self.player_info.camera_controller.get_bottom_position() - vec3(0.0, 0.0, 0.1);
-        let top_voxel = self.world.get(vector_to_location(top_position).into());
-        let bottom_voxel = self.world.get(vector_to_location(bottom_position).into());
-
-        if top_voxel == Voxel::None && bottom_voxel == Voxel::None {
-            return;
-        }        
-
-        self.player_info
-            .camera_controller
-            .move_right(-velocity, delta);
+        self.try_move(
+            velocity,
+            delta,
+            |camera_controller, v, d| camera_controller.get_right_displacement(v, d),
+            |camera_controller, v, d| camera_controller.move_right(v, d),
+        );
     }
-    
+
     fn process_collisions(&mut self) {
         let mut camera_top_position = self.player_info.camera_controller.get_position();
         let mut camera_bottom_position = self.player_info.camera_controller.get_bottom_position();
-        
-        let voxel_bottom = self.world.get(vector_to_location(camera_bottom_position).into());
+
+        let voxel_bottom = self
+            .world
+            .get(vector_to_location(camera_bottom_position).into());
         if voxel_bottom != Voxel::None {
             let offset = camera_bottom_position.z - (camera_bottom_position.z.floor() + 0.5);
             camera_top_position -= vec3(0.0, 0.0, offset);
@@ -250,7 +277,9 @@ impl VoxelEngine {
             self.player_info.velocity = 0.0;
         }
 
-        let voxel_top = self.world.get(vector_to_location(camera_top_position).into());
+        let voxel_top = self
+            .world
+            .get(vector_to_location(camera_top_position).into());
         if voxel_top != Voxel::None {
             let offset = camera_top_position.z - (camera_top_position.z.floor() + 0.5);
             camera_top_position -= vec3(0.0, 0.0, offset);
@@ -258,6 +287,8 @@ impl VoxelEngine {
             self.player_info.velocity = 0.0;
         }
 
-        self.player_info.camera_controller.set_position(camera_top_position);
+        self.player_info
+            .camera_controller
+            .set_position(camera_top_position);
     }
 }
