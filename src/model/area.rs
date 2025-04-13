@@ -10,7 +10,7 @@ pub const AREA_SIZE: u32 = 16;
 pub const AREA_HEIGHT: u32 = 64;
 pub const VOXELS_IN_AREA: usize = (AREA_SIZE * AREA_SIZE * AREA_HEIGHT) as usize;
 
-#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, Encode, Decode)]
+#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
 pub struct AreaLocation {
     pub x: u32,
     pub y: u32,
@@ -136,7 +136,6 @@ impl Area {
     }
 }
 
-
 #[derive(Debug, Encode, Decode)]
 pub struct AreaDTO {
     pub voxels: Box<[Voxel]>,
@@ -152,6 +151,8 @@ impl AreaDTO {
 }
 impl From<Area> for AreaDTO {
     fn from(value: Area) -> Self {
-        Self { voxels: value.voxels }
+        Self {
+            voxels: value.voxels,
+        }
     }
 }

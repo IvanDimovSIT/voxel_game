@@ -50,6 +50,7 @@ impl CameraController {
         }
     }
 
+    /// sets window focus
     pub fn set_focus(&mut self, is_focused: bool) {
         self.is_focused = is_focused;
         set_cursor_grab(is_focused);

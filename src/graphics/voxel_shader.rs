@@ -9,6 +9,7 @@ use macroquad::{
 pub const VERTEX_SHADER: &str = include_str!("../../resources/shaders/vertex.glsl");
 pub const FRAGMENT_SHADER: &str = include_str!("../../resources/shaders/fragment.glsl");
 
+/// 3D material shader
 pub struct VoxelShader {
     material: Material,
 }

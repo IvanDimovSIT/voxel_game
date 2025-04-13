@@ -202,6 +202,7 @@ impl Renderer {
         }
     }
 
+    /// generates all the meshes for the area
     pub fn load_full_area(&mut self, world: &mut World, area_location: AreaLocation) {
         if self.meshes.contains_key(&area_location) {
             return;

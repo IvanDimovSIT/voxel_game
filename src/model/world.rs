@@ -135,6 +135,8 @@ impl World {
         area.set(local_location, voxel);
     }
 
+    /// loads all areas at the input locations asynchronously and unloads
+    /// all areas not at the input locations asynchronously
     pub fn retain_areas(&mut self, area_locations: &[AreaLocation]) {
         let loaded = self.area_loader.get_loaded();
         for area in loaded {
@@ -170,12 +172,11 @@ impl World {
         self.areas.len()
     }
 
+    /// saves all areas and clears memory
     pub fn save_all_blocking(&mut self) {
         let start = Instant::now();
         info!("Saving world...");
-        let area_locations: Vec<AreaLocation> = self.areas.keys()
-            .copied()
-            .collect();
+        let area_locations: Vec<AreaLocation> = self.areas.keys().copied().collect();
         for area_location in area_locations {
             if let Some(area) = self.areas.remove(&area_location) {
                 if area.has_changed {

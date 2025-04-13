@@ -3,6 +3,7 @@ use crate::model::area::AreaLocation;
 const MAX_RENDER_SIZE: u32 = 100;
 const LOAD_EXTRA: u32 = 2;
 
+/// returns a list of areas to generate meshes for
 pub fn get_render_zone(area_location: AreaLocation, render_size: u32) -> Vec<AreaLocation> {
     debug_assert!(
         render_size <= MAX_RENDER_SIZE,
@@ -27,6 +28,7 @@ pub fn get_render_zone(area_location: AreaLocation, render_size: u32) -> Vec<Are
     areas
 }
 
+/// returns a list of areas to be loaded from disk
 pub fn get_load_zone(area_location: AreaLocation, render_size: u32) -> Vec<AreaLocation> {
     get_render_zone(area_location, render_size + LOAD_EXTRA)
 }

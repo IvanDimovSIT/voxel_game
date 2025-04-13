@@ -26,6 +26,7 @@ fn get_filepath(area_x: u32, area_y: u32, world_name: &str) -> String {
     format!("{world_name}/area{area_x}_{area_y}.dat")
 }
 
+/// stores an area and blocks the main thread
 pub fn store_blocking(area: Area, world_name: &str) {
     debug_assert!(area.has_changed);
     let filepath = get_filepath(area.get_x(), area.get_y(), world_name);
@@ -55,6 +56,7 @@ pub fn store_blocking(area: Area, world_name: &str) {
     }
 }
 
+/// stores an area on a background thread
 pub fn store(area: Area, world_name: String) {
     debug_assert!(area.has_changed);
     rayon::spawn(move || {
@@ -64,6 +66,7 @@ pub fn store(area: Area, world_name: String) {
     });
 }
 
+/// loads an area from disk
 pub fn load_blocking(area_location: AreaLocation, world_name: &str) -> Area {
     let filepath = get_filepath(area_location.x, area_location.y, world_name);
 
@@ -93,6 +96,7 @@ pub fn load_blocking(area_location: AreaLocation, world_name: &str) -> Area {
     area_dto.into_area(area_location, false)
 }
 
+/// struct to load areas asynchronously
 pub struct AreaLoader {
     semaphore: Arc<Semaphore>,
     to_load: Arc<Mutex<HashSet<AreaLocation>>>,
@@ -107,6 +111,7 @@ impl AreaLoader {
         }
     }
 
+    /// starts background threads to load areas from disk
     pub fn batch_load(&mut self, areas_to_load: &[AreaLocation], world_name: &str) {
         let to_load_lock = self.to_load.lock().unwrap();
         let areas_to_load = areas_to_load
@@ -133,6 +138,7 @@ impl AreaLoader {
         }
     }
 
+    /// returns loaded areas
     pub fn get_loaded(&mut self) -> Vec<Area> {
         let areas = take(self.loaded.lock().unwrap().as_mut());
 

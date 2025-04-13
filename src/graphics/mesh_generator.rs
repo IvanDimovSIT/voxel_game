@@ -45,6 +45,7 @@ impl MeshGenerator {
         }
     }
 
+    /// generates a mesh for the voxel only with the side faces from the diretions slice
     pub fn generate_mesh(
         &self,
         voxel: Voxel,

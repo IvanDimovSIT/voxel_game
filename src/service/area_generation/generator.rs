@@ -49,6 +49,7 @@ fn calculate_voxel_type(z: u32, height: u32, biome_type: BiomeType) -> Voxel {
     }
 }
 
+/// generates an area at a specific location with the world name as the seed
 pub fn generate_area(area_location: AreaLocation, world_name: &str) -> Area {
     info!("Generating area: {:?}", area_location);
 
