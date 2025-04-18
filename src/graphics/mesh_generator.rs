@@ -265,4 +265,8 @@ impl MeshGenerator {
             }
         }
     }
+
+    pub fn get_texture_manager(&self) -> &TextureManager {
+        &self.texture_manager
+    }
 }

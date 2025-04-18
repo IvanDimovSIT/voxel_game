@@ -1,8 +1,10 @@
 use macroquad::{
-    camera::Camera3D, color::WHITE, math::vec3, models::draw_cube_wires, shapes::draw_circle,
+    camera::Camera3D, color::{Color, WHITE}, math::{vec2, vec3}, miniquad::window::screen_size, models::draw_cube_wires, shapes::{draw_circle, draw_rectangle, draw_rectangle_ex, DrawRectangleParams}, texture::{draw_texture_ex, DrawTextureParams, Texture2D}
 };
 
-use crate::model::location::Location;
+use crate::model::{location::Location, voxel::Voxel};
+
+use super::texture_manager::TextureManager;
 
 pub fn draw_crosshair(width: f32, height: f32) {
     draw_circle(width / 2.0, height / 2.0, 2.0, WHITE);
@@ -15,4 +17,63 @@ pub fn draw_selected_voxel(location: Location, camera: &Camera3D) {
         location.z as f32 - camera.position.z,
     );
     draw_cube_wires(position, vec3(1.0, 1.0, 1.0), WHITE);
+}
+
+pub struct VoxelSelector {
+    voxels: Vec<Voxel>,
+    selected: usize,
+    ui_size: f32
+}
+impl VoxelSelector {
+    pub fn new() -> Self {
+        Self {
+            voxels: vec![Voxel::Brick, Voxel::Stone, Voxel::Sand, Voxel::Grass, Voxel::Wood, Voxel::Leaves],
+            selected: 0,
+            ui_size: 0.05,
+        }
+    }
+
+    pub fn select_next(&mut self) {
+        self.selected =  (self.selected + 1) % self.voxels.len();
+    }
+
+    pub fn select_prev(&mut self) {
+        self.selected =  (self.selected + self.voxels.len() - 1) % self.voxels.len();
+    }
+
+    pub fn get_selected(&self) -> Voxel {
+        self.voxels[self.selected]
+    }
+
+    pub fn draw(&self, texture_manager: &TextureManager) {
+        let (screen_width, screen_height) = screen_size();
+        let border_size = screen_width * self.ui_size;
+        let picture_size = border_size * 0.8; 
+        let total_width = border_size * self.voxels.len() as f32;
+        let x_start = (screen_width - total_width) / 2.0;
+        let y = screen_height - border_size;
+
+        for (index, voxel) in self.voxels.iter().enumerate() {
+            let texture = texture_manager.get(*voxel);
+            let is_selected = self.selected == index;
+            let x = x_start + index as f32 * border_size;
+        
+            Self::draw_voxel(border_size, picture_size, &texture, x, y, is_selected);
+        }
+    }
+
+    fn draw_voxel(border_size: f32, picture_size: f32, texture: &Texture2D, x: f32, y: f32, is_selected: bool) {        
+        let border_color = if is_selected {
+            WHITE
+        } else {
+            Color::from_rgba(120, 120, 120, 150)
+        };
+        let offset = (border_size - picture_size) / 2.0;
+        
+        draw_rectangle(x, y, border_size, border_size, border_color);
+        draw_texture_ex(texture, x + offset, y + offset, WHITE, DrawTextureParams {
+            dest_size: Some(vec2(picture_size, picture_size)),
+            ..Default::default()
+        });
+    }
 }

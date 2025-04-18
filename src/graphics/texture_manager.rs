@@ -7,12 +7,13 @@ use macroquad::{
 
 use crate::model::voxel::Voxel;
 
-const TEXTURES: [(Voxel, &str); 5] = [
+const TEXTURES: [(Voxel, &str); 6] = [
     (Voxel::Stone, "resources/images/stone.png"),
     (Voxel::Sand, "resources/images/sand.png"),
     (Voxel::Grass, "resources/images/grass.png"),
     (Voxel::Wood, "resources/images/wood.png"),
     (Voxel::Leaves, "resources/images/leaves.png"),
+    (Voxel::Brick, "resources/images/brick.png"),
 ];
 
 pub struct TextureManager {

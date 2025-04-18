@@ -20,8 +20,7 @@ use crate::{
 };
 
 use super::{
-    mesh_generator::{FaceDirection, MeshGenerator},
-    voxel_shader::VoxelShader,
+    mesh_generator::{FaceDirection, MeshGenerator}, texture_manager::TextureManager, voxel_shader::VoxelShader
 };
 
 const AREA_RENDER_THRESHOLD: f32 = 0.5;
@@ -321,5 +320,9 @@ impl Renderer {
         for area_location in areas_to_unload {
             self.unload_area(area_location);
         }
+    }
+
+    pub fn get_texture_manager(&self) -> &TextureManager {
+        self.mesh_generator.get_texture_manager()
     }
 }

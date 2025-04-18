@@ -10,13 +10,13 @@ use crate::{
     graphics::{
         debug_display::DebugDisplay,
         renderer::Renderer,
-        ui_display::{draw_crosshair, draw_selected_voxel},
+        ui_display::{draw_crosshair, draw_selected_voxel, VoxelSelector},
     },
     model::{player_info::PlayerInfo, voxel::Voxel, world::World},
     service::{
         camera_controller::CameraController,
         input::{self, *},
-        raycast::{RaycastResult, cast_ray},
+        raycast::{cast_ray, RaycastResult},
         render_zone::{get_load_zone, get_render_zone},
         world_actions::{destroy_voxel, place_voxel},
     },
@@ -28,6 +28,7 @@ pub struct VoxelEngine {
     renderer: Renderer,
     player_info: PlayerInfo,
     debug_display: DebugDisplay,
+    voxel_selector: VoxelSelector,
     render_size: u32,
 }
 impl VoxelEngine {
@@ -41,6 +42,7 @@ impl VoxelEngine {
             player_info,
             debug_display: DebugDisplay::new(),
             render_size: 7,
+            voxel_selector: VoxelSelector::new(),
         }
     }
 
@@ -95,6 +97,11 @@ impl VoxelEngine {
         if toggle_debug() {
             self.debug_display.toggle_display();
         }
+        match get_scroll_direction() {
+            ScrollDirection::Up => self.voxel_selector.select_next(),
+            ScrollDirection::Down => self.voxel_selector.select_prev(),
+            ScrollDirection::None => {},
+        }
 
         raycast_result
     }
@@ -144,6 +151,7 @@ impl VoxelEngine {
         }
         set_default_camera();
         draw_crosshair(width, height);
+        self.voxel_selector.draw(self.renderer.get_texture_manager());
         self.debug_display
             .draw_debug_display(&self.world, &self.renderer, &camera, rendered);
 
@@ -160,7 +168,7 @@ impl VoxelEngine {
             } => {
                 let _ = place_voxel(
                     last_empty,
-                    Voxel::Leaves,
+                    self.voxel_selector.get_selected(),
                     self.player_info
                         .camera_controller
                         .get_camera_voxel_location(),

@@ -1,5 +1,5 @@
 use macroquad::input::{
-    is_key_down, is_key_pressed, is_key_released, is_mouse_button_pressed, is_mouse_button_released,
+    is_key_down, is_key_pressed, is_key_released, is_mouse_button_pressed, is_mouse_button_released, mouse_wheel,
 };
 
 use super::camera_controller::CameraController;
@@ -50,4 +50,23 @@ pub fn increase_render_distance() -> bool {
 
 pub fn decrease_render_distance() -> bool {
     is_key_released(macroquad::input::KeyCode::F1)
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum ScrollDirection {
+    Up,
+    Down,
+    None
+}
+pub fn get_scroll_direction() -> ScrollDirection {
+    let (_x, y) = mouse_wheel();
+
+    println!("{y}");
+    if y > 0.5 {
+        ScrollDirection::Up
+    } else if y < -0.5 {
+        ScrollDirection::Down
+    } else {
+        ScrollDirection::None
+    }
 }
