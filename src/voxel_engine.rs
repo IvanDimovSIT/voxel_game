@@ -10,11 +10,21 @@ use crate::{
     graphics::{
         debug_display::DebugDisplay,
         renderer::Renderer,
-        ui_display::{draw_crosshair, draw_selected_voxel, VoxelSelector},
+        ui_display::{VoxelSelector, draw_crosshair, draw_selected_voxel},
     },
-    model::{player_info::PlayerInfo, voxel::Voxel, world::World},
+    model::{
+        location::Location,
+        player_info::PlayerInfo,
+        voxel::Voxel,
+        world::{self, World},
+    },
     service::{
-        camera_controller::CameraController, input::{self, *}, raycast::{cast_ray, RaycastResult}, render_zone::{get_load_zone, get_render_zone}, voxel_physics::VoxelSimulator, world_actions::{destroy_voxel, place_voxel}
+        camera_controller::CameraController,
+        input::{self, *},
+        raycast::{RaycastResult, cast_ray},
+        render_zone::{get_load_zone, get_render_zone},
+        voxel_physics::VoxelSimulator,
+        world_actions::{destroy_voxel, place_voxel},
     },
     utils::vector_to_location,
 };
@@ -54,7 +64,7 @@ impl VoxelEngine {
         }
     }
 
-    /// returns the looked at voxel from the camera
+    /// processes player inputs and returns the looked at voxel from the camera
     pub fn process_input(&mut self, delta: f32) -> RaycastResult {
         self.player_info.camera_controller.update_look(delta);
         let camera = self.player_info.camera_controller.create_camera();
@@ -98,27 +108,21 @@ impl VoxelEngine {
         match get_scroll_direction() {
             ScrollDirection::Up => self.voxel_selector.select_next(),
             ScrollDirection::Down => self.voxel_selector.select_prev(),
-            ScrollDirection::None => {},
+            ScrollDirection::None => {}
         }
 
         raycast_result
     }
 
+    /// process falling and collisions
     pub fn process_physics(&mut self, delta: f32) {
-        const GRAVITY: f32 = 25.0;
-        const MAX_FALL_SPEED: f32 = 60.0;
-
-        self.player_info.velocity =
-            (self.player_info.velocity + GRAVITY * delta).min(MAX_FALL_SPEED);
-
-        self.player_info.camera_controller.set_position(
-            self.player_info.camera_controller.get_position()
-                + vec3(0.0, 0.0, self.player_info.velocity * delta),
-        );
-        self.voxel_simulator.simulate_falling(&mut self.world, &mut self.renderer, delta);
-        self.process_collisions();
+        self.process_collisions(delta);
+        self.push_player_up();
+        self.voxel_simulator
+            .simulate_falling(&mut self.world, &mut self.renderer, delta);
     }
 
+    /// updates the areas loaded in memory and unloads old areas
     pub fn update_loaded_areas(&mut self) {
         let camera_location = self
             .player_info
@@ -132,6 +136,7 @@ impl VoxelEngine {
             .retain_areas(&get_load_zone(camera_location.into(), self.render_size));
     }
 
+    /// draws the current frame
     pub async fn draw_scene(&mut self, raycast_result: RaycastResult) {
         clear_background(BEIGE);
 
@@ -151,7 +156,8 @@ impl VoxelEngine {
         }
         set_default_camera();
         draw_crosshair(width, height);
-        self.voxel_selector.draw(self.renderer.get_texture_manager());
+        self.voxel_selector
+            .draw(self.renderer.get_texture_manager());
         self.debug_display
             .draw_debug_display(&self.world, &self.renderer, &camera, rendered);
 
@@ -174,12 +180,13 @@ impl VoxelEngine {
                         .get_camera_voxel_location(),
                     &mut self.world,
                     &mut self.renderer,
-                    &self.voxel_simulator
+                    &self.voxel_simulator,
                 );
                 if !has_placed {
                     return;
-                } 
-                self.voxel_simulator.update_voxels(&mut self.world, &mut self.renderer, last_empty);
+                }
+                self.voxel_simulator
+                    .update_voxels(&mut self.world, &mut self.renderer, last_empty);
             }
         }
     }
@@ -192,11 +199,16 @@ impl VoxelEngine {
                 last_empty: _,
                 distance: _,
             } => {
-                let has_destroyed = destroy_voxel(first_non_empty, &mut self.world, &mut self.renderer);
+                let has_destroyed =
+                    destroy_voxel(first_non_empty, &mut self.world, &mut self.renderer);
                 if !has_destroyed {
                     return;
                 }
-                self.voxel_simulator.update_voxels(&mut self.world, &mut self.renderer, first_non_empty);
+                self.voxel_simulator.update_voxels(
+                    &mut self.world,
+                    &mut self.renderer,
+                    first_non_empty,
+                );
             }
         }
     }
@@ -218,7 +230,7 @@ impl VoxelEngine {
     {
         let top_position = self.player_info.camera_controller.get_position();
         let bottom_position =
-            self.player_info.camera_controller.get_bottom_position() - vec3(0.0, 0.0, 0.05);
+            self.player_info.camera_controller.get_bottom_position() - vec3(0.0, 0.0, 0.55);
         let displacement = get_displacement(&self.player_info.camera_controller, velocity, delta);
         let displacement_magnitude = displacement.length();
 
@@ -280,42 +292,50 @@ impl VoxelEngine {
         );
     }
 
-    fn process_collisions(&mut self) {
-        let mut camera_top_position = self.player_info.camera_controller.get_position();
-        let mut camera_bottom_position = self.player_info.camera_controller.get_bottom_position();
+    fn push_player_up(&mut self) {
+        let down_position = self.player_info.camera_controller.get_position() + vec3(0.0, 0.0, 1.0);
+        let down_location: Location = vector_to_location(down_position);
+        let voxel = self.world.get(down_location.into());
+        if voxel == Voxel::None {
+            return;
+        }
+        error!("Player is stuck!");
+        self.player_info
+            .camera_controller
+            .set_position(down_position - vec3(0.0, 0.0, 2.5));
+        self.push_player_up();
+    }
 
-        let voxel_bottom = self
-            .world
-            .get(vector_to_location(camera_bottom_position).into());
-        if voxel_bottom != Voxel::None {
-            let offset = camera_bottom_position.z - (camera_bottom_position.z.floor() + 0.5);
-            camera_top_position -= vec3(0.0, 0.0, offset);
-            camera_bottom_position -= vec3(0.0, 0.0, offset);
+    fn process_collisions(&mut self, delta: f32) {
+        const GRAVITY: f32 = 25.0;
+        const MAX_FALL_SPEED: f32 = 60.0;
+
+        self.player_info.velocity =
+            (self.player_info.velocity + GRAVITY * delta).min(MAX_FALL_SPEED);
+
+        let top_position = self.player_info.camera_controller.get_position()
+            + vec3(0.0, 0.0, self.player_info.velocity * delta);
+        let down_position = top_position + vec3(0.0, 0.0, 1.5);
+
+        let down_location = vector_to_location(down_position);
+        let down_voxel = self.world.get(down_location.into());
+        if down_voxel != Voxel::None {
             self.player_info.velocity = 0.0;
+            self.player_info.camera_controller.set_position(
+                vec3(top_position.x, top_position.y, down_location.z as f32) - vec3(0.0, 0.0, 2.0),
+            );
+            return;
         }
 
-        let voxel_top = self
-            .world
-            .get(vector_to_location(camera_top_position).into());
-        if voxel_top != Voxel::None {
-            let offset = camera_top_position.z - (camera_top_position.z.floor() + 0.5);
-            camera_top_position -= vec3(0.0, 0.0, offset);
-            camera_bottom_position -= vec3(0.0, 0.0, offset);
+        let top_location = vector_to_location(top_position);
+        let top_voxel = self.world.get(top_location.into());
+        if top_voxel != Voxel::None {
             self.player_info.velocity = 0.0;
-        }
-
-        if self
-            .world
-            .get(vector_to_location(camera_bottom_position - vec3(0.0, 0.0, 0.1)).into())
-            != Voxel::None
-        {
-            camera_top_position -= vec3(0.0, 0.0, 1.0);
-            self.player_info.velocity = 0.0;
-            error!("Stuck, moving up");
+            return;
         }
 
         self.player_info
             .camera_controller
-            .set_position(camera_top_position);
+            .set_position(top_position);
     }
 }

@@ -1,4 +1,4 @@
-use macroquad::math::{vec3, Vec3};
+use macroquad::math::{Vec3, vec3};
 
 pub const LOCATION_OFFSET: i32 = 1_000_000;
 

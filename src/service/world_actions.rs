@@ -11,7 +11,7 @@ pub fn place_voxel(
     camera_location: Location,
     world: &mut World,
     renderer: &mut Renderer,
-    voxel_simulator: &VoxelSimulator
+    voxel_simulator: &VoxelSimulator,
 ) -> bool {
     if world.get(location.into()) != Voxel::None {
         return false;

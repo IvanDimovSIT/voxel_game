@@ -1,10 +1,13 @@
-use macroquad::{camera::Camera3D, prelude::{
-    gl_use_material, load_material, Comparison, Material, MaterialParams, PipelineParams, ShaderSource, UniformDesc, UniformType
-}};
+use macroquad::{
+    camera::Camera3D,
+    prelude::{
+        Comparison, Material, MaterialParams, PipelineParams, ShaderSource, UniformDesc,
+        UniformType, gl_use_material, load_material,
+    },
+};
 
 const FALLING_VERTEX_SHADER: &str = include_str!("../../resources/shaders/falling_vertex.glsl");
 const FALLING_FRAGMENT_SHADER: &str = include_str!("../../resources/shaders/falling_fragment.glsl");
-
 
 /// 3D material shader for falling voxels
 pub struct FallingShader {
@@ -32,11 +35,10 @@ impl FallingShader {
         )
         .expect("Error initialising falling shaders");
 
-
         Self { falling_material }
     }
 
-    /// sets the current OpenGL shader to render falling voxels 
+    /// sets the current OpenGL shader to render falling voxels
     pub fn set_falling_material(&self, camera: &Camera3D) {
         self.falling_material.set_uniform(
             "cameraPos",

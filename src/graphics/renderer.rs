@@ -20,7 +20,9 @@ use crate::{
 };
 
 use super::{
-    mesh_generator::{FaceDirection, MeshGenerator}, texture_manager::TextureManager, voxel_shader::VoxelShader
+    mesh_generator::{FaceDirection, MeshGenerator},
+    texture_manager::TextureManager,
+    voxel_shader::VoxelShader,
 };
 
 const AREA_RENDER_THRESHOLD: f32 = 0.5;

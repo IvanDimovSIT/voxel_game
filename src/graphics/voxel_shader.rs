@@ -9,8 +9,7 @@ use macroquad::{
 const VOXEL_VERTEX_SHADER: &str = include_str!("../../resources/shaders/voxel_vertex.glsl");
 const VOXEL_FRAGMENT_SHADER: &str = include_str!("../../resources/shaders/voxel_fragment.glsl");
 
-
-/// default 3D material shader for voxels 
+/// default 3D material shader for voxels
 pub struct VoxelShader {
     voxel_material: Material,
 }
@@ -55,5 +54,4 @@ impl VoxelShader {
 
         gl_use_material(&self.voxel_material);
     }
-
 }
