@@ -61,7 +61,6 @@ pub enum ScrollDirection {
 pub fn get_scroll_direction() -> ScrollDirection {
     let (_x, y) = mouse_wheel();
 
-    println!("{y}");
     if y > 0.5 {
         ScrollDirection::Up
     } else if y < -0.5 {

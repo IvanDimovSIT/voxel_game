@@ -20,6 +20,7 @@ pub struct TextureManager {
     textures: HashMap<Voxel, Texture2D>,
 }
 impl TextureManager {
+    /// loads all of the textures
     pub async fn new() -> Self {
         let mut textures = HashMap::new();
         for (texture_type, texture_path) in TEXTURES {
@@ -36,6 +37,7 @@ impl TextureManager {
             .expect(&format!("Error loading texture '{path}'"))
     }
 
+    /// returns the texture of the voxel
     pub fn get(&self, voxel: Voxel) -> Texture2D {
         self.textures
             .get(&voxel)

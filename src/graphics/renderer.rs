@@ -268,7 +268,7 @@ impl Renderer {
     pub fn render_voxels(&self, camera: &Camera3D, render_size: u32) -> (usize, usize) {
         let normalised_camera = CameraController::normalize_camera_3d(camera);
         set_camera(&normalised_camera);
-        self.shader.set_material(camera);
+        self.shader.set_voxel_material(camera);
         let position: Vec3 = camera.position;
         let look = (camera.target - position).normalize_or_zero();
         let render_distance = Self::calculate_render_distance(look, render_size);

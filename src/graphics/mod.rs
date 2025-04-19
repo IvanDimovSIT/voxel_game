@@ -4,3 +4,4 @@ pub mod renderer;
 pub mod texture_manager;
 pub mod ui_display;
 pub mod voxel_shader;
+pub mod falling_shader;

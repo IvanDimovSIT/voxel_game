@@ -14,11 +14,7 @@ use crate::{
     },
     model::{player_info::PlayerInfo, voxel::Voxel, world::World},
     service::{
-        camera_controller::CameraController,
-        input::{self, *},
-        raycast::{cast_ray, RaycastResult},
-        render_zone::{get_load_zone, get_render_zone},
-        world_actions::{destroy_voxel, place_voxel},
+        camera_controller::CameraController, input::{self, *}, raycast::{cast_ray, RaycastResult}, render_zone::{get_load_zone, get_render_zone}, voxel_physics::VoxelSimulator, world_actions::{destroy_voxel, place_voxel}
     },
     utils::vector_to_location,
 };
@@ -29,6 +25,7 @@ pub struct VoxelEngine {
     player_info: PlayerInfo,
     debug_display: DebugDisplay,
     voxel_selector: VoxelSelector,
+    voxel_simulator: VoxelSimulator,
     render_size: u32,
 }
 impl VoxelEngine {
@@ -43,6 +40,7 @@ impl VoxelEngine {
             debug_display: DebugDisplay::new(),
             render_size: 7,
             voxel_selector: VoxelSelector::new(),
+            voxel_simulator: VoxelSimulator::new(),
         }
     }
 
@@ -117,6 +115,7 @@ impl VoxelEngine {
             self.player_info.camera_controller.get_position()
                 + vec3(0.0, 0.0, self.player_info.velocity * delta),
         );
+        self.voxel_simulator.simulate_falling(&mut self.world, &mut self.renderer, delta);
         self.process_collisions();
     }
 
@@ -140,6 +139,7 @@ impl VoxelEngine {
         let height = screen_height();
         let camera = self.player_info.camera_controller.create_camera();
         let rendered = self.renderer.render_voxels(&camera, self.render_size);
+        self.voxel_simulator.draw(&camera);
         gl_use_default_material();
         if let RaycastResult::Hit {
             first_non_empty,
@@ -166,7 +166,7 @@ impl VoxelEngine {
                 last_empty,
                 distance: _,
             } => {
-                let _ = place_voxel(
+                let has_placed = place_voxel(
                     last_empty,
                     self.voxel_selector.get_selected(),
                     self.player_info
@@ -174,7 +174,12 @@ impl VoxelEngine {
                         .get_camera_voxel_location(),
                     &mut self.world,
                     &mut self.renderer,
+                    &self.voxel_simulator
                 );
+                if !has_placed {
+                    return;
+                } 
+                self.voxel_simulator.update_voxels(&mut self.world, &mut self.renderer, last_empty);
             }
         }
     }
@@ -187,7 +192,11 @@ impl VoxelEngine {
                 last_empty: _,
                 distance: _,
             } => {
-                let _ = destroy_voxel(first_non_empty, &mut self.world, &mut self.renderer);
+                let has_destroyed = destroy_voxel(first_non_empty, &mut self.world, &mut self.renderer);
+                if !has_destroyed {
+                    return;
+                }
+                self.voxel_simulator.update_voxels(&mut self.world, &mut self.renderer, first_non_empty);
             }
         }
     }

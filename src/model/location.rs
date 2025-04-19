@@ -1,3 +1,5 @@
+use macroquad::math::{vec3, Vec3};
+
 pub const LOCATION_OFFSET: i32 = 1_000_000;
 
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
@@ -18,6 +20,11 @@ impl From<InternalLocation> for Location {
             y: value.y as i32 - LOCATION_OFFSET,
             z: value.z as i32,
         }
+    }
+}
+impl Into<Vec3> for Location {
+    fn into(self) -> Vec3 {
+        vec3(self.x as f32, self.y as f32, self.z as f32)
     }
 }
 
