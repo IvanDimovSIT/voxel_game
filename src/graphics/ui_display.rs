@@ -35,8 +35,10 @@ impl VoxelSelector {
         Self {
             voxels: vec![
                 Voxel::Brick,
+                Voxel::Boards,
                 Voxel::Stone,
                 Voxel::Sand,
+                Voxel::Dirt,
                 Voxel::Grass,
                 Voxel::Wood,
                 Voxel::Leaves,

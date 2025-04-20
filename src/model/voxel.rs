@@ -9,6 +9,8 @@ pub enum Voxel {
     Wood,
     Leaves,
     Brick,
+    Dirt,
+    Boards
 }
 impl Default for Voxel {
     fn default() -> Self {

@@ -44,6 +44,10 @@ fn calculate_voxel_type(z: u32, height: u32, biome_type: BiomeType) -> Voxel {
                 return Voxel::Grass;
             }
 
+            if z + 1 >= height {
+                return Voxel::Dirt;
+            }
+
             Voxel::Stone
         }
     }
