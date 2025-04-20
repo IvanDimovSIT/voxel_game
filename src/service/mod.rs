@@ -4,5 +4,6 @@ pub mod input;
 pub mod persistence;
 pub mod raycast;
 pub mod render_zone;
+pub mod sound_manager;
 pub mod voxel_physics;
 pub mod world_actions;

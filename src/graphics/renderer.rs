@@ -25,7 +25,7 @@ use super::{
     voxel_shader::VoxelShader,
 };
 
-const AREA_RENDER_THRESHOLD: f32 = 0.5;
+const AREA_RENDER_THRESHOLD: f32 = 0.4;
 const LOOK_DOWN_RENDER_MULTIPLIER: f32 = 0.5;
 const VOXEL_RENDER_THRESHOLD: f32 = 0.71;
 const VOXEL_PROXIMITY_THRESHOLD: f32 = 5.5;

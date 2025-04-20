@@ -23,6 +23,7 @@ use crate::{
         input::{self, *},
         raycast::{RaycastResult, cast_ray},
         render_zone::{get_load_zone, get_render_zone},
+        sound_manager::{SoundId, SoundManager},
         voxel_physics::VoxelSimulator,
         world_actions::{destroy_voxel, place_voxel},
     },
@@ -36,6 +37,7 @@ pub struct VoxelEngine {
     debug_display: DebugDisplay,
     voxel_selector: VoxelSelector,
     voxel_simulator: VoxelSimulator,
+    sound_manager: SoundManager,
     render_size: u32,
 }
 impl VoxelEngine {
@@ -51,6 +53,7 @@ impl VoxelEngine {
             render_size: 7,
             voxel_selector: VoxelSelector::new(),
             voxel_simulator: VoxelSimulator::new(),
+            sound_manager: SoundManager::new().await,
         }
     }
 
@@ -185,6 +188,7 @@ impl VoxelEngine {
                 if !has_placed {
                     return;
                 }
+                self.sound_manager.play_sound(SoundId::Place);
                 self.voxel_simulator
                     .update_voxels(&mut self.world, &mut self.renderer, last_empty);
             }
@@ -204,6 +208,7 @@ impl VoxelEngine {
                 if !has_destroyed {
                     return;
                 }
+                self.sound_manager.play_sound(SoundId::Destroy);
                 self.voxel_simulator.update_voxels(
                     &mut self.world,
                     &mut self.renderer,
@@ -320,6 +325,9 @@ impl VoxelEngine {
         let down_location = vector_to_location(down_position);
         let down_voxel = self.world.get(down_location.into());
         if down_voxel != Voxel::None {
+            if self.player_info.velocity > MAX_FALL_SPEED * 0.2 {
+                self.sound_manager.play_sound(SoundId::Fall);
+            }
             self.player_info.velocity = 0.0;
             self.player_info.camera_controller.set_position(
                 vec3(top_position.x, top_position.y, down_location.z as f32) - vec3(0.0, 0.0, 2.0),
