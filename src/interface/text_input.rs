@@ -1,0 +1,99 @@
+use macroquad::{
+    color::BLACK,
+    input::{get_char_pressed, is_key_released, is_mouse_button_released, mouse_position},
+    shapes::{draw_rectangle, draw_rectangle_lines},
+    text::{TextParams, draw_text_ex},
+};
+
+use super::{style::*, util::is_point_in_rect};
+
+#[derive(Debug)]
+pub struct TextInput {
+    text: String,
+    is_selected: bool,
+    max_length: usize,
+}
+impl TextInput {
+    pub fn new(max_length: usize) -> Self {
+        Self {
+            text: "".to_owned(),
+            is_selected: false,
+            max_length,
+        }
+    }
+
+    /// selects the text input and returns if it has just been selected
+    pub fn input_selection(&mut self, x: f32, y: f32, w: f32, h: f32) -> bool {
+        let (mouse_x, mouse_y) = mouse_position();
+        let has_clicked = is_mouse_button_released(macroquad::input::MouseButton::Left);
+        if !has_clicked {
+            return false;
+        }
+        let is_selected = has_clicked && is_point_in_rect(x, y, w, h, mouse_x, mouse_y);
+        self.is_selected = is_selected;
+        is_selected
+    }
+
+    pub fn input_text(&mut self) {
+        if is_key_released(macroquad::input::KeyCode::Backspace) {
+            self.text.pop();
+            return;
+        }
+
+        let mut chars = vec![];
+        loop {
+            let char = get_char_pressed();
+            if let Some(char) = char {
+                chars.push(char);
+            } else {
+                break;
+            }
+        }
+
+        let characters: String = chars
+            .into_iter()
+            .filter(|c| Self::is_character_allowed(*c))
+            .collect();
+
+        self.text += &characters;
+        self.text.truncate(self.max_length);
+    }
+
+    pub fn get_text(&self) -> &str {
+        &self.text
+    }
+
+    pub fn draw(&self, x: f32, y: f32, w: f32, h: f32, text_size: u16) {
+        let (mouse_x, mouse_y) = mouse_position();
+        let is_hovered = is_point_in_rect(x, y, w, h, mouse_x, mouse_y);
+        let text_input_color = if is_hovered {
+            BUTTON_HOVER_COLOR
+        } else {
+            BUTTON_COLOR
+        };
+
+        let (border_size, border_color) = if self.is_selected {
+            (5.0, SELECTED_COLOR)
+        } else {
+            (2.0, BLACK)
+        };
+
+        draw_rectangle(x - SHADOW_OFFSET, y + SHADOW_OFFSET, w, h, SHADOW_COLOR);
+        draw_rectangle(x, y, w, h, text_input_color);
+        draw_rectangle_lines(x, y, w, h, border_size, border_color);
+        draw_text_ex(
+            &self.text,
+            x + MARGIN,
+            y + h * 0.5 + text_size as f32 * 0.5,
+            TextParams {
+                font_size: text_size,
+                color: BLACK,
+                ..Default::default()
+            },
+        );
+    }
+
+    fn is_character_allowed(character: char) -> bool {
+        character.is_alphanumeric() || character == '_'
+    }
+}

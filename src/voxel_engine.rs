@@ -12,18 +12,15 @@ use crate::{
     GameState,
     graphics::{
         debug_display::DebugDisplay,
-        game_menu::{MenuSelection, draw_menu},
         renderer::Renderer,
         texture_manager::TextureManager,
         ui_display::{VoxelSelector, draw_crosshair, draw_selected_voxel},
     },
-    interface::InterfaceContext,
-    model::{
-        location::Location,
-        player_info::PlayerInfo,
-        voxel::Voxel,
-        world::{self, World},
+    interface::{
+        game_menu::{MenuSelection, draw_menu},
+        world_selection::InterfaceContext,
     },
+    model::{location::Location, player_info::PlayerInfo, voxel::Voxel, world::World},
     service::{
         camera_controller::CameraController,
         input::{self, *},

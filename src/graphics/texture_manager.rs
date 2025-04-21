@@ -1,4 +1,7 @@
-use macroquad::{prelude::error, texture::{build_textures_atlas, load_texture, Texture2D}};
+use macroquad::{
+    prelude::error,
+    texture::{Texture2D, build_textures_atlas, load_texture},
+};
 
 use crate::model::voxel::Voxel;
 
@@ -38,15 +41,11 @@ impl TextureManager {
     /// returns the texture of the voxel
     pub fn get(&self, voxel: Voxel) -> Texture2D {
         self.textures[voxel.index()]
-        .clone()
-        .or_else(|| {
-            error!("No texture loaded for {:?}", voxel);
-            self.textures
-                .iter()
-                .flatten()
-                .next()
-                .cloned()
-        })
-        .expect("No textures loaded")
+            .clone()
+            .or_else(|| {
+                error!("No texture loaded for {:?}", voxel);
+                self.textures.iter().flatten().next().cloned()
+            })
+            .expect("No textures loaded")
     }
 }

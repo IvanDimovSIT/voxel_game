@@ -1,7 +1,7 @@
 use std::rc::Rc;
 
 use graphics::texture_manager::TextureManager;
-use interface::InterfaceContext;
+use interface::world_selection::InterfaceContext;
 use macroquad::{conf::Conf, texture::FilterMode, time::get_frame_time};
 use service::sound_manager::SoundManager;
 use voxel_engine::VoxelEngine;
@@ -54,9 +54,8 @@ async fn main() {
                 }
             }
             GameState::Menu { context } => {
-                if let Some(voxel_engine) = context
-                    .enter_game(texture_manager.clone(), sound_manager.clone())
-                    .await
+                if let Some(voxel_engine) =
+                    context.enter_game(texture_manager.clone(), sound_manager.clone())
                 {
                     state = GameState::Running { voxel_engine }
                 } else {

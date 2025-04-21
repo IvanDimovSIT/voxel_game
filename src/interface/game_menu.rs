@@ -1,21 +1,18 @@
 use macroquad::{
     camera::set_default_camera,
-    color::{BLACK, Color, LIGHTGRAY, ORANGE, WHITE},
-    input::{is_mouse_button_released, mouse_position},
+    color::{BLACK, Color},
     miniquad::window::screen_size,
     shapes::{draw_rectangle, draw_rectangle_lines},
-    text::{TextParams, draw_text_ex},
 };
+
+use super::{button::draw_button, style::*};
 
 const CLEAR_SCREEN_COLOR: Color = Color::from_rgba(0, 0, 0, 100);
 
 const MENU_BOX_WIDTH: f32 = 400.0;
 const MENU_BOX_HEIGHT: f32 = 300.0;
-const MENU_COLOR: Color = ORANGE;
 
-const BUTTON_COLOR: Color = WHITE;
-const BUTTON_HOVER_COLOR: Color = LIGHTGRAY;
-
+#[derive(Debug, Clone, Copy)]
 pub enum MenuSelection {
     None,
     BackToGame,
@@ -78,31 +75,19 @@ fn darken_background(width: f32, height: f32) {
 }
 
 fn draw_menu_background(menu_x: f32, menu_y: f32) {
-    draw_rectangle(menu_x, menu_y, MENU_BOX_WIDTH, MENU_BOX_HEIGHT, MENU_COLOR);
-    draw_rectangle_lines(menu_x, menu_y, MENU_BOX_WIDTH, MENU_BOX_HEIGHT, 3.0, BLACK);
-}
-
-fn draw_button(x: f32, y: f32, w: f32, h: f32, text: &str, text_size: u16) -> bool {
-    let (mouse_x, mouse_y) = mouse_position();
-    let is_hovered = (x..(x + w)).contains(&mouse_x) && (y..(y + h)).contains(&mouse_y);
-    let button_color = if is_hovered {
-        BUTTON_HOVER_COLOR
-    } else {
-        BUTTON_COLOR
-    };
-
-    draw_rectangle(x, y, w, h, button_color);
-    draw_rectangle_lines(x, y, w, h, 2.0, BLACK);
-    draw_text_ex(
-        text,
-        x + 5.0,
-        y + h * 0.5 + text_size as f32 * 0.5,
-        TextParams {
-            font_size: text_size,
-            color: BLACK,
-            ..Default::default()
-        },
+    draw_rectangle(
+        menu_x - 3.0,
+        menu_y + 3.0,
+        MENU_BOX_WIDTH,
+        MENU_BOX_HEIGHT,
+        Color::from_rgba(0, 0, 0, 150),
     );
-
-    is_hovered && is_mouse_button_released(macroquad::input::MouseButton::Left)
+    draw_rectangle(
+        menu_x,
+        menu_y,
+        MENU_BOX_WIDTH,
+        MENU_BOX_HEIGHT,
+        BACKGROUND_COLOR,
+    );
+    draw_rectangle_lines(menu_x, menu_y, MENU_BOX_WIDTH, MENU_BOX_HEIGHT, 3.0, BLACK);
 }
