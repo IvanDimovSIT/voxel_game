@@ -14,11 +14,7 @@ use crate::{
 
 use super::camera_controller::CameraController;
 
-const FALLING_VOXELS: [Voxel; 3] = [
-    Voxel::Sand,
-    Voxel::Dirt,
-    Voxel::Grass
-];
+const FALLING_VOXELS: [Voxel; 3] = [Voxel::Sand, Voxel::Dirt, Voxel::Grass];
 
 #[derive(Debug)]
 struct SimulatedVoxel {

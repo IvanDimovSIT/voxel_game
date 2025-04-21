@@ -1,3 +1,5 @@
+use std::rc::Rc;
+
 use macroquad::{
     math::{Vec2, Vec3, Vec4},
     models::Mesh,
@@ -28,7 +30,7 @@ pub enum FaceDirection {
 }
 
 pub struct MeshGenerator {
-    texture_manager: TextureManager,
+    texture_manager: Rc<TextureManager>,
 }
 impl MeshGenerator {
     const INDECIES: [u16; 6] = [0, 1, 2, 0, 2, 3];
@@ -39,10 +41,8 @@ impl MeshGenerator {
     const DOWN_NORMAL: Vec4 = Vec4::new(0.0, 0.0, 1.0, 0.0);
     const UP_NORMAL: Vec4 = Vec4::new(0.0, 0.0, -1.0, 0.0);
 
-    pub async fn new() -> Self {
-        Self {
-            texture_manager: TextureManager::new().await,
-        }
+    pub fn new(texture_manager: Rc<TextureManager>) -> Self {
+        Self { texture_manager }
     }
 
     /// generates a mesh for the voxel only with the side faces from the diretions slice

@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, rc::Rc};
 
 use macroquad::{
     camera::{Camera3D, set_camera},
@@ -52,10 +52,10 @@ pub struct Renderer {
     shader: VoxelShader,
 }
 impl Renderer {
-    pub async fn new() -> Self {
+    pub fn new(texture_manager: Rc<TextureManager>) -> Self {
         Self {
             meshes: Meshes::new(),
-            mesh_generator: MeshGenerator::new().await,
+            mesh_generator: MeshGenerator::new(texture_manager),
             shader: VoxelShader::new(),
         }
     }

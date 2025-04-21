@@ -1,3 +1,5 @@
+use std::rc::Rc;
+
 use macroquad::{
     camera::set_default_camera,
     color::BEIGE,
@@ -7,11 +9,15 @@ use macroquad::{
 };
 
 use crate::{
+    GameState,
     graphics::{
         debug_display::DebugDisplay,
+        game_menu::{MenuSelection, draw_menu},
         renderer::Renderer,
+        texture_manager::TextureManager,
         ui_display::{VoxelSelector, draw_crosshair, draw_selected_voxel},
     },
+    interface::InterfaceContext,
     model::{
         location::Location,
         player_info::PlayerInfo,
@@ -37,23 +43,27 @@ pub struct VoxelEngine {
     debug_display: DebugDisplay,
     voxel_selector: VoxelSelector,
     voxel_simulator: VoxelSimulator,
-    sound_manager: SoundManager,
+    sound_manager: Rc<SoundManager>,
     render_size: u32,
 }
 impl VoxelEngine {
-    pub async fn new(world_name: impl Into<String>) -> Self {
+    pub fn new(
+        world_name: impl Into<String>,
+        texture_manager: Rc<TextureManager>,
+        sound_manager: Rc<SoundManager>,
+    ) -> Self {
         let mut player_info = PlayerInfo::new(vec3(0.0, 0.0, 20.0));
 
         player_info.camera_controller.set_focus(true);
         Self {
             world: World::new(world_name),
-            renderer: Renderer::new().await,
+            renderer: Renderer::new(texture_manager),
             player_info,
             debug_display: DebugDisplay::new(),
             render_size: 7,
             voxel_selector: VoxelSelector::new(),
             voxel_simulator: VoxelSimulator::new(),
-            sound_manager: SoundManager::new().await,
+            sound_manager,
         }
     }
 
@@ -69,6 +79,9 @@ impl VoxelEngine {
 
     /// processes player inputs and returns the looked at voxel from the camera
     pub fn process_input(&mut self, delta: f32) -> RaycastResult {
+        if exit_focus() {
+            self.player_info.camera_controller.set_focus(false);
+        }
         self.player_info.camera_controller.update_look(delta);
         let camera = self.player_info.camera_controller.create_camera();
         self.check_change_render_distance();
@@ -78,6 +91,10 @@ impl VoxelEngine {
             camera.target,
             self.player_info.voxel_reach,
         );
+        if !self.player_info.camera_controller.is_focused() {
+            return raycast_result;
+        }
+
         if is_place_voxel(&self.player_info.camera_controller) {
             self.try_place_voxel(raycast_result);
         }
@@ -98,12 +115,6 @@ impl VoxelEngine {
         }
         if move_right() {
             self.try_move_right(self.player_info.move_speed, delta);
-        }
-        if enter_focus() {
-            self.player_info.camera_controller.set_focus(true);
-        }
-        if exit_focus() {
-            self.player_info.camera_controller.set_focus(false);
         }
         if toggle_debug() {
             self.debug_display.toggle_display();
@@ -139,8 +150,8 @@ impl VoxelEngine {
             .retain_areas(&get_load_zone(camera_location.into(), self.render_size));
     }
 
-    /// draws the current frame
-    pub async fn draw_scene(&mut self, raycast_result: RaycastResult) {
+    /// draws the current frame, return the new context if changed
+    pub async fn draw_scene(&mut self, raycast_result: RaycastResult) -> Option<GameState> {
         clear_background(BEIGE);
 
         let width = screen_width();
@@ -163,8 +174,28 @@ impl VoxelEngine {
             .draw(self.renderer.get_texture_manager());
         self.debug_display
             .draw_debug_display(&self.world, &self.renderer, &camera, rendered);
+        let menu_result = self.process_menu();
 
         next_frame().await;
+        menu_result
+    }
+
+    fn process_menu(&mut self) -> Option<GameState> {
+        if self.player_info.camera_controller.is_focused() {
+            return None;
+        }
+
+        match draw_menu() {
+            MenuSelection::None => None,
+            MenuSelection::BackToGame => {
+                self.player_info.camera_controller.set_focus(true);
+                None
+            }
+            MenuSelection::ToWorldSelection => Some(GameState::Menu {
+                context: Box::new(InterfaceContext::new()),
+            }),
+            MenuSelection::Exit => Some(GameState::Exit),
+        }
     }
 
     fn try_place_voxel(&mut self, raycast_result: RaycastResult) {

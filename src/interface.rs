@@ -1,18 +1,34 @@
-use macroquad::{camera::set_default_camera, color::{Color, DARKGRAY, RED}, math::{vec2, RectOffset, Vec2}, miniquad::window::screen_size, ui::{hash, root_ui, widgets::{self, Group}, Skin, Style}, window::{clear_background, next_frame}};
+use std::rc::Rc;
 
-use crate::voxel_engine::VoxelEngine;
+use macroquad::{
+    camera::set_default_camera,
+    color::{Color, DARKGRAY, RED},
+    math::{RectOffset, Vec2, vec2},
+    miniquad::window::screen_size,
+    ui::{
+        Skin, Style, hash, root_ui,
+        widgets::{self, Group},
+    },
+    window::{clear_background, next_frame},
+};
+
+use crate::{
+    graphics::texture_manager::{self, TextureManager},
+    service::sound_manager::SoundManager,
+    voxel_engine::VoxelEngine,
+};
 
 const WORLD_NAME_ID: u64 = 1;
 const MENU_SIZE: Vec2 = vec2(500.0, 300.0);
 const NEUTRAL_COLOR: Color = Color::from_rgba(220, 220, 220, 255);
 const SELECTED_COLOR: Color = Color::from_rgba(230, 230, 255, 255);
-const MESSAGE_POSITION: Vec2 = vec2(0.0, 80.0); 
+const MESSAGE_POSITION: Vec2 = vec2(0.0, 80.0);
 
 pub struct InterfaceContext {
     skin: Skin,
     world_name: String,
     error: String,
-    should_enter: bool
+    should_enter: bool,
 }
 impl InterfaceContext {
     pub fn new() -> Self {
@@ -20,13 +36,21 @@ impl InterfaceContext {
             skin: Self::initialise_skin(),
             world_name: "".to_owned(),
             error: "".to_owned(),
-            should_enter: false, 
+            should_enter: false,
         }
     }
 
-    pub async fn enter_game(&self) -> Option<Box<VoxelEngine>> {
+    pub async fn enter_game(
+        &self,
+        texture_manager: Rc<TextureManager>,
+        sound_manager: Rc<SoundManager>,
+    ) -> Option<Box<VoxelEngine>> {
         if self.should_enter {
-            let voxel_engine = Box::new(VoxelEngine::new(&self.world_name).await);
+            let voxel_engine = Box::new(VoxelEngine::new(
+                &self.world_name,
+                texture_manager,
+                sound_manager,
+            ));
             Some(voxel_engine)
         } else {
             None
@@ -37,28 +61,28 @@ impl InterfaceContext {
         set_default_camera();
         clear_background(DARKGRAY);
         let (width, height) = screen_size();
-        
+
         root_ui().push_skin(&self.skin);
         widgets::Window::new(
             hash!(),
             vec2((width - MENU_SIZE.x) / 2.0, height * 0.1),
-            MENU_SIZE
+            MENU_SIZE,
         )
-            .label("Voxel Game")
-            .movable(false)
-            .titlebar(true)
-            .ui(&mut *root_ui(), |ui| {
-                ui.input_text(WORLD_NAME_ID, "World name", &mut self.world_name);
-                if ui.button(vec2(MENU_SIZE.x * 0.5, 150.0), "Play".to_owned()) {
-                    self.validate();
-                    if self.error.is_empty() {
-                        self.should_enter = true;
-                        ui.label(MESSAGE_POSITION, "Loading...");
-                    }
+        .label("Voxel Game")
+        .movable(false)
+        .titlebar(true)
+        .ui(&mut *root_ui(), |ui| {
+            ui.input_text(WORLD_NAME_ID, "World name", &mut self.world_name);
+            if ui.button(vec2(MENU_SIZE.x * 0.5, 150.0), "Play".to_owned()) {
+                self.validate();
+                if self.error.is_empty() {
+                    self.should_enter = true;
+                    ui.label(MESSAGE_POSITION, "Loading...");
                 }
-                
-                ui.label(MESSAGE_POSITION, &self.error);
-            });
+            }
+
+            ui.label(MESSAGE_POSITION, &self.error);
+        });
 
         self.remove_invalid_characters();
         if !self.error.is_empty() {
@@ -96,7 +120,7 @@ impl InterfaceContext {
             .color(NEUTRAL_COLOR)
             .color_hovered(SELECTED_COLOR)
             .build();
-        
+
         Skin {
             window_style,
             button_style,
@@ -115,9 +139,10 @@ impl InterfaceContext {
     }
 
     fn remove_invalid_characters(&mut self) {
-        self.world_name = self.world_name
+        self.world_name = self
+            .world_name
             .chars()
             .filter(|c| c.is_alphanumeric() || *c == '_')
-            .collect()            
+            .collect()
     }
 }

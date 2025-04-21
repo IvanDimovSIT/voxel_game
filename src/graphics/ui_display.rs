@@ -4,7 +4,7 @@ use macroquad::{
     math::{vec2, vec3},
     miniquad::window::screen_size,
     models::draw_cube_wires,
-    shapes::{DrawRectangleParams, draw_circle, draw_rectangle, draw_rectangle_ex},
+    shapes::{draw_circle, draw_rectangle},
     texture::{DrawTextureParams, Texture2D, draw_texture_ex},
 };
 

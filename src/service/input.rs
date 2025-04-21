@@ -25,10 +25,6 @@ pub fn jump() -> bool {
     is_key_pressed(macroquad::input::KeyCode::Space)
 }
 
-pub fn enter_focus() -> bool {
-    is_mouse_button_released(macroquad::input::MouseButton::Left)
-}
-
 pub fn exit_focus() -> bool {
     is_key_down(macroquad::input::KeyCode::Escape)
 }
