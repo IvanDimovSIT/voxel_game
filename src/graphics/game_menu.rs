@@ -5,7 +5,6 @@ use macroquad::{
     miniquad::window::screen_size,
     shapes::{draw_rectangle, draw_rectangle_lines},
     text::{TextParams, draw_text_ex},
-    window::clear_background,
 };
 
 const CLEAR_SCREEN_COLOR: Color = Color::from_rgba(0, 0, 0, 100);

@@ -1,9 +1,4 @@
-use std::collections::HashMap;
-
-use macroquad::{
-    logging::error,
-    texture::{Texture2D, build_textures_atlas, load_texture},
-};
+use macroquad::{prelude::error, texture::{build_textures_atlas, load_texture, Texture2D}};
 
 use crate::model::voxel::Voxel;
 
@@ -17,16 +12,17 @@ const TEXTURES: [(Voxel, &str); 8] = [
     (Voxel::Dirt, "resources/images/dirt.png"),
     (Voxel::Boards, "resources/images/boards.png"),
 ];
+const MAX_TEXTURE_COUNT: usize = 100;
 
 pub struct TextureManager {
-    textures: HashMap<Voxel, Texture2D>,
+    textures: Vec<Option<Texture2D>>,
 }
 impl TextureManager {
     /// loads all of the textures
     pub async fn new() -> Self {
-        let mut textures = HashMap::new();
+        let mut textures = vec![None; MAX_TEXTURE_COUNT];
         for (texture_type, texture_path) in TEXTURES {
-            textures.insert(texture_type, Self::load_image(texture_path).await);
+            textures[texture_type.index()] = Some(Self::load_image(texture_path).await);
         }
 
         build_textures_atlas();
@@ -41,13 +37,16 @@ impl TextureManager {
 
     /// returns the texture of the voxel
     pub fn get(&self, voxel: Voxel) -> Texture2D {
-        self.textures
-            .get(&voxel)
-            .or_else(|| {
-                error!("No texture for {:?} found. Using any texture.", voxel);
-                self.textures.values().nth(0)
-            })
-            .expect("No textures loaded")
-            .clone()
+        self.textures[voxel.index()]
+        .clone()
+        .or_else(|| {
+            error!("No texture loaded for {:?}", voxel);
+            self.textures
+                .iter()
+                .flatten()
+                .next()
+                .cloned()
+        })
+        .expect("No textures loaded")
     }
 }

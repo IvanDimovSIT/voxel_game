@@ -12,6 +12,11 @@ pub enum Voxel {
     Dirt,
     Boards,
 }
+impl Voxel {
+    pub fn index(self) -> usize {
+        self as usize
+    }
+}
 impl Default for Voxel {
     fn default() -> Self {
         Self::None
