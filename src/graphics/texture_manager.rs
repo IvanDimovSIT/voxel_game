@@ -1,5 +1,5 @@
 use macroquad::{
-    prelude::error,
+    prelude::{error, info},
     texture::{Texture2D, build_textures_atlas, load_texture},
 };
 
@@ -26,6 +26,10 @@ impl TextureManager {
         let mut textures = vec![None; MAX_TEXTURE_COUNT];
         for (texture_type, texture_path) in TEXTURES {
             textures[texture_type.index()] = Some(Self::load_image(texture_path).await);
+            info!(
+                "Loaded texture for {:?} from '{}'",
+                texture_type, texture_path
+            );
         }
 
         build_textures_atlas();

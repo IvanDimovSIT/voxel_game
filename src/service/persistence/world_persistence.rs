@@ -6,20 +6,19 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-use bincode::{
-    config::{self, Configuration},
-    decode_from_slice, encode_to_vec,
-};
+use bincode::{decode_from_slice, encode_to_vec};
 use macroquad::logging::{error, info, warn};
 
 use crate::{
     model::area::{Area, AreaDTO, AreaLocation},
-    service::area_generation::generator::generate_area,
+    service::{
+        area_generation::generator::generate_area, persistence::config::SERIALIZATION_CONFIG,
+    },
     utils::Semaphore,
 };
 
-const SERIALIZATION_CONFIG: Configuration = config::standard();
-const CONCURRENT_FILE_IO_COUNT: usize = 16;
+use super::config::CONCURRENT_FILE_IO_COUNT;
+
 static STORE_SEMAPHORE: Semaphore = Semaphore::new(CONCURRENT_FILE_IO_COUNT);
 
 fn get_filepath(area_x: u32, area_y: u32, world_name: &str) -> String {

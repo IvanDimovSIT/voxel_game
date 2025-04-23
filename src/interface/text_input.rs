@@ -1,11 +1,17 @@
 use macroquad::{
     color::BLACK,
-    input::{get_char_pressed, is_key_released, is_mouse_button_released, mouse_position},
-    shapes::{draw_rectangle, draw_rectangle_lines},
+    input::{
+        clear_input_queue, get_char_pressed, is_key_released, is_mouse_button_released,
+        mouse_position,
+    },
+    shapes::draw_rectangle_lines,
     text::{TextParams, draw_text_ex},
 };
 
-use super::{style::*, util::is_point_in_rect};
+use super::{
+    style::*,
+    util::{draw_rect_with_shadow, is_point_in_rect},
+};
 
 #[derive(Debug)]
 pub struct TextInput {
@@ -35,6 +41,10 @@ impl TextInput {
     }
 
     pub fn input_text(&mut self) {
+        if !self.is_selected {
+            clear_input_queue();
+            return;
+        }
         if is_key_released(macroquad::input::KeyCode::Backspace) {
             self.text.pop();
             return;
@@ -78,8 +88,7 @@ impl TextInput {
             (2.0, BLACK)
         };
 
-        draw_rectangle(x - SHADOW_OFFSET, y + SHADOW_OFFSET, w, h, SHADOW_COLOR);
-        draw_rectangle(x, y, w, h, text_input_color);
+        draw_rect_with_shadow(x, y, w, h, text_input_color);
         draw_rectangle_lines(x, y, w, h, border_size, border_color);
         draw_text_ex(
             &self.text,
@@ -91,6 +100,13 @@ impl TextInput {
                 ..Default::default()
             },
         );
+    }
+
+    pub fn set_text(&mut self, new_text: String) {
+        if new_text.chars().all(|c| Self::is_character_allowed(c)) {
+            self.text = new_text;
+            self.text.truncate(self.max_length);
+        }
     }
 
     fn is_character_allowed(character: char) -> bool {

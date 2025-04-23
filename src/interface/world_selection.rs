@@ -1,4 +1,4 @@
-use std::rc::Rc;
+use std::{collections::HashSet, rc::Rc};
 
 use macroquad::{
     camera::set_default_camera,
@@ -11,12 +11,17 @@ use macroquad::{
 };
 
 use crate::{
-    graphics::texture_manager::TextureManager, service::sound_manager::SoundManager,
+    graphics::texture_manager::TextureManager,
+    service::{
+        persistence::world_list_persistence::{read_world_list, write_world_list},
+        sound_manager::SoundManager,
+    },
     voxel_engine::VoxelEngine,
 };
 
 use super::{
-    button::draw_button, style::BACKGROUND_COLOR, text_input::TextInput, util::get_text_width,
+    button::draw_button, list_input::ListInput, style::BACKGROUND_COLOR, text_input::TextInput,
+    util::get_text_width,
 };
 
 const LABEL_FONT_SIZE: f32 = 40.0;
@@ -30,6 +35,7 @@ pub struct InterfaceContext {
     world_name_input: TextInput,
     error: String,
     should_enter: bool,
+    world_list: ListInput,
 }
 impl InterfaceContext {
     pub fn new() -> Self {
@@ -38,6 +44,7 @@ impl InterfaceContext {
             world_name_input: TextInput::new(20),
             error: "".to_owned(),
             should_enter: false,
+            world_list: ListInput::new(read_world_list(), 5),
         }
     }
 
@@ -47,6 +54,7 @@ impl InterfaceContext {
         sound_manager: Rc<SoundManager>,
     ) -> Option<Box<VoxelEngine>> {
         if self.should_enter {
+            self.store_world_names();
             let voxel_engine = Box::new(VoxelEngine::new(
                 self.world_name_input.get_text(),
                 texture_manager,
@@ -82,6 +90,16 @@ impl InterfaceContext {
         );
         if !self.error.is_empty() {
             self.validate();
+        }
+
+        let world_list_width = 400.0;
+        let world_list_x = (width - world_list_width) * 0.5;
+        let world_list_y = height * 0.6;
+        let possible_selection =
+            self.world_list
+                .draw(world_list_x, world_list_y, world_list_width, 20.0);
+        if let Some(selection) = possible_selection {
+            self.world_name_input.set_text(selection);
         }
 
         let button_x = (width - PLAY_BUTTON_SIZE.x) * 0.5;
@@ -131,5 +149,12 @@ impl InterfaceContext {
         } else {
             self.error = "".to_owned();
         }
+    }
+
+    fn store_world_names(&self) {
+        let mut world_names: HashSet<_> = self.world_list.get_all_values().into_iter().collect();
+        world_names.insert(self.world_name_input.get_text().to_owned());
+        let world_names_vec: Vec<_> = world_names.into_iter().collect();
+        write_world_list(&world_names_vec);
     }
 }

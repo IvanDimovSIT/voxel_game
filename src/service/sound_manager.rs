@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use macroquad::{
     audio::{Sound, load_sound, play_sound_once},
-    prelude::error,
+    prelude::{error, info},
 };
 
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
@@ -29,6 +29,7 @@ impl SoundManager {
             let sound = load_sound(path)
                 .await
                 .expect(&format!("Failed to load '{path}'"));
+            info!("Loaded sound with id {:?} from '{}'", id, path);
             sounds.insert(id, sound);
         }
 

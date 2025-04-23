@@ -7,7 +7,7 @@ use crate::{
         area::{AREA_HEIGHT, Area},
         voxel::Voxel,
     },
-    service::persistence::{self, AreaLoader, store_blocking},
+    service::persistence::world_persistence::{self, AreaLoader},
 };
 
 use super::{
@@ -33,7 +33,7 @@ impl World {
         if self.areas.contains_key(&area_location) {
             return;
         }
-        let area = persistence::load_blocking(area_location, &self.world_name);
+        let area = world_persistence::load_blocking(area_location, &self.world_name);
         self.areas.insert(area_location, area);
     }
 
@@ -43,7 +43,7 @@ impl World {
         }
         if let Some(unloaded) = self.areas.remove(&area_location) {
             if unloaded.has_changed {
-                persistence::store(unloaded, self.world_name.clone());
+                world_persistence::store(unloaded, self.world_name.clone());
             }
         } else {
             error!("Missing loaded {:?}", area_location);
@@ -180,7 +180,7 @@ impl World {
         for area_location in area_locations {
             if let Some(area) = self.areas.remove(&area_location) {
                 if area.has_changed {
-                    store_blocking(area, &self.world_name);
+                    world_persistence::store_blocking(area, &self.world_name);
                 }
             }
         }
