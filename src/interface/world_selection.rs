@@ -6,6 +6,7 @@ use macroquad::{
     input::clear_input_queue,
     math::{Vec2, vec2},
     miniquad::window::screen_size,
+    prelude::info,
     text::draw_text,
     window::{clear_background, next_frame},
 };
@@ -13,7 +14,10 @@ use macroquad::{
 use crate::{
     graphics::texture_manager::TextureManager,
     service::{
-        persistence::world_list_persistence::{read_world_list, write_world_list},
+        persistence::{
+            world_list_persistence::{read_world_list, write_world_list},
+            world_persistence,
+        },
         sound_manager::SoundManager,
     },
     voxel_engine::VoxelEngine,
@@ -30,6 +34,8 @@ const TEXT_INPUT_FONT_SIZE: u16 = 35;
 const PLAY_BUTTON_SIZE: Vec2 = vec2(220.0, 50.0);
 const PLAY_BUTTON_FONT_SIZE: u16 = 40;
 const NOTIFICATION_TEXT_SIZE: f32 = 35.0;
+const DELETE_BUTTON_SIZE: Vec2 = vec2(220.0, 50.0);
+const DELETE_BUTTON_FONT_SIZE: u16 = 35;
 
 pub struct InterfaceContext {
     world_name_input: TextInput,
@@ -54,7 +60,7 @@ impl InterfaceContext {
         sound_manager: Rc<SoundManager>,
     ) -> Option<Box<VoxelEngine>> {
         if self.should_enter {
-            self.store_world_names();
+            self.store_world_names(true);
             let voxel_engine = Box::new(VoxelEngine::new(
                 self.world_name_input.get_text(),
                 texture_manager,
@@ -113,6 +119,24 @@ impl InterfaceContext {
             PLAY_BUTTON_FONT_SIZE,
         );
 
+        if let Some(selected_index) = self.world_list.get_selected_index() {
+            let delete_button_x = (width - DELETE_BUTTON_SIZE.x) * 0.5;
+            let should_delete = draw_button(
+                delete_button_x,
+                height * 0.85,
+                DELETE_BUTTON_SIZE.x,
+                DELETE_BUTTON_SIZE.y,
+                "Delete world",
+                DELETE_BUTTON_FONT_SIZE,
+            );
+            if should_delete {
+                self.delete_world(
+                    selected_index,
+                    self.world_list.get_selected().unwrap_or_default(),
+                );
+            }
+        }
+
         if play_button_pressed {
             self.validate();
             self.should_enter = self.error.is_empty();
@@ -151,10 +175,19 @@ impl InterfaceContext {
         }
     }
 
-    fn store_world_names(&self) {
+    fn store_world_names(&self, include_from_input: bool) {
         let mut world_names: HashSet<_> = self.world_list.get_all_values().into_iter().collect();
-        world_names.insert(self.world_name_input.get_text().to_owned());
+        if include_from_input {
+            world_names.insert(self.world_name_input.get_text().to_owned());
+        }
         let world_names_vec: Vec<_> = world_names.into_iter().collect();
+        info!("Saving world list: {:?}", &world_names_vec);
         write_world_list(&world_names_vec);
+    }
+
+    fn delete_world(&mut self, index: usize, selected_value: String) {
+        world_persistence::delete_world(&selected_value);
+        self.world_list.remove(index);
+        self.store_world_names(false);
     }
 }

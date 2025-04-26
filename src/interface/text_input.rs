@@ -36,13 +36,15 @@ impl TextInput {
             return false;
         }
         let is_selected = has_clicked && is_point_in_rect(x, y, w, h, mouse_x, mouse_y);
+        if is_selected {
+            clear_input_queue();
+        }
         self.is_selected = is_selected;
         is_selected
     }
 
     pub fn input_text(&mut self) {
         if !self.is_selected {
-            clear_input_queue();
             return;
         }
         if is_key_released(macroquad::input::KeyCode::Backspace) {

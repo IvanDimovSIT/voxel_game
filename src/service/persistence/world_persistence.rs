@@ -1,6 +1,6 @@
 use std::{
     collections::HashSet,
-    fs::{self, File},
+    fs::{self, File, remove_dir_all},
     io::{Read, Write},
     mem::take,
     sync::{Arc, Mutex},
@@ -142,5 +142,21 @@ impl AreaLoader {
         let areas = take(self.loaded.lock().unwrap().as_mut());
 
         areas
+    }
+}
+
+/// deletes all world files and directory
+pub fn delete_world(world_name: &str) {
+    let is_path_invalid =
+        world_name.contains(".") || world_name.contains("/") || world_name.contains("\\");
+
+    if is_path_invalid {
+        return;
+    }
+
+    if let Err(err) = remove_dir_all(world_name) {
+        error!("Error deleting world: '{}'", err);
+    } else {
+        info!("Deleted world '{}'", world_name);
     }
 }

@@ -34,6 +34,26 @@ impl ListInput {
         self.selected.map(|index| self.values[index].clone())
     }
 
+    pub fn get_selected_index(&self) -> Option<usize> {
+        self.selected
+    }
+
+    pub fn remove(&mut self, index: usize) {
+        if index >= self.values.len() {
+            return;
+        }
+
+        self.values.remove(index);
+        if let Some(selected) = self.selected {
+            if selected > index {
+                self.selected = Some(selected - 1);
+            }
+            if self.values.is_empty() {
+                self.selected = None;
+            }
+        }
+    }
+
     /// returns the newly selected value
     pub fn draw(&mut self, x: f32, y: f32, w: f32, font_size: f32) -> Option<String> {
         let mut newly_selected = None;
@@ -70,7 +90,7 @@ impl ListInput {
                 text_color,
             );
             if is_mouseover && is_mouse_button_pressed(macroquad::input::MouseButton::Left) {
-                self.selected = Some(index);
+                self.selected = Some(index + self.current_page * self.rows);
                 newly_selected = self.get_selected();
             }
         }
