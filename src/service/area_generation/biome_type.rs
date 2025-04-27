@@ -1,7 +1,7 @@
 use libnoise::{Fbm, Generator, Simplex};
 
 use crate::{
-    model::area::AreaLocation, service::area_generation::sample_noise_map::get_point_on_noise_map,
+    model::area::AreaLocation, service::area_generation::algorithms::get_point_on_noise_map,
 };
 
 #[derive(Debug, Clone, Copy)]

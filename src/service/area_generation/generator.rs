@@ -4,14 +4,14 @@ use macroquad::logging::info;
 
 use crate::{
     model::{
-        area::{AREA_HEIGHT, AREA_SIZE, Area, AreaLocation},
+        area::{Area, AreaLocation, AREA_HEIGHT, AREA_SIZE},
         location::InternalLocation,
         voxel::Voxel,
     },
     service::area_generation::{
         biome_type::BiomeTypeGenerator,
         terrain_type::TerrainTypeGenerator,
-        trees::{generate_trees, should_generate_tree},
+        trees::{generate_trees, should_generate_tree, TreeType},
     },
     utils::StackVec,
 };
@@ -61,7 +61,7 @@ pub fn generate_area(area_location: AreaLocation, world_name: &str) -> Area {
     let height_noise = TerrainTypeGenerator::new(seed);
     let type_noise = BiomeTypeGenerator::new(seed);
     const AREA_SURFACE: usize = (AREA_SIZE * AREA_SIZE) as usize;
-    let mut trees_location: StackVec<InternalLocation, AREA_SURFACE> = StackVec::new();
+    let mut trees_location: StackVec<(InternalLocation, TreeType), AREA_SURFACE> = StackVec::new();
 
     let mut area = Area::new(area_location);
     for x in 0..AREA_SIZE {
@@ -73,8 +73,9 @@ pub fn generate_area(area_location: AreaLocation, world_name: &str) -> Area {
                 area.set(InternalLocation::new(x, y, AREA_HEIGHT - z), current_voxel);
             }
             let local = InternalLocation::new(x, y, AREA_HEIGHT - height);
-            if should_generate_tree(area.get(local), seed, area_location, local) {
-                trees_location.push(local);
+            let tree_type = should_generate_tree(area.get(local), seed, area_location, local);
+            if tree_type != TreeType::None {
+                trees_location.push((local, tree_type));
             }
         }
     }
