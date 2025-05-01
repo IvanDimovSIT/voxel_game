@@ -4,14 +4,14 @@ use macroquad::logging::info;
 
 use crate::{
     model::{
-        area::{Area, AreaLocation, AREA_HEIGHT, AREA_SIZE},
+        area::{AREA_HEIGHT, AREA_SIZE, Area, AreaLocation},
         location::InternalLocation,
         voxel::Voxel,
     },
     service::area_generation::{
         biome_type::BiomeTypeGenerator,
         terrain_type::TerrainTypeGenerator,
-        trees::{generate_trees, should_generate_tree, TreeType},
+        trees::{TreeType, generate_trees, should_generate_tree},
     },
     utils::StackVec,
 };

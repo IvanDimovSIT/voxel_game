@@ -12,7 +12,7 @@ use crate::{
     model::{
         area::{AREA_HEIGHT, AREA_SIZE, AreaLocation},
         location::{InternalLocation, LOCATION_OFFSET, Location},
-        voxel::Voxel,
+        voxel::{MAX_VOXEL_VARIANTS, Voxel},
         world::World,
     },
     service::camera_controller::CameraController,
@@ -29,7 +29,10 @@ const AREA_RENDER_THRESHOLD: f32 = 0.4;
 const LOOK_DOWN_RENDER_MULTIPLIER: f32 = 0.5;
 const VOXEL_RENDER_THRESHOLD: f32 = 0.71;
 const VOXEL_PROXIMITY_THRESHOLD: f32 = 5.5;
-type Meshes = HashMap<AreaLocation, HashMap<InternalLocation, (usize, Mesh)>>;
+
+/// stores the face count, voxel type and mesh data
+type MeshInfo = (u8, Voxel, Mesh);
+type Meshes = HashMap<AreaLocation, HashMap<InternalLocation, MeshInfo>>;
 
 struct GeneratedMeshResult {
     pub mesh: Option<Mesh>,
@@ -123,6 +126,7 @@ impl Renderer {
         location: InternalLocation,
         mesh: Option<Mesh>,
         face_count: usize,
+        voxel: Voxel,
     ) {
         debug_assert!((mesh.is_none() && face_count == 0) || (mesh.is_some() && face_count >= 1));
 
@@ -134,7 +138,7 @@ impl Renderer {
         let area = area.unwrap();
 
         if let Some(some_mesh) = mesh {
-            area.insert(location, (face_count, some_mesh));
+            area.insert(location, (face_count as u8, voxel, some_mesh));
         } else {
             area.remove(&location);
         }
@@ -152,6 +156,7 @@ impl Renderer {
             global_location,
             meshing_result.mesh,
             meshing_result.face_count,
+            voxel,
         );
     }
 
@@ -266,6 +271,20 @@ impl Renderer {
                 || (location_vec.z - camera_position.z).abs() > VOXEL_PROXIMITY_THRESHOLD)
     }
 
+    /// returns an iterator of the voxel meshes to be rendered in an optimised order
+    fn optimise_render_order<'a>(
+        mesh_infos: &'a Vec<(&'a InternalLocation, &'a MeshInfo)>,
+    ) -> impl Iterator<Item = (&'a InternalLocation, &'a MeshInfo)> {
+        let mut groups: Vec<Vec<(&'a InternalLocation, &'a MeshInfo)>> =
+            vec![vec![]; MAX_VOXEL_VARIANTS];
+        for pair in mesh_infos {
+            let index = pair.1.1.index();
+            groups[index].push(*pair);
+        }
+
+        groups.into_iter().flatten()
+    }
+
     /// Returns the number of rendered areas and faces
     pub fn render_voxels(&self, camera: &Camera3D, render_size: u32) -> (usize, usize) {
         let normalised_camera = CameraController::normalize_camera_3d(camera);
@@ -288,11 +307,12 @@ impl Renderer {
                 Self::is_voxel_visible(location, look, position)
             })
             .collect();
+        let optimised_voxel_meshes = Self::optimise_render_order(&visible_voxels);
 
-        let mut faces_visible = 0;
-        for (_location, (face_count, mesh)) in visible_voxels {
+        let mut faces_visible: usize = 0;
+        for (_location, (face_count, _, mesh)) in optimised_voxel_meshes {
             debug_assert!(*face_count > 0, "Meshes map is storing empty voxels");
-            faces_visible += face_count;
+            faces_visible += *face_count as usize;
             draw_mesh(mesh);
         }
 
@@ -303,7 +323,7 @@ impl Renderer {
         self.meshes
             .values()
             .flat_map(|areas| areas.values())
-            .map(|voxel_meshes| voxel_meshes.0)
+            .map(|voxel_meshes| voxel_meshes.0 as usize)
             .sum()
     }
 

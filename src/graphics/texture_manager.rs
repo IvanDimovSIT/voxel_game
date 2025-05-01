@@ -3,7 +3,7 @@ use macroquad::{
     texture::{Texture2D, build_textures_atlas, load_texture},
 };
 
-use crate::model::voxel::Voxel;
+use crate::model::voxel::{MAX_VOXEL_VARIANTS, Voxel};
 
 const TEXTURES: [(Voxel, &str); 8] = [
     (Voxel::Stone, "resources/images/stone.png"),
@@ -15,7 +15,7 @@ const TEXTURES: [(Voxel, &str); 8] = [
     (Voxel::Dirt, "resources/images/dirt.png"),
     (Voxel::Boards, "resources/images/boards.png"),
 ];
-const MAX_TEXTURE_COUNT: usize = 100;
+const MAX_TEXTURE_COUNT: usize = MAX_VOXEL_VARIANTS;
 
 pub struct TextureManager {
     textures: Vec<Option<Texture2D>>,

@@ -2,7 +2,7 @@ use macroquad::{
     camera::{Camera3D, set_camera},
     color::WHITE,
     math::{Vec3, vec3},
-    models::{Mesh, draw_cube},
+    models::draw_cube,
     texture::Texture2D,
 };
 

@@ -1,4 +1,3 @@
-
 use crate::model::{
     area::{AREA_HEIGHT, AREA_SIZE, Area, AreaLocation},
     location::{InternalLocation, Location},
@@ -38,8 +37,8 @@ const TALL_LEAVES_LOCATIONS: [Location; 5] = [
 pub enum TreeType {
     None,
     Short,
-    Tall
-} 
+    Tall,
+}
 
 pub fn should_generate_tree(
     voxel: Voxel,
@@ -65,12 +64,11 @@ pub fn should_generate_tree(
     } else {
         TreeType::None
     }
-    
 }
 
 fn get_leaves_locations_for_tree_type(tree_type: TreeType) -> &'static [Location] {
     debug_assert!(tree_type != TreeType::None);
-    
+
     match tree_type {
         TreeType::None => unreachable!(),
         TreeType::Short => SHORT_LEAVES_LOCATIONS.as_slice(),
@@ -80,7 +78,7 @@ fn get_leaves_locations_for_tree_type(tree_type: TreeType) -> &'static [Location
 
 fn get_wood_locations_for_tree_type(tree_type: TreeType) -> &'static [Location] {
     debug_assert!(tree_type != TreeType::None);
-    
+
     match tree_type {
         TreeType::None => unreachable!(),
         TreeType::Short => SHORT_WOOD_LOCATIONS.as_slice(),

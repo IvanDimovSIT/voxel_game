@@ -1,7 +1,6 @@
 use macroquad::{
     color::BLACK,
     input::{is_mouse_button_pressed, mouse_position},
-    miniquad::window::screen_size,
     shapes::draw_rectangle,
     text::draw_text,
 };
