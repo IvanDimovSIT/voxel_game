@@ -182,14 +182,14 @@ impl VoxelEngine {
             return None;
         }
 
-        match draw_menu() {
+        match draw_menu(&self.sound_manager) {
             MenuSelection::None => None,
             MenuSelection::BackToGame => {
                 self.player_info.camera_controller.set_focus(true);
                 None
             }
             MenuSelection::ToWorldSelection => Some(GameState::Menu {
-                context: Box::new(InterfaceContext::new()),
+                context: Box::new(InterfaceContext::new(self.sound_manager.clone())),
             }),
             MenuSelection::Exit => Some(GameState::Exit),
         }

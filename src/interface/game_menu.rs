@@ -5,6 +5,8 @@ use macroquad::{
     shapes::{draw_rectangle, draw_rectangle_lines},
 };
 
+use crate::service::sound_manager::SoundManager;
+
 use super::{button::draw_button, style::*};
 
 const CLEAR_SCREEN_COLOR: Color = Color::from_rgba(0, 0, 0, 100);
@@ -20,7 +22,7 @@ pub enum MenuSelection {
     Exit,
 }
 
-pub fn draw_menu() -> MenuSelection {
+pub fn draw_menu(sound_manager: &SoundManager) -> MenuSelection {
     set_default_camera();
     let (width, height) = screen_size();
     darken_background(width, height);
@@ -41,6 +43,7 @@ pub fn draw_menu() -> MenuSelection {
         button_height,
         "Back to game",
         text_size,
+        sound_manager
     );
     let is_to_world_selection = draw_button(
         button_x,
@@ -49,6 +52,7 @@ pub fn draw_menu() -> MenuSelection {
         button_height,
         "To world selection",
         text_size,
+        sound_manager
     );
     let is_exit = draw_button(
         button_x,
@@ -57,6 +61,7 @@ pub fn draw_menu() -> MenuSelection {
         button_height,
         "Exit game",
         text_size,
+        sound_manager
     );
 
     if is_exit {

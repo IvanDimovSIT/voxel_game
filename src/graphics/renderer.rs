@@ -273,7 +273,7 @@ impl Renderer {
 
     /// returns an iterator of the voxel meshes to be rendered in an optimised order
     fn optimise_render_order<'a>(
-        mesh_infos: &'a Vec<(&'a InternalLocation, &'a MeshInfo)>,
+        mesh_infos: &'a [(&'a InternalLocation, &'a MeshInfo)],
     ) -> impl Iterator<Item = (&'a InternalLocation, &'a MeshInfo)> {
         let mut groups: Vec<Vec<(&'a InternalLocation, &'a MeshInfo)>> =
             vec![vec![]; MAX_VOXEL_VARIANTS];

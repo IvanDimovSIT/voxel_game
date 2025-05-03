@@ -4,13 +4,15 @@ use macroquad::{
     text::{TextParams, draw_text_ex},
 };
 
+use crate::service::sound_manager::{SoundId, SoundManager};
+
 use super::{
     style::*,
     util::{draw_rect_with_shadow, is_point_in_rect},
 };
 
 /// draws a button and returns if it is pressed
-pub fn draw_button(x: f32, y: f32, w: f32, h: f32, text: &str, text_size: u16) -> bool {
+pub fn draw_button(x: f32, y: f32, w: f32, h: f32, text: &str, text_size: u16, sound_manager: &SoundManager) -> bool {
     let (mouse_x, mouse_y) = mouse_position();
     let is_hovered = is_point_in_rect(x, y, w, h, mouse_x, mouse_y);
     let button_color = if is_hovered {
@@ -31,5 +33,10 @@ pub fn draw_button(x: f32, y: f32, w: f32, h: f32, text: &str, text_size: u16) -
         },
     );
 
-    is_hovered && is_mouse_button_released(macroquad::input::MouseButton::Left)
+    let is_clicked = is_hovered && is_mouse_button_released(macroquad::input::MouseButton::Left);
+    if is_clicked {
+        sound_manager.play_sound(SoundId::Click);
+    }
+
+    is_clicked
 }

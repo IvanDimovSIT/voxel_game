@@ -25,10 +25,10 @@ enum GameState {
     Menu { context: Box<InterfaceContext> },
     Exit,
 }
-impl Default for GameState {
-    fn default() -> Self {
+impl GameState {
+    fn new(sound_manager: Rc<SoundManager>) -> Self {
         Self::Menu {
-            context: Box::new(InterfaceContext::new()),
+            context: Box::new(InterfaceContext::new(sound_manager)),
         }
     }
 }
@@ -37,7 +37,7 @@ impl Default for GameState {
 async fn main() {
     let texture_manager = Rc::new(TextureManager::new().await);
     let sound_manager = Rc::new(SoundManager::new().await);
-    let mut state = GameState::default();
+    let mut state = GameState::new(sound_manager.clone());
 
     loop {
         match &mut state {

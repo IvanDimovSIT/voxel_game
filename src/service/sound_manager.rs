@@ -10,12 +10,14 @@ pub enum SoundId {
     Fall,
     Destroy,
     Place,
+    Click
 }
 
-const SOUNDS: [(SoundId, &str); 3] = [
+const SOUNDS: [(SoundId, &str); 4] = [
     (SoundId::Fall, "resources/sounds/fall.wav"),
     (SoundId::Destroy, "resources/sounds/destroy.wav"),
     (SoundId::Place, "resources/sounds/place.wav"),
+    (SoundId::Click, "resources/sounds/click.wav"),
 ];
 
 pub struct SoundManager {

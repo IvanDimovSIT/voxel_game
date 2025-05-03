@@ -38,19 +38,21 @@ const DELETE_BUTTON_SIZE: Vec2 = vec2(220.0, 50.0);
 const DELETE_BUTTON_FONT_SIZE: u16 = 35;
 
 pub struct InterfaceContext {
+    sound_manager: Rc<SoundManager>,
     world_name_input: TextInput,
     error: String,
     should_enter: bool,
     world_list: ListInput,
 }
 impl InterfaceContext {
-    pub fn new() -> Self {
+    pub fn new(sound_manager: Rc<SoundManager>) -> Self {
         clear_input_queue();
         Self {
             world_name_input: TextInput::new(20),
             error: "".to_owned(),
             should_enter: false,
             world_list: ListInput::new(read_world_list(), 5),
+            sound_manager,
         }
     }
 
@@ -117,6 +119,7 @@ impl InterfaceContext {
             PLAY_BUTTON_SIZE.y,
             "Enter world",
             PLAY_BUTTON_FONT_SIZE,
+            &self.sound_manager
         );
 
         if let Some(selected_index) = self.world_list.get_selected_index() {
@@ -128,6 +131,7 @@ impl InterfaceContext {
                 DELETE_BUTTON_SIZE.y,
                 "Delete world",
                 DELETE_BUTTON_FONT_SIZE,
+                &self.sound_manager
             );
             if should_delete {
                 self.delete_world(
