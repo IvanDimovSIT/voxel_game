@@ -187,9 +187,8 @@ impl World {
         let end = start.elapsed();
         info!("Saved in {}ms", end.as_millis());
     }
-}
-impl Drop for World {
-    fn drop(&mut self) {
-        self.save_all_blocking();
+
+    pub fn get_world_name(&self) -> &str {
+        &self.world_name
     }
 }

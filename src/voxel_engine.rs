@@ -24,6 +24,7 @@ use crate::{
     service::{
         camera_controller::CameraController,
         input::{self, *},
+        persistence::player_persistence::{load_player_info, save_player_info},
         raycast::{RaycastResult, cast_ray},
         render_zone::{get_load_zone, get_render_zone},
         sound_manager::{SoundId, SoundManager},
@@ -49,7 +50,9 @@ impl VoxelEngine {
         texture_manager: Rc<TextureManager>,
         sound_manager: Rc<SoundManager>,
     ) -> Self {
-        let mut player_info = PlayerInfo::new(vec3(0.0, 0.0, 20.0));
+        let world_name = world_name.into();
+        let mut player_info =
+            load_player_info(&world_name).unwrap_or_else(|_| PlayerInfo::new(vec3(0.0, 0.0, 20.0)));
 
         player_info.camera_controller.set_focus(true);
         Self {
@@ -373,5 +376,11 @@ impl VoxelEngine {
         self.player_info
             .camera_controller
             .set_position(top_position);
+    }
+}
+impl Drop for VoxelEngine {
+    fn drop(&mut self) {
+        save_player_info(self.world.get_world_name(), &self.player_info);
+        self.world.save_all_blocking();
     }
 }

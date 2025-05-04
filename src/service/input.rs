@@ -1,6 +1,5 @@
 use macroquad::input::{
-    is_key_down, is_key_pressed, is_key_released, is_mouse_button_pressed,
-    mouse_wheel,
+    is_key_down, is_key_pressed, is_key_released, is_mouse_button_pressed, mouse_wheel,
 };
 
 use super::camera_controller::CameraController;

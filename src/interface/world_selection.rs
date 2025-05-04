@@ -119,7 +119,7 @@ impl InterfaceContext {
             PLAY_BUTTON_SIZE.y,
             "Enter world",
             PLAY_BUTTON_FONT_SIZE,
-            &self.sound_manager
+            &self.sound_manager,
         );
 
         if let Some(selected_index) = self.world_list.get_selected_index() {
@@ -131,7 +131,7 @@ impl InterfaceContext {
                 DELETE_BUTTON_SIZE.y,
                 "Delete world",
                 DELETE_BUTTON_FONT_SIZE,
-                &self.sound_manager
+                &self.sound_manager,
             );
             if should_delete {
                 self.delete_world(

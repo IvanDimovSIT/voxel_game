@@ -18,8 +18,11 @@ pub enum Voxel {
 }
 impl Voxel {
     pub fn index(self) -> usize {
-        let index = self as usize; 
-        debug_assert!(index < MAX_VOXEL_VARIANTS, "number of voxel variants exceeds the maximum allowed");
+        let index = self as usize;
+        debug_assert!(
+            index < MAX_VOXEL_VARIANTS,
+            "number of voxel variants exceeds the maximum allowed"
+        );
         index
     }
 }

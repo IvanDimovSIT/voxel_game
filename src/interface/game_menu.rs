@@ -43,7 +43,7 @@ pub fn draw_menu(sound_manager: &SoundManager) -> MenuSelection {
         button_height,
         "Back to game",
         text_size,
-        sound_manager
+        sound_manager,
     );
     let is_to_world_selection = draw_button(
         button_x,
@@ -52,7 +52,7 @@ pub fn draw_menu(sound_manager: &SoundManager) -> MenuSelection {
         button_height,
         "To world selection",
         text_size,
-        sound_manager
+        sound_manager,
     );
     let is_exit = draw_button(
         button_x,
@@ -61,7 +61,7 @@ pub fn draw_menu(sound_manager: &SoundManager) -> MenuSelection {
         button_height,
         "Exit game",
         text_size,
-        sound_manager
+        sound_manager,
     );
 
     if is_exit {

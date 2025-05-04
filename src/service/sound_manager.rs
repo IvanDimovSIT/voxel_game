@@ -10,7 +10,7 @@ pub enum SoundId {
     Fall,
     Destroy,
     Place,
-    Click
+    Click,
 }
 
 const SOUNDS: [(SoundId, &str); 4] = [

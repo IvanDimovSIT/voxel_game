@@ -12,7 +12,15 @@ use super::{
 };
 
 /// draws a button and returns if it is pressed
-pub fn draw_button(x: f32, y: f32, w: f32, h: f32, text: &str, text_size: u16, sound_manager: &SoundManager) -> bool {
+pub fn draw_button(
+    x: f32,
+    y: f32,
+    w: f32,
+    h: f32,
+    text: &str,
+    text_size: u16,
+    sound_manager: &SoundManager,
+) -> bool {
     let (mouse_x, mouse_y) = mouse_position();
     let is_hovered = is_point_in_rect(x, y, w, h, mouse_x, mouse_y);
     let button_color = if is_hovered {

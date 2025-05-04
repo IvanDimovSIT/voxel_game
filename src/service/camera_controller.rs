@@ -13,8 +13,8 @@ const LOOK_SPEED: f32 = 0.1;
 #[derive(Debug)]
 pub struct CameraController {
     is_focused: bool,
-    yaw: f32,
-    pitch: f32,
+    pub yaw: f32,
+    pub pitch: f32,
     front: Vec3,
     right: Vec3,
     up: Vec3,
