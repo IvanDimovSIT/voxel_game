@@ -180,13 +180,17 @@ impl InterfaceContext {
     }
 
     fn store_world_names(&self, include_from_input: bool) {
-        let mut world_names: HashSet<_> = self.world_list.get_all_values().into_iter().collect();
-        if include_from_input {
-            world_names.insert(self.world_name_input.get_text().to_owned());
+        let mut world_names = self.world_list.get_all_values();
+        let world_names_contain_input = || {
+            world_names
+                .iter()
+                .any(|x| x == self.world_name_input.get_text())
+        };
+        if include_from_input && !world_names_contain_input() {
+            world_names.push(self.world_name_input.get_text().to_owned());
         }
-        let world_names_vec: Vec<_> = world_names.into_iter().collect();
-        info!("Saving world list: {:?}", &world_names_vec);
-        write_world_list(&world_names_vec);
+        info!("Saving world list: {:?}", &world_names);
+        write_world_list(&world_names);
     }
 
     fn delete_world(&mut self, index: usize, selected_value: String) {

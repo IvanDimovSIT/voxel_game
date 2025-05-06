@@ -1,6 +1,7 @@
 use macroquad::{
     camera::set_default_camera,
     color::{BLACK, Color},
+    input::{KeyCode, is_key_pressed, is_key_released},
     miniquad::window::screen_size,
     shapes::{draw_rectangle, draw_rectangle_lines},
 };

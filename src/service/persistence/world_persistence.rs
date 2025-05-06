@@ -8,6 +8,7 @@ use std::{
 
 use bincode::{decode_from_slice, encode_to_vec};
 use macroquad::logging::{error, info, warn};
+use rayon::iter::{IntoParallelIterator, IntoParallelRefIterator, ParallelIterator};
 
 use crate::{
     model::area::{Area, AreaDTO, AreaLocation},
@@ -65,6 +66,17 @@ pub fn store(area: Area, world_name: String) {
     });
 }
 
+/// stores all areas and blocks the main thread
+pub fn store_all_blocking(areas: Vec<Area>, world_name: String) {
+    areas
+        .into_par_iter()
+        .for_each(|area| {
+            STORE_SEMAPHORE.acquire();
+            store_blocking(area, &world_name);
+            STORE_SEMAPHORE.release();
+        });
+}
+
 /// loads an area from disk
 pub fn load_blocking(area_location: AreaLocation, world_name: &str) -> Area {
     let filepath = get_filepath(area_location.x, area_location.y, world_name);
@@ -108,6 +120,23 @@ impl AreaLoader {
             to_load: Arc::new(Mutex::new(HashSet::new())),
             loaded: Arc::new(Mutex::new(vec![])),
         }
+    }
+
+    /// loads areas in parallel and blocks the main thread until finished
+    pub fn load_all_blocking(
+        &mut self,
+        areas_to_load: &[AreaLocation],
+        world_name: &str,
+    ) -> Vec<Area> {
+        areas_to_load
+            .par_iter()
+            .map(|area_location| {
+                self.semaphore.acquire();
+                let loaded_area = load_blocking(*area_location, world_name);
+                self.semaphore.release();
+                loaded_area
+            })
+            .collect()
     }
 
     /// starts background threads to load areas from disk

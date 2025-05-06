@@ -1,4 +1,4 @@
-use std::{collections::HashMap, time::Instant};
+use std::{collections::HashMap, mem::take, time::Instant};
 
 use macroquad::prelude::{error, info};
 
@@ -172,18 +172,33 @@ impl World {
         self.areas.len()
     }
 
+    /// loads all areas and blocks the main thread
+    pub fn load_all_blocking(&mut self, areas_to_load: &[AreaLocation]) {
+        let start = Instant::now();
+        let filtered_unloaded: Vec<_> = areas_to_load
+            .iter()
+            .filter(|area_location| !self.areas.contains_key(&area_location))
+            .map(|area_location| *area_location)
+            .collect();
+        info!("Loading {} areas", filtered_unloaded.len());
+        let areas = self
+            .area_loader
+            .load_all_blocking(&filtered_unloaded, &self.world_name);
+        for area in areas {
+            self.areas.insert(area.get_area_location(), area);
+        }
+        let end = start.elapsed();
+        info!("Loaded in {}ms", end.as_millis());
+    }
+
     /// saves all areas and clears memory
     pub fn save_all_blocking(&mut self) {
         let start = Instant::now();
         info!("Saving world...");
-        let area_locations: Vec<AreaLocation> = self.areas.keys().copied().collect();
-        for area_location in area_locations {
-            if let Some(area) = self.areas.remove(&area_location) {
-                if area.has_changed {
-                    world_persistence::store_blocking(area, &self.world_name);
-                }
-            }
-        }
+        let areas = take(&mut self.areas).into_values()
+            .filter(|area| area.has_changed)
+            .collect();
+        world_persistence::store_all_blocking(areas, self.world_name.clone());
         let end = start.elapsed();
         info!("Saved in {}ms", end.as_millis());
     }

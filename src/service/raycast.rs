@@ -5,6 +5,9 @@ use crate::{
     utils::vector_to_location,
 };
 
+const VOXEL_SIZE: f32 = 1.0;
+const HALF_VOXEL_SIZE: f32 = VOXEL_SIZE / 2.0;
+
 #[derive(Debug, Clone, Copy)]
 pub enum RaycastResult {
     NoneHit,
@@ -34,21 +37,21 @@ pub fn cast_ray(world: &mut World, from: Vec3, to: Vec3, max_distance: f32) -> R
     let mut previous_position = current_position;
 
     let next_boundary_x = if step_x < 0 {
-        current_position.x as f32 - 0.5
+        current_position.x as f32 - HALF_VOXEL_SIZE
     } else {
-        current_position.x as f32 + 0.5
+        current_position.x as f32 + HALF_VOXEL_SIZE
     };
 
     let next_boundary_y = if step_y < 0 {
-        current_position.y as f32 - 0.5
+        current_position.y as f32 - HALF_VOXEL_SIZE
     } else {
-        current_position.y as f32 + 0.5
+        current_position.y as f32 + HALF_VOXEL_SIZE
     };
 
     let next_boundary_z = if step_z < 0 {
-        current_position.z as f32 - 0.5
+        current_position.z as f32 - HALF_VOXEL_SIZE
     } else {
-        current_position.z as f32 + 0.5
+        current_position.z as f32 + HALF_VOXEL_SIZE
     };
 
     let mut t_max_x = if ray.x.abs() <= f32::EPSILON {
@@ -69,9 +72,9 @@ pub fn cast_ray(world: &mut World, from: Vec3, to: Vec3, max_distance: f32) -> R
         ((next_boundary_z - from.z) / ray.z).abs()
     };
 
-    let delta_x = (1.0 / ray.x).abs();
-    let delta_y = (1.0 / ray.y).abs();
-    let delta_z = (1.0 / ray.z).abs();
+    let delta_x = (VOXEL_SIZE / ray.x).abs();
+    let delta_y = (VOXEL_SIZE / ray.y).abs();
+    let delta_z = (VOXEL_SIZE / ray.z).abs();
 
     let mut distance_traveled = 0.0f32;
 
@@ -99,18 +102,16 @@ pub fn cast_ray(world: &mut World, from: Vec3, to: Vec3, max_distance: f32) -> R
                 distance_traveled = t_max_z;
                 t_max_z += delta_z;
             }
+        } else if t_max_y < t_max_z {
+            previous_position = current_position;
+            current_position.y += step_y;
+            distance_traveled = t_max_y;
+            t_max_y += delta_y;
         } else {
-            if t_max_y < t_max_z {
-                previous_position = current_position;
-                current_position.y += step_y;
-                distance_traveled = t_max_y;
-                t_max_y += delta_y;
-            } else {
-                previous_position = current_position;
-                current_position.z += step_z;
-                distance_traveled = t_max_z;
-                t_max_z += delta_z;
-            }
+            previous_position = current_position;
+            current_position.z += step_z;
+            distance_traveled = t_max_z;
+            t_max_z += delta_z;
         }
 
         if current_position.z < 0 || current_position.z >= AREA_HEIGHT as i32 {

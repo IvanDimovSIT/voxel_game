@@ -13,16 +13,12 @@ pub fn place_voxel(
     renderer: &mut Renderer,
     voxel_simulator: &VoxelSimulator,
 ) -> bool {
-    if world.get(location.into()) != Voxel::None {
-        return false;
-    }
-    if location == camera_location {
-        return false;
-    }
-    if location == Location::new(camera_location.x, camera_location.y, camera_location.z + 1) {
-        return false;
-    }
-    if voxel_simulator.location_has_voxel(location) {
+    let unable_to_place_voxel = world.get(location.into()) != Voxel::None
+        || location == camera_location
+        || location == Location::new(camera_location.x, camera_location.y, camera_location.z + 1)
+        || voxel_simulator.location_has_voxel(location);
+
+    if unable_to_place_voxel {
         return false;
     }
 

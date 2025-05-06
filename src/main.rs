@@ -52,9 +52,10 @@ async fn main() {
                 }
             }
             GameState::Menu { context } => {
-                if let Some(voxel_engine) =
+                if let Some(mut voxel_engine) =
                     context.enter_game(texture_manager.clone(), sound_manager.clone())
                 {
+                    voxel_engine.load_world();
                     state = GameState::Running { voxel_engine }
                 } else {
                     context.draw().await;

@@ -67,6 +67,17 @@ impl VoxelEngine {
         }
     }
 
+    /// loads the world upon entering
+    pub fn load_world(&mut self) {
+        let camera_location = self
+            .player_info
+            .camera_controller
+            .get_camera_voxel_location();
+
+        let load_zone = get_load_zone(camera_location.into(), self.render_size);
+        self.world.load_all_blocking(&load_zone);
+    }
+
     fn check_change_render_distance(&mut self) {
         const MIN_RENDER_DISTANCE: u32 = 3;
         const MAX_RENDER_DISTANCE: u32 = 14;
@@ -290,11 +301,11 @@ impl VoxelEngine {
         } else {
             let top_displacement = match top_result {
                 RaycastResult::NoneHit => displacement_magnitude,
-                RaycastResult::Hit { distance, .. } => distance,
+                RaycastResult::Hit { distance, .. } => (distance - self.player_info.size).max(0.0),
             };
             let bottom_displacement = match bottom_result {
                 RaycastResult::NoneHit => displacement_magnitude,
-                RaycastResult::Hit { distance, .. } => distance,
+                RaycastResult::Hit { distance, .. } => (distance - self.player_info.size).max(0.0),
             };
             let new_displacement = top_displacement.min(bottom_displacement) * 0.95;
 

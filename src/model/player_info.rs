@@ -4,6 +4,7 @@ use macroquad::math::{Vec3, vec3};
 use crate::service::camera_controller::CameraController;
 
 const PLAYER_MOVE_SPEED: f32 = 10.0;
+const PLAYER_SIZE: f32 = 0.2;
 const VOXEL_REACH: f32 = 7.0;
 const JUMP_VELOCITY: f32 = -15.0;
 
@@ -12,6 +13,7 @@ pub struct PlayerInfo {
     pub camera_controller: CameraController,
     pub move_speed: f32,
     pub voxel_reach: f32,
+    pub size: f32,
     pub velocity: f32,
     pub jump_velocity: f32,
 }
@@ -23,6 +25,7 @@ impl PlayerInfo {
             voxel_reach: VOXEL_REACH,
             velocity: 0.0,
             jump_velocity: JUMP_VELOCITY,
+            size: PLAYER_SIZE,
         }
     }
 
@@ -49,6 +52,7 @@ impl From<PlayerInfoDTO> for PlayerInfo {
             voxel_reach: VOXEL_REACH,
             velocity: value.velocity,
             jump_velocity: JUMP_VELOCITY,
+            size: PLAYER_SIZE,
         }
     }
 }
