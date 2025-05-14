@@ -3,6 +3,7 @@ use std::rc::Rc;
 use graphics::texture_manager::TextureManager;
 use interface::world_selection::InterfaceContext;
 use macroquad::{conf::Conf, texture::FilterMode, time::get_frame_time};
+use model::user_settings::UserSettings;
 use service::sound_manager::SoundManager;
 use voxel_engine::VoxelEngine;
 
@@ -26,9 +27,9 @@ enum GameState {
     Exit,
 }
 impl GameState {
-    fn new(sound_manager: Rc<SoundManager>) -> Self {
+    fn new(sound_manager: Rc<SoundManager>, user_settings: UserSettings) -> Self {
         Self::Menu {
-            context: Box::new(InterfaceContext::new(sound_manager)),
+            context: Box::new(InterfaceContext::new(sound_manager, user_settings)),
         }
     }
 }
@@ -37,7 +38,8 @@ impl GameState {
 async fn main() {
     let texture_manager = Rc::new(TextureManager::new().await);
     let sound_manager = Rc::new(SoundManager::new().await);
-    let mut state = GameState::new(sound_manager.clone());
+    let user_settings = UserSettings::default();
+    let mut state = GameState::new(sound_manager.clone(), user_settings);
 
     loop {
         match &mut state {

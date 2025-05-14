@@ -1,4 +1,4 @@
-use std::{collections::HashSet, rc::Rc};
+use std::rc::Rc;
 
 use macroquad::{
     camera::set_default_camera,
@@ -13,6 +13,7 @@ use macroquad::{
 
 use crate::{
     graphics::texture_manager::TextureManager,
+    model::user_settings::UserSettings,
     service::{
         persistence::{
             world_list_persistence::{read_world_list, write_world_list},
@@ -36,20 +37,21 @@ const PLAY_BUTTON_FONT_SIZE: u16 = 40;
 const NOTIFICATION_TEXT_SIZE: f32 = 35.0;
 const DELETE_BUTTON_SIZE: Vec2 = vec2(220.0, 50.0);
 const DELETE_BUTTON_FONT_SIZE: u16 = 35;
-const WORLD_LIST_WIDTH: f32 = 400.0;
-const WORLD_LIST_FONT_SIZE: f32 = 20.0;
+const WORLD_LIST_WIDTH: f32 = 450.0;
+const WORLD_LIST_FONT_SIZE: f32 = 25.0;
 const WORLD_LIST_ROWS: usize = 5;
 const MIN_WORLD_NAME_LENGTH: usize = 3;
 
 pub struct InterfaceContext {
     sound_manager: Rc<SoundManager>,
+    user_settings: UserSettings,
     world_name_input: TextInput,
     error: String,
     should_enter: bool,
     world_list: ListInput,
 }
 impl InterfaceContext {
-    pub fn new(sound_manager: Rc<SoundManager>) -> Self {
+    pub fn new(sound_manager: Rc<SoundManager>, user_settings: UserSettings) -> Self {
         clear_input_queue();
         Self {
             world_name_input: TextInput::new(20),
@@ -57,6 +59,7 @@ impl InterfaceContext {
             should_enter: false,
             world_list: ListInput::new(read_world_list(), WORLD_LIST_ROWS),
             sound_manager,
+            user_settings,
         }
     }
 
@@ -71,6 +74,7 @@ impl InterfaceContext {
                 self.world_name_input.get_text(),
                 texture_manager,
                 sound_manager,
+                self.user_settings.clone(),
             ));
             Some(voxel_engine)
         } else {
@@ -112,14 +116,17 @@ impl InterfaceContext {
     fn handle_world_list(&mut self, width: f32, height: f32) {
         let world_list_x = (width - WORLD_LIST_WIDTH) * 0.5;
         let world_list_y = height * 0.6;
-        let possible_selection =
-            self.world_list
-                .draw(world_list_x, world_list_y, WORLD_LIST_WIDTH, WORLD_LIST_FONT_SIZE);
+        let possible_selection = self.world_list.draw(
+            world_list_x,
+            world_list_y,
+            WORLD_LIST_WIDTH,
+            WORLD_LIST_FONT_SIZE,
+        );
         if let Some(selection) = possible_selection {
             self.world_name_input.set_text(selection);
         }
     }
-    
+
     fn draw_notification_text(&mut self, width: f32, height: f32) {
         let text_to_notify = if self.should_enter {
             "Loading..."
@@ -136,21 +143,22 @@ impl InterfaceContext {
             WHITE,
         );
     }
-    
+
     fn handle_delete_button(&mut self, width: f32, height: f32) -> bool {
         let delete_button_x = (width - DELETE_BUTTON_SIZE.x) / 2.0;
         let should_delete = draw_button(
             delete_button_x,
-            height * 0.85,
+            height * 0.9,
             DELETE_BUTTON_SIZE.x,
             DELETE_BUTTON_SIZE.y,
             "Delete world",
             DELETE_BUTTON_FONT_SIZE,
             &self.sound_manager,
+            &self.user_settings,
         );
         should_delete
     }
-    
+
     fn handle_play_button(&mut self, width: f32, height: f32) -> bool {
         let button_x = (width - PLAY_BUTTON_SIZE.x) * 0.5;
         let button_y = height * 0.5;
@@ -162,10 +170,11 @@ impl InterfaceContext {
             "Enter world",
             PLAY_BUTTON_FONT_SIZE,
             &self.sound_manager,
+            &self.user_settings,
         );
         play_button_pressed
     }
-    
+
     fn handle_world_name_input(&mut self, width: f32, height: f32) {
         let world_selection_x = (width - TEXT_INPUT_SIZE.x) / 2.0;
         let world_selection_y = height * 0.2;
@@ -177,7 +186,7 @@ impl InterfaceContext {
             TEXT_INPUT_SIZE.y,
         );
         self.world_name_input.input_text();
-    
+
         self.world_name_input.draw(
             world_selection_x,
             world_selection_y,
@@ -189,7 +198,7 @@ impl InterfaceContext {
             self.validate();
         }
     }
-    
+
     fn draw_input_label(width: f32, height: f32) {
         let text = "Enter world name:";
         let x = (width - get_text_width(text, LABEL_FONT_SIZE)) * 0.5;
@@ -199,7 +208,8 @@ impl InterfaceContext {
 
     fn validate(&mut self) {
         if self.world_name_input.get_text().len() < MIN_WORLD_NAME_LENGTH {
-            self.error = format!("World name should be at least {MIN_WORLD_NAME_LENGTH} characters");
+            self.error =
+                format!("World name should be at least {MIN_WORLD_NAME_LENGTH} characters");
         } else {
             self.error = "".to_owned();
         }

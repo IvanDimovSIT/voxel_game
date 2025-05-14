@@ -23,7 +23,7 @@ struct DrawParams {
     w: f32,
     y_offset: f32,
     mouse_x: f32,
-    mouse_y: f32
+    mouse_y: f32,
 }
 
 #[derive(Debug)]
@@ -85,7 +85,13 @@ impl ListInput {
         if let Some(selected) = self.selected {
             self.selected = Some(selected.min(self.values.len()));
         };
-        draw_rect_with_shadow(x, y, w, draw_params.y_offset * self.rows as f32, BUTTON_COLOR);
+        draw_rect_with_shadow(
+            x,
+            y,
+            w,
+            draw_params.y_offset * self.rows as f32,
+            BUTTON_COLOR,
+        );
 
         for (index, value) in values_on_page.iter().enumerate() {
             let is_mouseover = self.draw_row_and_check_if_mouseover(&draw_params, index, value);
@@ -97,7 +103,7 @@ impl ListInput {
 
         newly_selected
     }
-    
+
     pub fn get_all_values(&self) -> Vec<String> {
         self.values.clone()
     }
@@ -108,24 +114,43 @@ impl ListInput {
         start_index..end_index
     }
 
-    fn draw_row_and_check_if_mouseover(&self, draw_params: &DrawParams, index: usize, value: &String) -> bool {
+    fn draw_row_and_check_if_mouseover(
+        &self,
+        draw_params: &DrawParams,
+        index: usize,
+        value: &String,
+    ) -> bool {
         let row_y = draw_params.y + index as f32 * draw_params.y_offset;
         let is_selected = self.selected.is_some()
             && self.selected.unwrap() == index + self.current_page * self.rows;
-        let is_mouseover = is_point_in_rect(draw_params.x, row_y, draw_params.w, draw_params.y_offset, draw_params.mouse_x, draw_params.mouse_y);
+        let is_mouseover = is_point_in_rect(
+            draw_params.x,
+            row_y,
+            draw_params.w,
+            draw_params.y_offset,
+            draw_params.mouse_x,
+            draw_params.mouse_y,
+        );
         let (bg_color, text_color) = if !is_selected && is_mouseover {
             (BUTTON_HOVER_COLOR, BUTTON_COLOR)
         } else {
             (SELECTED_COLOR, BLACK)
         };
-    
+
         if is_selected || is_mouseover {
-            draw_rectangle(draw_params.x, draw_params.y + index as f32 * draw_params.y_offset, draw_params.w, draw_params.y_offset, bg_color);
+            draw_rectangle(
+                draw_params.x,
+                draw_params.y + index as f32 * draw_params.y_offset,
+                draw_params.w,
+                draw_params.y_offset,
+                bg_color,
+            );
         }
         draw_text(
             &value,
             draw_params.x + 2.0,
-            draw_params.y + (index as f32 + 1.0) * draw_params.y_offset - draw_params.y_offset * 0.1,
+            draw_params.y + (index as f32 + 1.0) * draw_params.y_offset
+                - draw_params.y_offset * 0.1,
             draw_params.font_size,
             text_color,
         );

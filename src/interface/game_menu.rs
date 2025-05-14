@@ -1,68 +1,90 @@
 use macroquad::{
     camera::set_default_camera,
-    color::{BLACK, Color},
-    input::{KeyCode, is_key_pressed, is_key_released},
+    color::{Color, BLACK},
     miniquad::window::screen_size,
     shapes::{draw_rectangle, draw_rectangle_lines},
+    text::draw_text, window::set_fullscreen,
 };
 
-use crate::service::sound_manager::SoundManager;
+use crate::{model::user_settings::UserSettings, service::sound_manager::SoundManager};
 
 use super::{button::draw_button, style::*};
 
 const CLEAR_SCREEN_COLOR: Color = Color::from_rgba(0, 0, 0, 100);
 
 const MENU_BOX_WIDTH: f32 = 400.0;
-const MENU_BOX_HEIGHT: f32 = 300.0;
+const MENU_BOX_HEIGHT: f32 = 400.0;
+const BUTTON_WIDTH: f32 = 250.0;
+const BUTTON_HEIGHT: f32 = 60.0;
+const BUTTON_TEXT_SIZE: u16 = 30;
 
 #[derive(Debug, Clone, Copy)]
 pub enum MenuSelection {
     None,
     BackToGame,
     ToWorldSelection,
+    ToOptions,
+    ToMainMenu,
     Exit,
 }
 
-pub fn draw_menu(sound_manager: &SoundManager) -> MenuSelection {
+#[derive(Debug, Clone, Copy)]
+pub enum MenuState {
+    Hidden,
+    Main,
+    Options,
+}
+
+/// draws the in game main menu
+pub fn draw_main_menu(sound_manager: &SoundManager, user_settings: &UserSettings) -> MenuSelection {
     set_default_camera();
     let (width, height) = screen_size();
     darken_background(width, height);
 
-    let menu_x = (width - (MENU_BOX_WIDTH)) * 0.5;
-    let menu_y = height * 0.1;
+    let (menu_x, menu_y) = calculate_menu_position(width, height);
     draw_menu_background(menu_x, menu_y);
-    let button_width = 250.0;
-    let button_height = 60.0;
-    let text_size = 30;
-    let button_x = menu_x + (MENU_BOX_WIDTH - button_width) * 0.5;
+    let button_x = menu_x + (MENU_BOX_WIDTH - BUTTON_WIDTH) * 0.5;
     let button_y_start = menu_y + 30.0;
 
     let is_back_to_game = draw_button(
         button_x,
         button_y_start,
-        button_width,
-        button_height,
+        BUTTON_WIDTH,
+        BUTTON_HEIGHT,
         "Back to game",
-        text_size,
+        BUTTON_TEXT_SIZE,
         sound_manager,
+        user_settings,
     );
     let is_to_world_selection = draw_button(
         button_x,
-        button_y_start + button_height * 1.5,
-        button_width,
-        button_height,
+        button_y_start + BUTTON_HEIGHT * 1.5,
+        BUTTON_WIDTH,
+        BUTTON_HEIGHT,
         "To world selection",
-        text_size,
+        BUTTON_TEXT_SIZE,
         sound_manager,
+        user_settings,
+    );
+    let is_options = draw_button(
+        button_x,
+        button_y_start + BUTTON_HEIGHT * 3.0,
+        BUTTON_WIDTH,
+        BUTTON_HEIGHT,
+        "Options",
+        BUTTON_TEXT_SIZE,
+        sound_manager,
+        user_settings,
     );
     let is_exit = draw_button(
         button_x,
-        button_y_start + button_height * 3.0,
-        button_width,
-        button_height,
+        button_y_start + BUTTON_HEIGHT * 4.5,
+        BUTTON_WIDTH,
+        BUTTON_HEIGHT,
         "Exit game",
-        text_size,
+        BUTTON_TEXT_SIZE,
         sound_manager,
+        user_settings,
     );
 
     if is_exit {
@@ -71,9 +93,137 @@ pub fn draw_menu(sound_manager: &SoundManager) -> MenuSelection {
         MenuSelection::BackToGame
     } else if is_to_world_selection {
         MenuSelection::ToWorldSelection
+    } else if is_options {
+        MenuSelection::ToOptions
     } else {
         MenuSelection::None
     }
+}
+
+/// draws the in game options menu
+pub fn draw_options_menu(
+    sound_manager: &SoundManager,
+    user_settings: &mut UserSettings,
+) -> MenuSelection {
+    set_default_camera();
+    let (width, height) = screen_size();
+    darken_background(width, height);
+
+    let (menu_x, menu_y) = calculate_menu_position(width, height);
+    draw_menu_background(menu_x, menu_y);
+    let contents_x = menu_x + (MENU_BOX_WIDTH - BUTTON_WIDTH) * 0.5;
+    let contents_y = menu_y + 30.0;
+
+    let render_distance_button_width = 50.0;
+    let render_distance_button_height = 50.0;
+    let render_distance_display_width = 220.0;
+    let render_distance_x = menu_x
+        + (MENU_BOX_WIDTH - render_distance_button_width * 2.0 - render_distance_display_width)
+            * 0.5;
+    let decrese_render_distance = draw_button(
+        render_distance_x,
+        contents_y,
+        render_distance_button_width,
+        render_distance_button_height,
+        "-",
+        40,
+        sound_manager,
+        user_settings,
+    );
+    draw_text(
+        &format!("View distance {}", user_settings.get_render_distance()),
+        render_distance_x + render_distance_button_width + 10.0,
+        contents_y + render_distance_button_height * 0.8,
+        28.0,
+        BUTTON_COLOR,
+    );
+    let increase_render_distance = draw_button(
+        render_distance_x + render_distance_button_width + render_distance_display_width,
+        contents_y,
+        render_distance_button_width,
+        render_distance_button_height,
+        "+",
+        40,
+        sound_manager,
+        user_settings,
+    );
+    let toggle_sounds = draw_toggle_sound_button(sound_manager, user_settings, contents_x, contents_y);
+    let toggle_fullscreen = draw_toggle_fullscreen_button(sound_manager, user_settings, contents_x, contents_y);
+    let should_go_back = draw_go_back_button(sound_manager, user_settings, contents_x, contents_y);
+
+    if toggle_fullscreen {
+        user_settings.is_fullscreen = !user_settings.is_fullscreen;
+        set_fullscreen(user_settings.is_fullscreen);
+    }
+    if toggle_sounds {
+        user_settings.has_sound = !user_settings.has_sound;
+    }
+    if increase_render_distance {
+        let _increased = user_settings.increase_render_distance();
+    }
+    if decrese_render_distance {
+        let _decreased = user_settings.decrease_render_distance();
+    }
+
+    if should_go_back {
+        MenuSelection::ToMainMenu
+    } else {
+        MenuSelection::None
+    }
+}
+
+fn draw_toggle_sound_button(sound_manager: &SoundManager, user_settings: &mut UserSettings, contents_x: f32, contents_y: f32) -> bool {
+    let toggle_sounds = draw_button(
+        contents_x,
+        contents_y + BUTTON_HEIGHT * 1.5,
+        BUTTON_WIDTH,
+        BUTTON_HEIGHT,
+        if user_settings.has_sound {
+            "Sound:ON"
+        } else {
+            "Sound:OFF"
+        },
+        BUTTON_TEXT_SIZE,
+        sound_manager,
+        user_settings,
+    );
+    toggle_sounds
+}
+
+fn draw_toggle_fullscreen_button(sound_manager: &SoundManager, user_settings: &mut UserSettings, contents_x: f32, contents_y: f32) -> bool {
+    let toggle_fullscreen = draw_button(
+        contents_x,
+        contents_y + BUTTON_HEIGHT * 3.0,
+        BUTTON_WIDTH,
+        BUTTON_HEIGHT,
+        if user_settings.is_fullscreen { "Go windowed" } else { "Go fullscreen" },
+        BUTTON_TEXT_SIZE,
+        sound_manager,
+        user_settings,
+    );
+
+    toggle_fullscreen
+}
+
+fn draw_go_back_button(sound_manager: &SoundManager, user_settings: &mut UserSettings, contents_x: f32, contents_y: f32) -> bool {
+    let should_go_back = draw_button(
+        contents_x,
+        contents_y + BUTTON_HEIGHT * 4.5,
+        BUTTON_WIDTH,
+        BUTTON_HEIGHT,
+        "Back",
+        BUTTON_TEXT_SIZE,
+        sound_manager,
+        user_settings,
+    );
+
+    should_go_back
+}
+
+fn calculate_menu_position(width: f32, height: f32) -> (f32, f32) {
+    let menu_x = (width - (MENU_BOX_WIDTH)) * 0.5;
+    let menu_y = height * 0.1;
+    (menu_x, menu_y)
 }
 
 fn darken_background(width: f32, height: f32) {

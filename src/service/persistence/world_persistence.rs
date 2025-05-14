@@ -68,13 +68,11 @@ pub fn store(area: Area, world_name: String) {
 
 /// stores all areas and blocks the main thread
 pub fn store_all_blocking(areas: Vec<Area>, world_name: String) {
-    areas
-        .into_par_iter()
-        .for_each(|area| {
-            STORE_SEMAPHORE.acquire();
-            store_blocking(area, &world_name);
-            STORE_SEMAPHORE.release();
-        });
+    areas.into_par_iter().for_each(|area| {
+        STORE_SEMAPHORE.acquire();
+        store_blocking(area, &world_name);
+        STORE_SEMAPHORE.release();
+    });
 }
 
 /// loads an area from disk

@@ -195,7 +195,8 @@ impl World {
     pub fn save_all_blocking(&mut self) {
         let start = Instant::now();
         info!("Saving world...");
-        let areas = take(&mut self.areas).into_values()
+        let areas = take(&mut self.areas)
+            .into_values()
             .filter(|area| area.has_changed)
             .collect();
         world_persistence::store_all_blocking(areas, self.world_name.clone());

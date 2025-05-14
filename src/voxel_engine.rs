@@ -17,10 +17,13 @@ use crate::{
         ui_display::{VoxelSelector, draw_crosshair, draw_selected_voxel},
     },
     interface::{
-        game_menu::{MenuSelection, draw_menu},
+        game_menu::{MenuSelection, MenuState, draw_main_menu, draw_options_menu},
         world_selection::InterfaceContext,
     },
-    model::{location::Location, player_info::PlayerInfo, voxel::Voxel, world::World},
+    model::{
+        location::Location, player_info::PlayerInfo, user_settings::UserSettings, voxel::Voxel,
+        world::World,
+    },
     service::{
         camera_controller::CameraController,
         input::{self, *},
@@ -42,13 +45,15 @@ pub struct VoxelEngine {
     voxel_selector: VoxelSelector,
     voxel_simulator: VoxelSimulator,
     sound_manager: Rc<SoundManager>,
-    render_size: u32,
+    user_settings: UserSettings,
+    menu_state: MenuState,
 }
 impl VoxelEngine {
     pub fn new(
         world_name: impl Into<String>,
         texture_manager: Rc<TextureManager>,
         sound_manager: Rc<SoundManager>,
+        user_settings: UserSettings,
     ) -> Self {
         let world_name = world_name.into();
         let mut player_info =
@@ -60,10 +65,11 @@ impl VoxelEngine {
             renderer: Renderer::new(texture_manager),
             player_info,
             debug_display: DebugDisplay::new(),
-            render_size: 7,
+            user_settings,
             voxel_selector: VoxelSelector::new(),
             voxel_simulator: VoxelSimulator::new(),
             sound_manager,
+            menu_state: MenuState::Hidden,
         }
     }
 
@@ -74,23 +80,25 @@ impl VoxelEngine {
             .camera_controller
             .get_camera_voxel_location();
 
-        let load_zone = get_load_zone(camera_location.into(), self.render_size);
+        let load_zone = get_load_zone(
+            camera_location.into(),
+            self.user_settings.get_render_distance(),
+        );
         self.world.load_all_blocking(&load_zone);
     }
 
     fn check_change_render_distance(&mut self) {
-        const MIN_RENDER_DISTANCE: u32 = 3;
-        const MAX_RENDER_DISTANCE: u32 = 14;
-        if input::decrease_render_distance() && self.render_size > MIN_RENDER_DISTANCE {
-            self.render_size -= 1;
-        } else if input::increase_render_distance() && self.render_size < MAX_RENDER_DISTANCE {
-            self.render_size += 1;
+        if input::decrease_render_distance() {
+            let _changed = self.user_settings.decrease_render_distance();
+        } else if input::increase_render_distance() {
+            let _changed = self.user_settings.increase_render_distance();
         }
     }
 
     /// processes player inputs and returns the looked at voxel from the camera
     pub fn process_input(&mut self, delta: f32) -> RaycastResult {
         if exit_focus() {
+            self.menu_state = MenuState::Main;
             self.player_info.camera_controller.set_focus(false);
         }
         self.player_info.camera_controller.update_look(delta);
@@ -153,12 +161,13 @@ impl VoxelEngine {
             .player_info
             .camera_controller
             .get_camera_voxel_location();
+        let render_size = self.user_settings.get_render_distance();
         self.renderer.update_loaded_areas(
             &mut self.world,
-            &get_render_zone(camera_location.into(), self.render_size),
+            &get_render_zone(camera_location.into(), render_size),
         );
         self.world
-            .retain_areas(&get_load_zone(camera_location.into(), self.render_size));
+            .retain_areas(&get_load_zone(camera_location.into(), render_size));
     }
 
     /// draws the current frame, return the new context if changed
@@ -168,7 +177,9 @@ impl VoxelEngine {
         let width = screen_width();
         let height = screen_height();
         let camera = self.player_info.camera_controller.create_camera();
-        let rendered = self.renderer.render_voxels(&camera, self.render_size);
+        let rendered = self
+            .renderer
+            .render_voxels(&camera, self.user_settings.get_render_distance());
         self.voxel_simulator.draw(&camera);
         gl_use_default_material();
         if let RaycastResult::Hit {
@@ -192,20 +203,46 @@ impl VoxelEngine {
     }
 
     fn process_menu(&mut self) -> Option<GameState> {
-        if self.player_info.camera_controller.is_focused() {
-            return None;
+        match self.menu_state {
+            MenuState::Hidden => None,
+            MenuState::Main => self.process_main_menu(),
+            MenuState::Options => self.process_options_menu(),
         }
+    }
 
-        match draw_menu(&self.sound_manager) {
+    fn process_options_menu(&mut self) -> Option<GameState> {
+        let selection = draw_options_menu(&self.sound_manager, &mut self.user_settings);
+        self.handle_menu_selection(selection)
+    }
+
+    fn process_main_menu(&mut self) -> Option<GameState> {
+        let selection = draw_main_menu(&self.sound_manager, &self.user_settings);
+        self.handle_menu_selection(selection)
+    }
+
+    fn handle_menu_selection(&mut self, selection: MenuSelection) -> Option<GameState> {
+        match selection {
             MenuSelection::None => None,
             MenuSelection::BackToGame => {
                 self.player_info.camera_controller.set_focus(true);
+                self.menu_state = MenuState::Hidden;
                 None
             }
             MenuSelection::ToWorldSelection => Some(GameState::Menu {
-                context: Box::new(InterfaceContext::new(self.sound_manager.clone())),
+                context: Box::new(InterfaceContext::new(
+                    self.sound_manager.clone(),
+                    self.user_settings.clone(),
+                )),
             }),
             MenuSelection::Exit => Some(GameState::Exit),
+            MenuSelection::ToOptions => {
+                self.menu_state = MenuState::Options;
+                None
+            }
+            MenuSelection::ToMainMenu => {
+                self.menu_state = MenuState::Main;
+                None
+            }
         }
     }
 
@@ -230,7 +267,8 @@ impl VoxelEngine {
                 if !has_placed {
                     return;
                 }
-                self.sound_manager.play_sound(SoundId::Place);
+                self.sound_manager
+                    .play_sound(SoundId::Place, &self.user_settings);
                 self.voxel_simulator
                     .update_voxels(&mut self.world, &mut self.renderer, last_empty);
             }
@@ -250,7 +288,8 @@ impl VoxelEngine {
                 if !has_destroyed {
                     return;
                 }
-                self.sound_manager.play_sound(SoundId::Destroy);
+                self.sound_manager
+                    .play_sound(SoundId::Destroy, &self.user_settings);
                 self.voxel_simulator.update_voxels(
                     &mut self.world,
                     &mut self.renderer,
@@ -368,7 +407,8 @@ impl VoxelEngine {
         let down_voxel = self.world.get(down_location.into());
         if down_voxel != Voxel::None {
             if self.player_info.velocity > MAX_FALL_SPEED * 0.2 {
-                self.sound_manager.play_sound(SoundId::Fall);
+                self.sound_manager
+                    .play_sound(SoundId::Fall, &self.user_settings);
             }
             self.player_info.velocity = 0.0;
             self.player_info.camera_controller.set_position(

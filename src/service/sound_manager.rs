@@ -5,6 +5,8 @@ use macroquad::{
     prelude::{error, info},
 };
 
+use crate::model::user_settings::UserSettings;
+
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
 pub enum SoundId {
     Fall,
@@ -38,7 +40,11 @@ impl SoundManager {
         Self { sounds }
     }
 
-    pub fn play_sound(&self, sound_id: SoundId) {
+    pub fn play_sound(&self, sound_id: SoundId, user_settings: &UserSettings) {
+        if !user_settings.has_sound {
+            return;
+        }
+
         if let Some(sound) = self.sounds.get(&sound_id) {
             play_sound_once(sound);
         } else {
