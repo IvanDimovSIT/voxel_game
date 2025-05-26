@@ -120,6 +120,9 @@ impl VoxelEngine {
         if is_destroy_voxel(&self.player_info.camera_controller) {
             self.try_destroy_voxel(raycast_result);
         }
+        if is_replace_voxel(&self.player_info.camera_controller) {
+            self.try_replace_voxel(raycast_result);
+        }
         if jump() {
             self.try_jump();
         }
@@ -288,6 +291,40 @@ impl VoxelEngine {
                 if !has_destroyed {
                     return;
                 }
+                self.sound_manager
+                    .play_sound(SoundId::Destroy, &self.user_settings);
+                self.voxel_simulator.update_voxels(
+                    &mut self.world,
+                    &mut self.renderer,
+                    first_non_empty,
+                );
+            }
+        }
+    }
+
+    fn try_replace_voxel(&mut self, raycast_result: RaycastResult) {
+        match raycast_result {
+            RaycastResult::NoneHit => {}
+            RaycastResult::Hit {
+                first_non_empty,
+                last_empty: _,
+                distance: _,
+            } => {
+                let has_destroyed =
+                    destroy_voxel(first_non_empty, &mut self.world, &mut self.renderer);
+                if !has_destroyed {
+                    return;
+                }
+                place_voxel(
+                    first_non_empty, 
+                    self.voxel_selector.get_selected(),
+                    self.player_info
+                        .camera_controller
+                        .get_camera_voxel_location(),
+                        &mut self.world,
+                        &mut self.renderer,
+                        &self.voxel_simulator
+                    );
                 self.sound_manager
                     .play_sound(SoundId::Destroy, &self.user_settings);
                 self.voxel_simulator.update_voxels(

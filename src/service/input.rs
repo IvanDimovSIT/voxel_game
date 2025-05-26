@@ -36,6 +36,10 @@ pub fn is_place_voxel(camera_controller: &CameraController) -> bool {
     camera_controller.is_focused() && is_mouse_button_pressed(macroquad::input::MouseButton::Right)
 }
 
+pub fn is_replace_voxel(camera_controller: &CameraController) -> bool {
+    camera_controller.is_focused() && is_mouse_button_pressed(macroquad::input::MouseButton::Middle)
+}
+
 pub fn is_destroy_voxel(camera_controller: &CameraController) -> bool {
     camera_controller.is_focused() && is_mouse_button_pressed(macroquad::input::MouseButton::Left)
 }
