@@ -1,9 +1,10 @@
 use macroquad::{
     camera::set_default_camera,
-    color::{Color, BLACK},
+    color::{BLACK, Color},
     miniquad::window::screen_size,
     shapes::{draw_rectangle, draw_rectangle_lines},
-    text::draw_text, window::set_fullscreen,
+    text::draw_text,
+    window::set_fullscreen,
 };
 
 use crate::{model::user_settings::UserSettings, service::sound_manager::SoundManager};
@@ -147,8 +148,10 @@ pub fn draw_options_menu(
         sound_manager,
         user_settings,
     );
-    let toggle_sounds = draw_toggle_sound_button(sound_manager, user_settings, contents_x, contents_y);
-    let toggle_fullscreen = draw_toggle_fullscreen_button(sound_manager, user_settings, contents_x, contents_y);
+    let toggle_sounds =
+        draw_toggle_sound_button(sound_manager, user_settings, contents_x, contents_y);
+    let toggle_fullscreen =
+        draw_toggle_fullscreen_button(sound_manager, user_settings, contents_x, contents_y);
     let should_go_back = draw_go_back_button(sound_manager, user_settings, contents_x, contents_y);
 
     if toggle_fullscreen {
@@ -172,7 +175,12 @@ pub fn draw_options_menu(
     }
 }
 
-fn draw_toggle_sound_button(sound_manager: &SoundManager, user_settings: &mut UserSettings, contents_x: f32, contents_y: f32) -> bool {
+fn draw_toggle_sound_button(
+    sound_manager: &SoundManager,
+    user_settings: &mut UserSettings,
+    contents_x: f32,
+    contents_y: f32,
+) -> bool {
     let toggle_sounds = draw_button(
         contents_x,
         contents_y + BUTTON_HEIGHT * 1.5,
@@ -190,13 +198,22 @@ fn draw_toggle_sound_button(sound_manager: &SoundManager, user_settings: &mut Us
     toggle_sounds
 }
 
-fn draw_toggle_fullscreen_button(sound_manager: &SoundManager, user_settings: &mut UserSettings, contents_x: f32, contents_y: f32) -> bool {
+fn draw_toggle_fullscreen_button(
+    sound_manager: &SoundManager,
+    user_settings: &mut UserSettings,
+    contents_x: f32,
+    contents_y: f32,
+) -> bool {
     let toggle_fullscreen = draw_button(
         contents_x,
         contents_y + BUTTON_HEIGHT * 3.0,
         BUTTON_WIDTH,
         BUTTON_HEIGHT,
-        if user_settings.is_fullscreen { "Go windowed" } else { "Go fullscreen" },
+        if user_settings.is_fullscreen {
+            "Go windowed"
+        } else {
+            "Go fullscreen"
+        },
         BUTTON_TEXT_SIZE,
         sound_manager,
         user_settings,
@@ -205,7 +222,12 @@ fn draw_toggle_fullscreen_button(sound_manager: &SoundManager, user_settings: &m
     toggle_fullscreen
 }
 
-fn draw_go_back_button(sound_manager: &SoundManager, user_settings: &mut UserSettings, contents_x: f32, contents_y: f32) -> bool {
+fn draw_go_back_button(
+    sound_manager: &SoundManager,
+    user_settings: &mut UserSettings,
+    contents_x: f32,
+    contents_y: f32,
+) -> bool {
     let should_go_back = draw_button(
         contents_x,
         contents_y + BUTTON_HEIGHT * 4.5,

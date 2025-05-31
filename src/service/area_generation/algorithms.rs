@@ -10,6 +10,14 @@ pub fn get_point_on_noise_map(area_location: AreaLocation, x: u32, y: u32) -> [f
     ]
 }
 
+pub fn get_point_on_noise_map_3d(area_location: AreaLocation, x: u32, y: u32, z: u32) -> [f64; 3] {
+    [
+        (x + area_location.x * AREA_SIZE) as f64,
+        (y + area_location.y * AREA_SIZE) as f64,
+        z as f64,
+    ]
+}
+
 pub fn combine_seed(seed: u64, area_location: AreaLocation, local: InternalLocation) -> u64 {
     let mut combined_seed = seed;
 

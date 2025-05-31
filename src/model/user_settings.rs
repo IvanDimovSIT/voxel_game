@@ -5,7 +5,7 @@ const MAX_RENDER_DISTANCE: u32 = 14;
 pub struct UserSettings {
     render_distance: u32,
     pub has_sound: bool,
-    pub is_fullscreen: bool
+    pub is_fullscreen: bool,
 }
 impl UserSettings {
     pub fn get_render_distance(&self) -> u32 {

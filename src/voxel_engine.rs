@@ -316,15 +316,15 @@ impl VoxelEngine {
                     return;
                 }
                 place_voxel(
-                    first_non_empty, 
+                    first_non_empty,
                     self.voxel_selector.get_selected(),
                     self.player_info
                         .camera_controller
                         .get_camera_voxel_location(),
-                        &mut self.world,
-                        &mut self.renderer,
-                        &self.voxel_simulator
-                    );
+                    &mut self.world,
+                    &mut self.renderer,
+                    &self.voxel_simulator,
+                );
                 self.sound_manager
                     .play_sound(SoundId::Destroy, &self.user_settings);
                 self.voxel_simulator.update_voxels(

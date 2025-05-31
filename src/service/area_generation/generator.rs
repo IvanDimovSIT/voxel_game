@@ -10,6 +10,7 @@ use crate::{
     },
     service::area_generation::{
         biome_type::BiomeTypeGenerator,
+        cave_generator::CaveGenerator,
         terrain_type::TerrainTypeGenerator,
         trees::{TreeType, generate_trees, should_generate_tree},
     },
@@ -60,6 +61,7 @@ pub fn generate_area(area_location: AreaLocation, world_name: &str) -> Area {
     let seed = hash_world_name(world_name);
     let height_noise = TerrainTypeGenerator::new(seed);
     let type_noise = BiomeTypeGenerator::new(seed);
+    let cave_noise = CaveGenerator::new(seed);
     const AREA_SURFACE: usize = (AREA_SIZE * AREA_SIZE) as usize;
     let mut trees_location: StackVec<(InternalLocation, TreeType), AREA_SURFACE> = StackVec::new();
 
@@ -70,6 +72,9 @@ pub fn generate_area(area_location: AreaLocation, world_name: &str) -> Area {
             let biome_type = type_noise.sample(area_location, x, y);
             for z in 1..=height as u32 {
                 let current_voxel = calculate_voxel_type(z, height, biome_type);
+                if cave_noise.should_be_cave(area_location, x, y, z) {
+                    continue;
+                }
                 area.set(InternalLocation::new(x, y, AREA_HEIGHT - z), current_voxel);
             }
             let local = InternalLocation::new(x, y, AREA_HEIGHT - height);
