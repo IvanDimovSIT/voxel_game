@@ -207,9 +207,18 @@ impl InterfaceContext {
     }
 
     fn validate(&mut self) {
+        let is_whitespace = || {
+            self.world_name_input
+                .get_text()
+                .chars()
+                .all(|c| c.is_ascii_whitespace())
+        };
+
         if self.world_name_input.get_text().len() < MIN_WORLD_NAME_LENGTH {
             self.error =
                 format!("World name should be at least {MIN_WORLD_NAME_LENGTH} characters");
+        } else if is_whitespace() {
+            self.error = "World name cannot be blank".to_owned();
         } else {
             self.error = "".to_owned();
         }

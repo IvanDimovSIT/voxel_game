@@ -112,6 +112,6 @@ impl TextInput {
     }
 
     fn is_character_allowed(character: char) -> bool {
-        character.is_alphanumeric() || character == '_'
+        character.is_alphanumeric() || character == '_' || character == ' '
     }
 }

@@ -9,6 +9,8 @@ varying vec3 facePosition;
 uniform sampler2D Texture;
 uniform vec3 cameraPos;
 uniform vec3 cameraTarget;
+uniform float fogFar;
+uniform float fogNear;
 
 const vec3 lightDir = normalize(vec3(0.2, 0.8, -1.0));
 const float reflectionIntensity = 0.05;
@@ -16,6 +18,7 @@ const float ambient = 0.4;
 const float specularStrength = 0.25;
 const float dropShadowRadius = 0.4;
 const float dropShadowLight = 0.2;
+const vec3 fogBaseColor = vec3(0.83, 0.69, 0.51);
 
 
 void main() {
@@ -37,7 +40,11 @@ void main() {
     float fresnel = pow(1.0 - max(dot(normal, viewDir), 0.0), 3.0);
     float rim = fresnel * reflectionIntensity;
     
-    vec3 finalColor = texColor.rgb * lighting + vec3(specular) + vec3(rim);
-    
+    vec3 preFogColor = texColor.rgb * lighting + vec3(specular) + vec3(rim);
+
+    float distanceToFace = length(facePosition);
+    float fogFactor = clamp((fogFar - distanceToFace) / (fogFar - fogNear), 0.0, 1.0);
+    vec3 finalColor = fogBaseColor * (1.0 - fogFactor) + preFogColor * fogFactor;
+
     gl_FragColor = vec4(finalColor, texColor.a);
 }
