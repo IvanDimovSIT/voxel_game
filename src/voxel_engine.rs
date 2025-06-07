@@ -1,11 +1,10 @@
-use std::rc::Rc;
+use std::{f32::consts::PI, rc::Rc};
 
 use macroquad::{
     camera::set_default_camera,
-    color::BEIGE,
     math::{Vec3, vec3},
     prelude::{error, gl_use_default_material},
-    window::{clear_background, next_frame, screen_height, screen_width},
+    window::{next_frame, screen_height, screen_width},
 };
 
 use crate::{
@@ -13,6 +12,7 @@ use crate::{
     graphics::{
         debug_display::DebugDisplay,
         renderer::Renderer,
+        sky::draw_sky,
         texture_manager::TextureManager,
         ui_display::{VoxelSelector, draw_crosshair, draw_selected_voxel},
     },
@@ -33,6 +33,7 @@ use crate::{
         sound_manager::{SoundId, SoundManager},
         voxel_physics::VoxelSimulator,
         world_actions::{destroy_voxel, place_voxel},
+        world_time::WorldTime,
     },
     utils::vector_to_location,
 };
@@ -47,6 +48,7 @@ pub struct VoxelEngine {
     sound_manager: Rc<SoundManager>,
     user_settings: UserSettings,
     menu_state: MenuState,
+    world_time: WorldTime,
 }
 impl VoxelEngine {
     pub fn new(
@@ -70,6 +72,7 @@ impl VoxelEngine {
             voxel_simulator: VoxelSimulator::new(),
             sound_manager,
             menu_state: MenuState::Hidden,
+            world_time: WorldTime::new(PI * 0.5),
         }
     }
 
@@ -95,7 +98,7 @@ impl VoxelEngine {
         }
     }
 
-    /// processes player inputs and returns the looked at voxel from the camera
+    /// processes and player inputs and returns the looked at voxel from the camera
     pub fn process_input(&mut self, delta: f32) -> RaycastResult {
         if exit_focus() {
             self.menu_state = MenuState::Main;
@@ -150,8 +153,14 @@ impl VoxelEngine {
         raycast_result
     }
 
+    /// updates time dependent processes
+    pub fn update_processes(&mut self, delta: f32) {
+        self.world_time.update(delta);
+        self.process_physics(delta);
+    }
+
     /// process falling and collisions
-    pub fn process_physics(&mut self, delta: f32) {
+    fn process_physics(&mut self, delta: f32) {
         self.process_collisions(delta);
         self.push_player_up();
         self.voxel_simulator
@@ -175,14 +184,16 @@ impl VoxelEngine {
 
     /// draws the current frame, return the new context if changed
     pub async fn draw_scene(&mut self, raycast_result: RaycastResult) -> Option<GameState> {
-        clear_background(BEIGE);
+        draw_sky(&self.world_time);
 
         let width = screen_width();
         let height = screen_height();
         let camera = self.player_info.camera_controller.create_camera();
-        let rendered = self
-            .renderer
-            .render_voxels(&camera, self.user_settings.get_render_distance());
+        let rendered = self.renderer.render_voxels(
+            &camera,
+            self.user_settings.get_render_distance(),
+            &self.world_time,
+        );
         self.voxel_simulator.draw(&camera);
         gl_use_default_material();
         if let RaycastResult::Hit {

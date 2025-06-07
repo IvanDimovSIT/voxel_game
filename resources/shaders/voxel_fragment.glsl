@@ -11,6 +11,7 @@ uniform vec3 cameraPos;
 uniform vec3 cameraTarget;
 uniform float fogFar;
 uniform float fogNear;
+uniform float lightLevel;
 
 const vec3 lightDir = normalize(vec3(0.2, 0.8, -1.0));
 const float reflectionIntensity = 0.05;
@@ -18,33 +19,55 @@ const float ambient = 0.4;
 const float specularStrength = 0.25;
 const float dropShadowRadius = 0.4;
 const float dropShadowLight = 0.2;
-const vec3 fogBaseColor = vec3(0.83, 0.69, 0.51);
+const vec3 fogBaseColorLight = vec3(0.83, 0.69, 0.51);
+const vec3 fogBaseColorDark = vec3(0.0, 0.32, 0.67);
+const float playerLightStrength = 15.0;
 
 
-void main() {
-    vec4 texColor = texture2D(Texture, uv);
-    vec3 normal = normalize(fragNormal);
-    
+float calculateDiffuseLight(vec3 normal) {
     float diffuse = max(dot(normal, lightDir), 0.0);
     if (facePosition.z > 0.0 && 
         distance(vec2(0.0, 0.0), vec2(facePosition.x, facePosition.y)) < dropShadowRadius) {
-        diffuse = dropShadowLight;
+        diffuse = dropShadowLight * lightLevel;
     }
 
-    float lighting = ambient + diffuse * (1.0 - ambient);
+    return diffuse;
+}
+
+vec3 addFog(vec3 preFogColor, float distanceToFace, float darkLevel) {
+    vec3 fogBaseColor = fogBaseColorLight * lightLevel + fogBaseColorDark * darkLevel;
+    float fogFactor = clamp((fogFar - distanceToFace) / (fogFar - fogNear), 0.0, 1.0);
     
+    return fogBaseColor * (1.0 - fogFactor) + preFogColor * fogFactor;
+}
+
+float addPlayerLight(float baseLight, float distanceToFace, float darkLevel) {
+    float playerLightProximity = 1.0 - min(distanceToFace, playerLightStrength)/playerLightStrength;
+    
+    return min(baseLight + darkLevel * playerLightProximity * playerLightProximity, 1.0);
+}
+
+void main() {
+    float darkLevel = 1.0 - lightLevel;
+    vec4 texColor = texture2D(Texture, uv);
+    vec3 normal = normalize(fragNormal);
+    float distanceToFace = length(facePosition);
+    
+    float diffuse = calculateDiffuseLight(normal);
+
+    float sunLighting = min(lightLevel, 1.0) * (ambient + diffuse * (1.0 - ambient));
+    float lighting = addPlayerLight(sunLighting, distanceToFace, darkLevel);
+
     vec3 viewDir = normalize(-facePosition);
     vec3 reflectDir = reflect(-lightDir, normal);
-    float specular = pow(max(dot(reflectDir, viewDir), 0.0), 32.0) * specularStrength;
+    float specular = pow(max(dot(reflectDir, viewDir), 0.0), 32.0) * specularStrength * lightLevel;
     
     float fresnel = pow(1.0 - max(dot(normal, viewDir), 0.0), 3.0);
     float rim = fresnel * reflectionIntensity;
     
     vec3 preFogColor = texColor.rgb * lighting + vec3(specular) + vec3(rim);
 
-    float distanceToFace = length(facePosition);
-    float fogFactor = clamp((fogFar - distanceToFace) / (fogFar - fogNear), 0.0, 1.0);
-    vec3 finalColor = fogBaseColor * (1.0 - fogFactor) + preFogColor * fogFactor;
+    vec3 finalColor = addFog(preFogColor, distanceToFace, darkLevel);
 
     gl_FragColor = vec4(finalColor, texColor.a);
 }

@@ -46,7 +46,7 @@ async fn main() {
             GameState::Running { voxel_engine } => {
                 let delta = get_frame_time().min(0.2);
                 let raycast_result = voxel_engine.process_input(delta);
-                voxel_engine.process_physics(delta);
+                voxel_engine.update_processes(delta);
                 voxel_engine.update_loaded_areas();
                 let change_context = voxel_engine.draw_scene(raycast_result).await;
                 if let Some(new_context) = change_context {

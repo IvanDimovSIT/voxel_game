@@ -15,7 +15,7 @@ use crate::{
         voxel::{MAX_VOXEL_VARIANTS, Voxel},
         world::World,
     },
-    service::camera_controller::CameraController,
+    service::{camera_controller::CameraController, world_time::WorldTime},
     utils::StackVec,
 };
 
@@ -286,10 +286,16 @@ impl Renderer {
     }
 
     /// Returns the number of rendered areas and faces
-    pub fn render_voxels(&self, camera: &Camera3D, render_size: u32) -> (usize, usize) {
+    pub fn render_voxels(
+        &self,
+        camera: &Camera3D,
+        render_size: u32,
+        world_time: &WorldTime,
+    ) -> (usize, usize) {
         let normalised_camera = CameraController::normalize_camera_3d(camera);
         set_camera(&normalised_camera);
-        self.shader.set_voxel_material(camera, render_size);
+        self.shader
+            .set_voxel_material(camera, render_size, world_time);
         let position: Vec3 = camera.position;
         let look = (camera.target - position).normalize_or_zero();
         let render_distance = Self::calculate_render_distance(look, render_size);
