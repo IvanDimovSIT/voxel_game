@@ -32,7 +32,7 @@ impl SoundManager {
         for (id, path) in SOUNDS {
             let sound = load_sound(path)
                 .await
-                .expect(&format!("Failed to load '{path}'"));
+                .unwrap_or_else(|_| panic!("Failed to load '{path}'"));
             info!("Loaded sound with id {:?} from '{}'", id, path);
             sounds.insert(id, sound);
         }

@@ -11,7 +11,7 @@ use super::config::SERIALIZATION_CONFIG;
 const WORLD_LIST_FILEPATH: &str = "worlds.dat";
 
 pub fn read_world_list() -> Vec<String> {
-    let mut file = match File::open(&WORLD_LIST_FILEPATH) {
+    let mut file = match File::open(WORLD_LIST_FILEPATH) {
         Ok(ok) => ok,
         Err(err) => {
             error!(

@@ -50,13 +50,13 @@ impl VoxelSelector {
 
     pub fn select_next(&mut self) {
         if self.selected + 1 < self.voxels.len() {
-            self.selected = self.selected + 1;
+            self.selected += 1;
         }
     }
 
     pub fn select_prev(&mut self) {
         if self.selected > 0 {
-            self.selected = self.selected - 1;
+            self.selected -= 1;
         }
     }
 

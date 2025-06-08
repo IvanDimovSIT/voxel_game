@@ -394,4 +394,8 @@ impl Renderer {
     pub fn get_texture_manager(&self) -> &TextureManager {
         self.mesh_generator.get_texture_manager()
     }
+
+    pub fn get_texture_manager_copy(&self) -> Rc<TextureManager> {
+        self.mesh_generator.get_texture_manager_copy()
+    }
 }

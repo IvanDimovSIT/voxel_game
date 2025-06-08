@@ -188,13 +188,14 @@ pub fn draw_options_menu<F: FnMut(&UserSettings)>(
     }
 }
 
+/// returns true if pressed
 fn draw_toggle_sound_button(
     sound_manager: &SoundManager,
     user_settings: &mut UserSettings,
     contents_x: f32,
     contents_y: f32,
 ) -> bool {
-    let toggle_sounds = draw_button(
+    draw_button(
         contents_x,
         contents_y + BUTTON_HEIGHT * 1.5,
         BUTTON_WIDTH,
@@ -207,17 +208,17 @@ fn draw_toggle_sound_button(
         BUTTON_TEXT_SIZE,
         sound_manager,
         user_settings,
-    );
-    toggle_sounds
+    )
 }
 
+/// returns true if pressed
 fn draw_toggle_fullscreen_button(
     sound_manager: &SoundManager,
     user_settings: &mut UserSettings,
     contents_x: f32,
     contents_y: f32,
 ) -> bool {
-    let toggle_fullscreen = draw_button(
+    draw_button(
         contents_x,
         contents_y + BUTTON_HEIGHT * 3.0,
         BUTTON_WIDTH,
@@ -230,18 +231,17 @@ fn draw_toggle_fullscreen_button(
         BUTTON_TEXT_SIZE,
         sound_manager,
         user_settings,
-    );
-
-    toggle_fullscreen
+    )
 }
 
+/// returns true if pressed
 fn draw_go_back_button(
     sound_manager: &SoundManager,
     user_settings: &mut UserSettings,
     contents_x: f32,
     contents_y: f32,
 ) -> bool {
-    let should_go_back = draw_button(
+    draw_button(
         contents_x,
         contents_y + BUTTON_HEIGHT * 4.5,
         BUTTON_WIDTH,
@@ -250,9 +250,7 @@ fn draw_go_back_button(
         BUTTON_TEXT_SIZE,
         sound_manager,
         user_settings,
-    );
-
-    should_go_back
+    )
 }
 
 fn calculate_menu_position(width: f32, height: f32) -> (f32, f32) {

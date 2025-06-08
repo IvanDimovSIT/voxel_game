@@ -18,7 +18,7 @@ use crate::{
     },
     interface::{
         game_menu::{MenuSelection, MenuState, draw_main_menu, draw_options_menu},
-        world_selection::InterfaceContext,
+        interface_context::InterfaceContext,
     },
     model::{
         location::Location, player_info::PlayerInfo, user_settings::UserSettings, voxel::Voxel,
@@ -268,8 +268,9 @@ impl VoxelEngine {
                 None
             }
             MenuSelection::ToWorldSelection => Some(GameState::Menu {
-                context: Box::new(InterfaceContext::new(
+                context: Box::new(InterfaceContext::new_world_selection(
                     self.sound_manager.clone(),
+                    self.renderer.get_texture_manager_copy(),
                     self.user_settings.clone(),
                 )),
             }),

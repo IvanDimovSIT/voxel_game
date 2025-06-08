@@ -8,11 +8,12 @@ use macroquad::{
     miniquad::window::screen_size,
     prelude::info,
     text::draw_text,
-    window::{clear_background, next_frame},
+    window::next_frame,
 };
 
 use crate::{
     graphics::texture_manager::TextureManager,
+    interface::background::draw_background,
     model::user_settings::UserSettings,
     service::{
         persistence::{
@@ -25,8 +26,7 @@ use crate::{
 };
 
 use super::{
-    button::draw_button, list_input::ListInput, style::BACKGROUND_COLOR, text_input::TextInput,
-    util::get_text_width,
+    button::draw_button, list_input::ListInput, text_input::TextInput, util::get_text_width,
 };
 
 const LABEL_FONT_SIZE: f32 = 40.0;
@@ -34,6 +34,8 @@ const TEXT_INPUT_SIZE: Vec2 = vec2(350.0, 50.0);
 const TEXT_INPUT_FONT_SIZE: u16 = 35;
 const PLAY_BUTTON_SIZE: Vec2 = vec2(220.0, 50.0);
 const PLAY_BUTTON_FONT_SIZE: u16 = 40;
+const BACK_BUTTON_SIZE: f32 = 60.0;
+const BACK_BUTTON_FONT_SIZE: u16 = 45;
 const NOTIFICATION_TEXT_SIZE: f32 = 35.0;
 const DELETE_BUTTON_SIZE: Vec2 = vec2(220.0, 50.0);
 const DELETE_BUTTON_FONT_SIZE: u16 = 35;
@@ -42,24 +44,23 @@ const WORLD_LIST_FONT_SIZE: f32 = 25.0;
 const WORLD_LIST_ROWS: usize = 5;
 const MIN_WORLD_NAME_LENGTH: usize = 3;
 
-pub struct InterfaceContext {
-    sound_manager: Rc<SoundManager>,
-    user_settings: UserSettings,
+pub struct WorldSelectionContext {
     world_name_input: TextInput,
     error: String,
     should_enter: bool,
+    should_go_to_title: bool,
     world_list: ListInput,
 }
-impl InterfaceContext {
-    pub fn new(sound_manager: Rc<SoundManager>, user_settings: UserSettings) -> Self {
+impl WorldSelectionContext {
+    pub fn new() -> Self {
         clear_input_queue();
         Self {
             world_name_input: TextInput::new(20),
             error: "".to_owned(),
             should_enter: false,
             world_list: ListInput::new(read_world_list(), WORLD_LIST_ROWS),
-            sound_manager,
-            user_settings,
+
+            should_go_to_title: false,
         }
     }
 
@@ -67,6 +68,7 @@ impl InterfaceContext {
         &self,
         texture_manager: Rc<TextureManager>,
         sound_manager: Rc<SoundManager>,
+        user_settings: &UserSettings,
     ) -> Option<Box<VoxelEngine>> {
         if self.should_enter {
             self.store_world_names(true);
@@ -74,7 +76,7 @@ impl InterfaceContext {
                 self.world_name_input.get_text(),
                 texture_manager,
                 sound_manager,
-                self.user_settings.clone(),
+                user_settings.clone(),
             ));
             Some(voxel_engine)
         } else {
@@ -82,19 +84,31 @@ impl InterfaceContext {
         }
     }
 
-    pub async fn draw(&mut self) {
+    pub fn should_go_to_title(&self) -> bool {
+        self.should_go_to_title
+    }
+
+    pub async fn draw(
+        &mut self,
+        texture_manager: &TextureManager,
+        sound_manager: &SoundManager,
+        user_settings: &UserSettings,
+    ) {
         set_default_camera();
-        clear_background(BACKGROUND_COLOR);
         let (width, height) = screen_size();
+        draw_background(width, height, texture_manager);
         Self::draw_input_label(width, height);
         self.handle_world_name_input(width, height);
 
         self.handle_world_list(width, height);
 
-        let play_button_pressed = self.handle_play_button(width, height);
+        let play_button_pressed =
+            self.handle_play_button(width, height, sound_manager, user_settings);
+        self.handle_back_button(sound_manager, user_settings);
 
         if let Some(selected_index) = self.world_list.get_selected_index() {
-            let should_delete = self.handle_delete_button(width, height);
+            let should_delete =
+                self.handle_delete_button(width, height, sound_manager, user_settings);
             if should_delete {
                 self.delete_world(
                     selected_index,
@@ -144,35 +158,64 @@ impl InterfaceContext {
         );
     }
 
-    fn handle_delete_button(&mut self, width: f32, height: f32) -> bool {
+    /// returns true if pressed
+    fn handle_delete_button(
+        &mut self,
+        width: f32,
+        height: f32,
+        sound_manager: &SoundManager,
+        user_settings: &UserSettings,
+    ) -> bool {
         let delete_button_x = (width - DELETE_BUTTON_SIZE.x) / 2.0;
-        let should_delete = draw_button(
+        draw_button(
             delete_button_x,
             height * 0.9,
             DELETE_BUTTON_SIZE.x,
             DELETE_BUTTON_SIZE.y,
             "Delete world",
             DELETE_BUTTON_FONT_SIZE,
-            &self.sound_manager,
-            &self.user_settings,
-        );
-        should_delete
+            sound_manager,
+            user_settings,
+        )
     }
 
-    fn handle_play_button(&mut self, width: f32, height: f32) -> bool {
+    /// returns true if pressed
+    fn handle_play_button(
+        &mut self,
+        width: f32,
+        height: f32,
+        sound_manager: &SoundManager,
+        user_settings: &UserSettings,
+    ) -> bool {
         let button_x = (width - PLAY_BUTTON_SIZE.x) * 0.5;
         let button_y = height * 0.5;
-        let play_button_pressed = draw_button(
+        draw_button(
             button_x,
             button_y,
             PLAY_BUTTON_SIZE.x,
             PLAY_BUTTON_SIZE.y,
             "Enter world",
             PLAY_BUTTON_FONT_SIZE,
-            &self.sound_manager,
-            &self.user_settings,
+            sound_manager,
+            user_settings,
+        )
+    }
+
+    fn handle_back_button(&mut self, sound_manager: &SoundManager, user_settings: &UserSettings) {
+        let back_button_pressed = draw_button(
+            10.0,
+            10.0,
+            BACK_BUTTON_SIZE,
+            BACK_BUTTON_SIZE,
+            "<",
+            BACK_BUTTON_FONT_SIZE,
+            sound_manager,
+            user_settings,
         );
-        play_button_pressed
+
+        if back_button_pressed {
+            self.should_go_to_title = true;
+        }
     }
 
     fn handle_world_name_input(&mut self, width: f32, height: f32) {

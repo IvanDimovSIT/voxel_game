@@ -1,11 +1,12 @@
-use std::rc::Rc;
+use std::{rc::Rc, thread::sleep, time::Duration};
 
 use graphics::texture_manager::TextureManager;
-use interface::world_selection::InterfaceContext;
 use macroquad::{conf::Conf, texture::FilterMode, time::get_frame_time};
 use model::user_settings::UserSettings;
 use service::sound_manager::SoundManager;
 use voxel_engine::VoxelEngine;
+
+use crate::interface::interface_context::InterfaceContext;
 
 mod graphics;
 mod interface;
@@ -27,9 +28,17 @@ enum GameState {
     Exit,
 }
 impl GameState {
-    fn new(sound_manager: Rc<SoundManager>, user_settings: UserSettings) -> Self {
+    fn new(
+        texture_manager: Rc<TextureManager>,
+        sound_manager: Rc<SoundManager>,
+        user_settings: UserSettings,
+    ) -> Self {
         Self::Menu {
-            context: Box::new(InterfaceContext::new(sound_manager, user_settings)),
+            context: Box::new(InterfaceContext::new_title_screen(
+                sound_manager,
+                texture_manager,
+                user_settings,
+            )),
         }
     }
 }
@@ -39,7 +48,11 @@ async fn main() {
     let texture_manager = Rc::new(TextureManager::new().await);
     let sound_manager = Rc::new(SoundManager::new().await);
     let user_settings = UserSettings::default();
-    let mut state = GameState::new(sound_manager.clone(), user_settings);
+    let mut state = GameState::new(
+        texture_manager.clone(),
+        sound_manager.clone(),
+        user_settings,
+    );
 
     loop {
         match &mut state {
@@ -54,16 +67,19 @@ async fn main() {
                 }
             }
             GameState::Menu { context } => {
-                if let Some(mut voxel_engine) =
-                    context.enter_game(texture_manager.clone(), sound_manager.clone())
-                {
+                if let Some(mut voxel_engine) = context.enter_game() {
                     voxel_engine.load_world();
                     state = GameState::Running { voxel_engine }
+                } else if context.should_exit() {
+                    state = GameState::Exit
                 } else {
                     context.draw().await;
                 }
             }
-            GameState::Exit => break,
+            GameState::Exit => {
+                sleep(Duration::from_millis(200));
+                break;
+            }
         }
     }
 }

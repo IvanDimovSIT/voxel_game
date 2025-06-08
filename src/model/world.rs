@@ -177,8 +177,8 @@ impl World {
         let start = Instant::now();
         let filtered_unloaded: Vec<_> = areas_to_load
             .iter()
-            .filter(|area_location| !self.areas.contains_key(&area_location))
-            .map(|area_location| *area_location)
+            .filter(|area_location| !self.areas.contains_key(area_location))
+            .copied()
             .collect();
         info!("Loading {} areas", filtered_unloaded.len());
         let areas = self

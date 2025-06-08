@@ -1,6 +1,6 @@
 use std::f32::consts::PI;
 
-const LENGTH_OF_DAY: f32 = 100.0;
+const LENGTH_OF_DAY: f32 = 200.0;
 
 pub struct WorldTime {
     delta: f32,
@@ -16,7 +16,7 @@ impl WorldTime {
 
     pub fn update(&mut self, delta: f32) {
         self.delta += delta / LENGTH_OF_DAY;
-        self.delta = self.delta % PI;
+        self.delta %= PI;
         self.light = Self::to_light_level(self.delta);
     }
 

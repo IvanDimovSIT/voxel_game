@@ -5,6 +5,7 @@ use macroquad::{
 
 use crate::model::voxel::{MAX_VOXEL_VARIANTS, Voxel};
 
+const TITLE_SCREEN_BACKGROUND_PATH: &str = "resources/images/title.png";
 const TEXTURES: [(Voxel, &str); 8] = [
     (Voxel::Stone, "resources/images/stone.png"),
     (Voxel::Sand, "resources/images/sand.png"),
@@ -19,6 +20,7 @@ const MAX_TEXTURE_COUNT: usize = MAX_VOXEL_VARIANTS;
 
 pub struct TextureManager {
     textures: Vec<Option<Texture2D>>,
+    title_screen_background: Texture2D,
 }
 impl TextureManager {
     /// loads all of the textures
@@ -33,23 +35,35 @@ impl TextureManager {
         }
 
         build_textures_atlas();
-        Self { textures }
+        let title_screen_background = Self::load_image(TITLE_SCREEN_BACKGROUND_PATH).await;
+        Self {
+            textures,
+            title_screen_background,
+        }
     }
 
     async fn load_image(path: &str) -> Texture2D {
         load_texture(path)
             .await
-            .expect(&format!("Error loading texture '{path}'"))
+            .unwrap_or_else(|_| panic!("Error loading texture '{path}'"))
     }
 
     /// returns the texture of the voxel
     pub fn get(&self, voxel: Voxel) -> Texture2D {
-        self.textures[voxel.index()]
-            .clone()
-            .or_else(|| {
-                error!("No texture loaded for {:?}", voxel);
-                self.textures.iter().flatten().next().cloned()
-            })
-            .expect("No textures loaded")
+        if let Some(texture) = &self.textures[voxel.index()] {
+            texture.weak_clone()
+        } else {
+            error!("No texture loaded for {:?}", voxel);
+            self.textures
+                .iter()
+                .flatten()
+                .next()
+                .cloned()
+                .expect("No textures loaded")
+        }
+    }
+
+    pub fn get_title_screen_background(&self) -> Texture2D {
+        self.title_screen_background.weak_clone()
     }
 }

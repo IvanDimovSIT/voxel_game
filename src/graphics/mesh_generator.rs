@@ -269,4 +269,8 @@ impl MeshGenerator {
     pub fn get_texture_manager(&self) -> &TextureManager {
         &self.texture_manager
     }
+
+    pub fn get_texture_manager_copy(&self) -> Rc<TextureManager> {
+        self.texture_manager.clone()
+    }
 }
