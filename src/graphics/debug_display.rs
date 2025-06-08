@@ -51,6 +51,7 @@ impl DebugDisplay {
         let look_target = camera.target;
         let loaded_areas = world.get_loaded_areas_count();
         let areas_memory_kb = loaded_areas * size_of::<Voxel>() * VOXELS_IN_AREA / KILOBYTE;
+        let waiting_to_be_rendered = renderer.get_areas_waiting_to_be_rendered();
 
         draw_text(
             &format!("FPS:{fps}({frame_time_ms:.2}ms)"),
@@ -68,7 +69,7 @@ impl DebugDisplay {
         );
         draw_text(
             &format!(
-                "Visible: {} ({} areas)",
+                "Visible: {} Areas:{} ({waiting_to_be_rendered} waiting)",
                 rendered_areas_faces.1, rendered_areas_faces.0
             ),
             LEFT_MARGIN,

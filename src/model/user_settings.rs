@@ -1,5 +1,5 @@
 const MIN_RENDER_DISTANCE: u32 = 3;
-const MAX_RENDER_DISTANCE: u32 = 14;
+const MAX_RENDER_DISTANCE: u32 = 16;
 
 #[derive(Debug, Clone)]
 pub struct UserSettings {

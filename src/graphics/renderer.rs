@@ -1,4 +1,7 @@
-use std::{collections::HashMap, rc::Rc};
+use std::{
+    collections::{HashMap, HashSet},
+    rc::Rc,
+};
 
 use macroquad::{
     camera::{Camera3D, set_camera},
@@ -29,6 +32,7 @@ const AREA_RENDER_THRESHOLD: f32 = 0.4;
 const LOOK_DOWN_RENDER_MULTIPLIER: f32 = 0.5;
 const VOXEL_RENDER_THRESHOLD: f32 = 0.71;
 const VOXEL_PROXIMITY_THRESHOLD: f32 = 5.5;
+const AREAS_TO_LOAD_PER_FRAME: usize = 2;
 
 /// stores the face count, voxel type and mesh data
 type MeshInfo = (u8, Voxel, Mesh);
@@ -53,6 +57,7 @@ pub struct Renderer {
     meshes: Meshes,
     mesh_generator: MeshGenerator,
     shader: VoxelShader,
+    render_set: HashSet<AreaLocation>,
 }
 impl Renderer {
     pub fn new(texture_manager: Rc<TextureManager>) -> Self {
@@ -60,6 +65,7 @@ impl Renderer {
             meshes: Meshes::new(),
             mesh_generator: MeshGenerator::new(texture_manager),
             shader: VoxelShader::new(),
+            render_set: HashSet::new(),
         }
     }
 
@@ -68,6 +74,14 @@ impl Renderer {
         if remove_result.is_none() {
             debug!("Area {:?} is already unloaded", area_location);
         }
+        self.render_set.remove(&area_location);
+    }
+
+    fn add_area_to_load_queue(&mut self, area_location: AreaLocation) {
+        if self.meshes.contains_key(&area_location) {
+            return;
+        }
+        self.render_set.insert(area_location);
     }
 
     fn generate_mesh_for_voxel(
@@ -208,8 +222,23 @@ impl Renderer {
         }
     }
 
+    /// loads the next areas in the load queue
+    pub fn load_areas_in_queue(&mut self, world: &mut World) {
+        let to_load: Vec<_> = self
+            .render_set
+            .iter()
+            .copied()
+            .take(AREAS_TO_LOAD_PER_FRAME)
+            .collect();
+
+        for area_location in to_load {
+            self.render_set.remove(&area_location);
+            self.load_full_area(world, area_location);
+        }
+    }
+
     /// generates all the meshes for the area
-    pub fn load_full_area(&mut self, world: &mut World, area_location: AreaLocation) {
+    fn load_full_area(&mut self, world: &mut World, area_location: AreaLocation) {
         if self.meshes.contains_key(&area_location) {
             return;
         }
@@ -333,9 +362,20 @@ impl Renderer {
             .sum()
     }
 
-    pub fn update_loaded_areas(&mut self, world: &mut World, areas: &[AreaLocation]) {
+    pub fn get_areas_waiting_to_be_rendered(&self) -> usize {
+        self.render_set.len()
+    }
+
+    /// performs a blocking area loading operation
+    pub fn load_all_blocking(&mut self, world: &mut World, areas: &[AreaLocation]) {
         for area_location in areas {
             self.load_full_area(world, *area_location);
+        }
+    }
+
+    pub fn update_loaded_areas(&mut self, areas: &[AreaLocation]) {
+        for area_location in areas {
+            self.add_area_to_load_queue(*area_location);
         }
 
         let areas_to_unload: Vec<_> = self
@@ -346,6 +386,7 @@ impl Renderer {
             .collect();
 
         for area_location in areas_to_unload {
+            self.render_set.remove(&area_location);
             self.unload_area(area_location);
         }
     }

@@ -87,7 +87,13 @@ impl VoxelEngine {
             camera_location.into(),
             self.user_settings.get_render_distance(),
         );
+        let render_zone = get_render_zone(
+            camera_location.into(),
+            self.user_settings.get_render_distance(),
+        );
         self.world.load_all_blocking(&load_zone);
+        self.renderer
+            .load_all_blocking(&mut self.world, &render_zone);
     }
 
     fn check_change_render_distance(&mut self) {
@@ -155,6 +161,9 @@ impl VoxelEngine {
 
     /// updates time dependent processes
     pub fn update_processes(&mut self, delta: f32) {
+        if self.menu_state.is_in_menu() {
+            return;
+        }
         self.world_time.update(delta);
         self.process_physics(delta);
     }
@@ -174,10 +183,9 @@ impl VoxelEngine {
             .camera_controller
             .get_camera_voxel_location();
         let render_size = self.user_settings.get_render_distance();
-        self.renderer.update_loaded_areas(
-            &mut self.world,
-            &get_render_zone(camera_location.into(), render_size),
-        );
+        self.renderer
+            .update_loaded_areas(&get_render_zone(camera_location.into(), render_size));
+        self.renderer.load_areas_in_queue(&mut self.world);
         self.world
             .retain_areas(&get_load_zone(camera_location.into(), render_size));
     }
@@ -225,7 +233,24 @@ impl VoxelEngine {
     }
 
     fn process_options_menu(&mut self) -> Option<GameState> {
-        let selection = draw_options_menu(&self.sound_manager, &mut self.user_settings);
+        let change_render_distance_callback = |settings: &UserSettings| {
+            let render_size = settings.get_render_distance();
+            self.renderer.load_all_blocking(
+                &mut self.world,
+                &get_render_zone(
+                    self.player_info
+                        .camera_controller
+                        .get_camera_voxel_location()
+                        .into(),
+                    render_size,
+                ),
+            );
+        };
+        let selection = draw_options_menu(
+            &self.sound_manager,
+            &mut self.user_settings,
+            change_render_distance_callback,
+        );
         self.handle_menu_selection(selection)
     }
 

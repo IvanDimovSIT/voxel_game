@@ -35,6 +35,15 @@ pub enum MenuState {
     Main,
     Options,
 }
+impl MenuState {
+    /// returns true if a menu is being displayed
+    pub fn is_in_menu(&self) -> bool {
+        match self {
+            Self::Hidden => false,
+            _ => true,
+        }
+    }
+}
 
 /// draws the in game main menu
 pub fn draw_main_menu(sound_manager: &SoundManager, user_settings: &UserSettings) -> MenuSelection {
@@ -102,9 +111,11 @@ pub fn draw_main_menu(sound_manager: &SoundManager, user_settings: &UserSettings
 }
 
 /// draws the in game options menu
-pub fn draw_options_menu(
+/// callback forces blocking area mesh generation
+pub fn draw_options_menu<F: FnMut(&UserSettings)>(
     sound_manager: &SoundManager,
     user_settings: &mut UserSettings,
+    mut change_render_callback: F,
 ) -> MenuSelection {
     set_default_camera();
     let (width, height) = screen_size();
@@ -163,9 +174,11 @@ pub fn draw_options_menu(
     }
     if increase_render_distance {
         let _increased = user_settings.increase_render_distance();
+        change_render_callback(user_settings);
     }
     if decrese_render_distance {
         let _decreased = user_settings.decrease_render_distance();
+        change_render_callback(user_settings);
     }
 
     if should_go_back {
