@@ -20,6 +20,10 @@ impl WorldTime {
         self.light = Self::to_light_level(self.delta);
     }
 
+    pub fn get_delta(&self) -> f32 {
+        self.delta
+    }
+
     pub fn get_ligth_level(&self) -> f32 {
         self.light
     }

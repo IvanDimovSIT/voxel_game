@@ -27,7 +27,12 @@ use crate::{
     service::{
         camera_controller::CameraController,
         input::{self, *},
-        persistence::player_persistence::{load_player_info, save_player_info},
+        persistence::{
+            player_persistence::{load_player_info, save_player_info},
+            world_metadata_persistence::{
+                WorldMetadata, load_world_metadata, store_world_metadata,
+            },
+        },
         raycast::{RaycastResult, cast_ray},
         render_zone::{get_load_zone, get_render_zone},
         sound_manager::{SoundId, SoundManager},
@@ -62,6 +67,12 @@ impl VoxelEngine {
             load_player_info(&world_name).unwrap_or_else(|_| PlayerInfo::new(vec3(0.0, 0.0, 20.0)));
 
         player_info.camera_controller.set_focus(true);
+        let world_time = if let Some(world_metadata) = load_world_metadata(&world_name) {
+            WorldTime::new(world_metadata.delta)
+        } else {
+            WorldTime::new(PI * 0.5)
+        };
+
         Self {
             world: World::new(world_name),
             renderer: Renderer::new(texture_manager),
@@ -72,7 +83,7 @@ impl VoxelEngine {
             voxel_simulator: VoxelSimulator::new(),
             sound_manager,
             menu_state: MenuState::Hidden,
-            world_time: WorldTime::new(PI * 0.5),
+            world_time,
         }
     }
 
@@ -506,6 +517,8 @@ impl VoxelEngine {
 impl Drop for VoxelEngine {
     fn drop(&mut self) {
         save_player_info(self.world.get_world_name(), &self.player_info);
+        let world_metadata = WorldMetadata::new(&self.world_time);
+        store_world_metadata(world_metadata, self.world.get_world_name());
         self.world.save_all_blocking();
     }
 }
