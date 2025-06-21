@@ -1,12 +1,17 @@
 use macroquad::{
     camera::Camera3D,
+    math::Vec4Swizzles,
     prelude::{
         Comparison, Material, MaterialParams, PipelineParams, ShaderSource, UniformDesc,
         UniformType, gl_use_material, load_material,
     },
 };
 
-use crate::{model::area::AREA_SIZE, service::world_time::WorldTime};
+use crate::{
+    graphics::sky::{SKY_BRIGHT_COLOR, SKY_DARK_COLOR},
+    model::area::AREA_SIZE,
+    service::world_time::WorldTime,
+};
 
 const VOXEL_VERTEX_SHADER: &str = include_str!("../../resources/shaders/voxel_vertex.glsl");
 const VOXEL_FRAGMENT_SHADER: &str = include_str!("../../resources/shaders/voxel_fragment.glsl");
@@ -16,6 +21,8 @@ const CAMERA_TARGET_UNIFORM: &str = "cameraTarget";
 const FOG_NEAR_UNIFORM: &str = "fogNear";
 const FOG_FAR_UNIFORM: &str = "fogFar";
 const LIGHT_LEVEL_UNIFORM: &str = "lightLevel";
+const FOG_BASE_COLOR_LIGHT_UNIFORM: &str = "fogBaseColorLight";
+const FOG_BASE_COLOR_DARK_UNIFORM: &str = "fogBaseColorDark";
 
 /// default 3D material shader for voxels
 pub struct VoxelShader {
@@ -35,6 +42,10 @@ impl VoxelShader {
         let fog_near_uniform = UniformDesc::new(FOG_NEAR_UNIFORM, UniformType::Float1);
         let fog_far_uniform = UniformDesc::new(FOG_FAR_UNIFORM, UniformType::Float1);
         let light_level_uniform = UniformDesc::new(LIGHT_LEVEL_UNIFORM, UniformType::Float1);
+        let fog_light_color_uniform =
+            UniformDesc::new(FOG_BASE_COLOR_LIGHT_UNIFORM, UniformType::Float3);
+        let fog_dark_color_uniform =
+            UniformDesc::new(FOG_BASE_COLOR_DARK_UNIFORM, UniformType::Float3);
 
         let voxel_material = load_material(
             ShaderSource::Glsl {
@@ -49,6 +60,8 @@ impl VoxelShader {
                     fog_near_uniform,
                     fog_far_uniform,
                     light_level_uniform,
+                    fog_light_color_uniform,
+                    fog_dark_color_uniform,
                 ],
                 ..Default::default()
             },
@@ -73,6 +86,12 @@ impl VoxelShader {
         self.voxel_material.set_uniform(FOG_FAR_UNIFORM, fog_far);
         self.voxel_material
             .set_uniform(LIGHT_LEVEL_UNIFORM, world_time.get_ligth_level());
+        self.voxel_material.set_uniform(
+            FOG_BASE_COLOR_LIGHT_UNIFORM,
+            SKY_BRIGHT_COLOR.to_vec().xyz(),
+        );
+        self.voxel_material
+            .set_uniform(FOG_BASE_COLOR_DARK_UNIFORM, SKY_DARK_COLOR.to_vec().xyz());
 
         gl_use_material(&self.voxel_material);
     }

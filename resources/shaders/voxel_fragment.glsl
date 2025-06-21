@@ -12,6 +12,8 @@ uniform vec3 cameraTarget;
 uniform float fogFar;
 uniform float fogNear;
 uniform float lightLevel;
+uniform vec3 fogBaseColorLight;
+uniform vec3 fogBaseColorDark;
 
 const vec3 lightDir = normalize(vec3(0.2, 0.8, -1.0));
 const float reflectionIntensity = 0.05;
@@ -19,8 +21,6 @@ const float ambient = 0.4;
 const float specularStrength = 0.25;
 const float dropShadowRadius = 0.4;
 const float dropShadowLight = 0.2;
-const vec3 fogBaseColorLight = vec3(0.83, 0.69, 0.51);
-const vec3 fogBaseColorDark = vec3(0.0, 0.32, 0.67);
 const float playerLightStrength = 15.0;
 
 
