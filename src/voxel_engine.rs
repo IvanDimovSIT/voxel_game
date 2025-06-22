@@ -37,7 +37,7 @@ use crate::{
         render_zone::{get_load_zone, get_render_zone},
         sound_manager::{SoundId, SoundManager},
         voxel_physics::VoxelSimulator,
-        world_actions::{destroy_voxel, place_voxel},
+        world_actions::{destroy_voxel, place_voxel, put_player_on_ground},
         world_time::WorldTime,
     },
     utils::vector_to_location,
@@ -63,8 +63,9 @@ impl VoxelEngine {
         user_settings: UserSettings,
     ) -> Self {
         let world_name = world_name.into();
-        let mut player_info =
-            load_player_info(&world_name).unwrap_or_else(|_| PlayerInfo::new(vec3(0.0, 0.0, 20.0)));
+        let (mut player_info, successful_load) = load_player_info(&world_name)
+            .map(|x| (x, true))
+            .unwrap_or_else(|_| (PlayerInfo::new(vec3(0.0, 0.0, 0.0)), false));
 
         player_info.camera_controller.set_focus(true);
         let world_time = if let Some(world_metadata) = load_world_metadata(&world_name) {
@@ -73,7 +74,7 @@ impl VoxelEngine {
             WorldTime::new(PI * 0.5)
         };
 
-        Self {
+        let mut engine = Self {
             world: World::new(world_name),
             renderer: Renderer::new(texture_manager),
             player_info,
@@ -84,7 +85,13 @@ impl VoxelEngine {
             sound_manager,
             menu_state: MenuState::Hidden,
             world_time,
+        };
+
+        if !successful_load {
+            put_player_on_ground(&mut engine.player_info, &mut engine.world);
         }
+
+        engine
     }
 
     /// loads the world upon entering
@@ -386,9 +393,7 @@ impl VoxelEngine {
 
     fn try_jump(&mut self) {
         let bottom_voxel_position = self.player_info.camera_controller.get_bottom_position();
-        let voxel = self
-            .world
-            .get(vector_to_location(bottom_voxel_position).into());
+        let voxel = self.world.get(vector_to_location(bottom_voxel_position));
         if voxel != Voxel::None {
             self.player_info.velocity = self.player_info.jump_velocity;
         }
@@ -466,7 +471,7 @@ impl VoxelEngine {
     fn push_player_up(&mut self) {
         let down_position = self.player_info.camera_controller.get_position() + vec3(0.0, 0.0, 1.0);
         let down_location: Location = vector_to_location(down_position);
-        let voxel = self.world.get(down_location.into());
+        let voxel = self.world.get(down_location);
         if voxel == Voxel::None {
             return;
         }
@@ -489,7 +494,7 @@ impl VoxelEngine {
         let down_position = top_position + vec3(0.0, 0.0, 1.5);
 
         let down_location = vector_to_location(down_position);
-        let down_voxel = self.world.get(down_location.into());
+        let down_voxel = self.world.get(down_location);
         if down_voxel != Voxel::None {
             if self.player_info.velocity > MAX_FALL_SPEED * 0.2 {
                 self.sound_manager
@@ -503,7 +508,7 @@ impl VoxelEngine {
         }
 
         let top_location = vector_to_location(top_position);
-        let top_voxel = self.world.get(top_location.into());
+        let top_voxel = self.world.get(top_location);
         if top_voxel != Voxel::None {
             self.player_info.velocity = 0.0;
             return;

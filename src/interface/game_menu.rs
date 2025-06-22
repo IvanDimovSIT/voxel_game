@@ -38,10 +38,7 @@ pub enum MenuState {
 impl MenuState {
     /// returns true if a menu is being displayed
     pub fn is_in_menu(&self) -> bool {
-        match self {
-            Self::Hidden => false,
-            _ => true,
-        }
+        !matches!(self, Self::Hidden)
     }
 }
 

@@ -174,44 +174,45 @@ impl Renderer {
         );
     }
 
-    pub fn update_location(&mut self, world: &mut World, location: InternalLocation) {
-        if let Some(voxel) = world.get_without_loading(location) {
-            self.update_meshes_for_voxel(world, location, voxel);
+    pub fn update_location(&mut self, world: &mut World, location: impl Into<InternalLocation>) {
+        let internal_location = location.into();
+        if let Some(voxel) = world.get_without_loading(internal_location) {
+            self.update_meshes_for_voxel(world, internal_location, voxel);
         }
 
         let mut neighbors = StackVec::<InternalLocation, 6>::new();
         neighbors.push(InternalLocation::new(
-            location.x + 1,
-            location.y,
-            location.z,
+            internal_location.x + 1,
+            internal_location.y,
+            internal_location.z,
         ));
         neighbors.push(InternalLocation::new(
-            location.x - 1,
-            location.y,
-            location.z,
+            internal_location.x - 1,
+            internal_location.y,
+            internal_location.z,
         ));
         neighbors.push(InternalLocation::new(
-            location.x,
-            location.y + 1,
-            location.z,
+            internal_location.x,
+            internal_location.y + 1,
+            internal_location.z,
         ));
         neighbors.push(InternalLocation::new(
-            location.x,
-            location.y - 1,
-            location.z,
+            internal_location.x,
+            internal_location.y - 1,
+            internal_location.z,
         ));
-        if location.z > 0 {
+        if internal_location.z > 0 {
             neighbors.push(InternalLocation::new(
-                location.x,
-                location.y,
-                location.z - 1,
+                internal_location.x,
+                internal_location.y,
+                internal_location.z - 1,
             ));
         }
-        if location.z < (AREA_HEIGHT - 1) {
+        if internal_location.z < (AREA_HEIGHT - 1) {
             neighbors.push(InternalLocation::new(
-                location.x,
-                location.y,
-                location.z + 1,
+                internal_location.x,
+                internal_location.y,
+                internal_location.z + 1,
             ));
         }
 

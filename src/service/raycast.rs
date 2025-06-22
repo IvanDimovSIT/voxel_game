@@ -19,7 +19,7 @@ pub enum RaycastResult {
 }
 
 fn is_hit(world: &mut World, position: Location) -> bool {
-    world.get(position.into()) != Voxel::None
+    world.get(position) != Voxel::None
 }
 
 /// DDA raycasting

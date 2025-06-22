@@ -147,7 +147,7 @@ impl ListInput {
             );
         }
         draw_text(
-            &value,
+            value,
             draw_params.x + 2.0,
             draw_params.y + (index as f32 + 1.0) * draw_params.y_offset
                 - draw_params.y_offset * 0.1,

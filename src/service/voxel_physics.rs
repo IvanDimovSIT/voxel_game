@@ -84,7 +84,7 @@ impl VoxelSimulator {
         Self::get_voxels_to_check(&mut to_check, location_to_check);
 
         for location in to_check {
-            let voxel = world.get(location.into());
+            let voxel = world.get(location);
             if !FALLING_VOXELS.contains(&voxel) || location.z + 1 >= AREA_HEIGHT as i32 {
                 continue;
             }
@@ -92,12 +92,12 @@ impl VoxelSimulator {
                 z: location.z + 1,
                 ..location
             };
-            if world.get(lower.into()) != Voxel::None {
+            if world.get(lower) != Voxel::None {
                 continue;
             }
 
-            world.set(location.into(), Voxel::None);
-            renderer.update_location(world, location.into());
+            world.set(location, Voxel::None);
+            renderer.update_location(world, location);
             self.simulated_voxels.push(SimulatedVoxel {
                 voxel_type: voxel,
                 texture: renderer.get_texture_manager().get(voxel),
@@ -110,7 +110,7 @@ impl VoxelSimulator {
                 z: location.z - 1,
                 ..location
             };
-            if up_location.z >= 0 && FALLING_VOXELS.contains(&world.get(up_location.into())) {
+            if up_location.z >= 0 && FALLING_VOXELS.contains(&world.get(up_location)) {
                 self.update_voxels(world, renderer, up_location);
             }
         }
@@ -131,7 +131,7 @@ impl VoxelSimulator {
                 if location.z >= AREA_HEIGHT as i32 {
                     return false;
                 }
-                let world_voxel = world.get(location.into());
+                let world_voxel = world.get(location);
                 if world_voxel == Voxel::None {
                     return true;
                 }
@@ -142,10 +142,10 @@ impl VoxelSimulator {
                     z: location.z - 1,
                     ..location
                 };
-                let up_voxel = world.get(up_location.into());
+                let up_voxel = world.get(up_location);
                 if up_voxel == Voxel::None {
-                    world.set(up_location.into(), voxel.voxel_type);
-                    renderer.update_location(world, up_location.into());
+                    world.set(up_location, voxel.voxel_type);
+                    renderer.update_location(world, up_location);
                 }
 
                 false

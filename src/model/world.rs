@@ -110,25 +110,25 @@ impl World {
         result
     }
 
-    pub fn get(&mut self, location: InternalLocation) -> Voxel {
+    pub fn get(&mut self, location: impl Into<InternalLocation>) -> Voxel {
         let (area_location, local_location) =
-            Self::convert_global_to_area_and_local_location(location);
+            Self::convert_global_to_area_and_local_location(location.into());
         self.load_area(area_location);
         let area = &self.areas[&area_location];
         area.get(local_location)
     }
 
-    pub fn get_without_loading(&self, location: InternalLocation) -> Option<Voxel> {
+    pub fn get_without_loading(&self, location: impl Into<InternalLocation>) -> Option<Voxel> {
         let (area_location, local_location) =
-            Self::convert_global_to_area_and_local_location(location);
+            Self::convert_global_to_area_and_local_location(location.into());
         self.areas
             .get(&area_location)
             .map(|area| area.get(local_location))
     }
 
-    pub fn set(&mut self, location: InternalLocation, voxel: Voxel) {
+    pub fn set(&mut self, location: impl Into<InternalLocation>, voxel: Voxel) {
         let (area_location, local_location) =
-            Self::convert_global_to_area_and_local_location(location);
+            Self::convert_global_to_area_and_local_location(location.into());
         self.load_area(area_location);
         let area = self.areas.get_mut(&area_location).expect("Area not loaded");
         area.has_changed = true;
