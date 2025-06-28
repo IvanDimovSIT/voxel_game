@@ -6,7 +6,7 @@ use macroquad::{
 use crate::model::voxel::{MAX_VOXEL_VARIANTS, Voxel};
 
 const TITLE_SCREEN_BACKGROUND_PATH: &str = "resources/images/title.png";
-const TEXTURES: [(Voxel, &str); 8] = [
+const TEXTURES: [(Voxel, &str); 10] = [
     (Voxel::Stone, "resources/images/stone.png"),
     (Voxel::Sand, "resources/images/sand.png"),
     (Voxel::Grass, "resources/images/grass.png"),
@@ -15,6 +15,8 @@ const TEXTURES: [(Voxel, &str); 8] = [
     (Voxel::Brick, "resources/images/brick.png"),
     (Voxel::Dirt, "resources/images/dirt.png"),
     (Voxel::Boards, "resources/images/boards.png"),
+    (Voxel::Cobblestone, "resources/images/cobblestone.png"),
+    (Voxel::Clay, "resources/images/clay.png"),
 ];
 const MAX_TEXTURE_COUNT: usize = MAX_VOXEL_VARIANTS;
 

@@ -14,10 +14,13 @@ use crate::{
         renderer::Renderer,
         sky::draw_sky,
         texture_manager::TextureManager,
-        ui_display::{VoxelSelector, draw_crosshair, draw_selected_voxel},
+        ui_display::{draw_crosshair, draw_selected_voxel},
     },
     interface::{
-        game_menu::{MenuSelection, MenuState, draw_main_menu, draw_options_menu},
+        game_menu::{
+            game_menu::{MenuSelection, MenuState, draw_main_menu, draw_options_menu},
+            voxel_selection_menu::draw_voxel_selection_menu,
+        },
         interface_context::InterfaceContext,
     },
     model::{
@@ -48,7 +51,6 @@ pub struct VoxelEngine {
     renderer: Renderer,
     player_info: PlayerInfo,
     debug_display: DebugDisplay,
-    voxel_selector: VoxelSelector,
     voxel_simulator: VoxelSimulator,
     sound_manager: Rc<SoundManager>,
     user_settings: UserSettings,
@@ -80,7 +82,6 @@ impl VoxelEngine {
             player_info,
             debug_display: DebugDisplay::new(),
             user_settings,
-            voxel_selector: VoxelSelector::new(),
             voxel_simulator: VoxelSimulator::new(),
             sound_manager,
             menu_state: MenuState::Hidden,
@@ -124,10 +125,14 @@ impl VoxelEngine {
 
     /// processes and player inputs and returns the looked at voxel from the camera
     pub fn process_input(&mut self, delta: f32) -> RaycastResult {
-        if exit_focus() {
+        if exit_focus() && !self.menu_state.is_in_menu() {
             self.menu_state = MenuState::Main;
             self.player_info.camera_controller.set_focus(false);
+        } else if exit_focus() {
+            self.menu_state = MenuState::Hidden;
+            self.player_info.camera_controller.set_focus(true);
         }
+
         self.player_info.camera_controller.update_look(delta);
         let camera = self.player_info.camera_controller.create_camera();
         self.check_change_render_distance();
@@ -137,10 +142,14 @@ impl VoxelEngine {
             camera.target,
             self.player_info.voxel_reach,
         );
-        if !self.player_info.camera_controller.is_focused() {
+        if self.menu_state.is_in_menu() {
             return raycast_result;
         }
 
+        if is_enter_inventory() {
+            self.player_info.camera_controller.set_focus(false);
+            self.menu_state = MenuState::VoxelSelection(None);
+        }
         if is_place_voxel(&self.player_info.camera_controller) {
             self.try_place_voxel(raycast_result);
         }
@@ -169,8 +178,8 @@ impl VoxelEngine {
             self.debug_display.toggle_display();
         }
         match get_scroll_direction() {
-            ScrollDirection::Up => self.voxel_selector.select_next(),
-            ScrollDirection::Down => self.voxel_selector.select_prev(),
+            ScrollDirection::Up => self.player_info.voxel_selector.select_next(),
+            ScrollDirection::Down => self.player_info.voxel_selector.select_prev(),
             ScrollDirection::None => {}
         }
 
@@ -232,7 +241,8 @@ impl VoxelEngine {
         }
         set_default_camera();
         draw_crosshair(width, height);
-        self.voxel_selector
+        self.player_info
+            .voxel_selector
             .draw(self.renderer.get_texture_manager());
         self.debug_display
             .draw_debug_display(&self.world, &self.renderer, &camera, rendered);
@@ -242,12 +252,27 @@ impl VoxelEngine {
         menu_result
     }
 
+    /// returns the new game context only if changed
     fn process_menu(&mut self) -> Option<GameState> {
         match self.menu_state {
             MenuState::Hidden => None,
             MenuState::Main => self.process_main_menu(),
             MenuState::Options => self.process_options_menu(),
+            MenuState::VoxelSelection(voxel) => self.process_voxel_selection_menu(voxel),
         }
+    }
+
+    fn process_voxel_selection_menu(&mut self, selected_voxel: Option<Voxel>) -> Option<GameState> {
+        let (selected_voxel, menu_selection) = draw_voxel_selection_menu(
+            self.renderer.get_texture_manager(),
+            &mut self.player_info,
+            selected_voxel,
+        );
+        if let MenuState::VoxelSelection(_) = self.menu_state {
+            self.menu_state = MenuState::VoxelSelection(selected_voxel)
+        }
+
+        self.handle_menu_selection(menu_selection)
     }
 
     fn process_options_menu(&mut self) -> Option<GameState> {
@@ -312,9 +337,14 @@ impl VoxelEngine {
                 last_empty,
                 distance: _,
             } => {
+                let selected_voxel = self.player_info.voxel_selector.get_selected();
+                if selected_voxel.is_none() {
+                    return;
+                }
+
                 let has_placed = place_voxel(
                     last_empty,
-                    self.voxel_selector.get_selected(),
+                    selected_voxel.unwrap(),
                     self.player_info
                         .camera_controller
                         .get_camera_voxel_location(),
@@ -365,14 +395,19 @@ impl VoxelEngine {
                 last_empty: _,
                 distance: _,
             } => {
+                let selected_voxel = self.player_info.voxel_selector.get_selected();
+                if selected_voxel.is_none() {
+                    return;
+                }
                 let has_destroyed =
                     destroy_voxel(first_non_empty, &mut self.world, &mut self.renderer);
                 if !has_destroyed {
                     return;
                 }
+
                 place_voxel(
                     first_non_empty,
-                    self.voxel_selector.get_selected(),
+                    selected_voxel.unwrap(),
                     self.player_info
                         .camera_controller
                         .get_camera_voxel_location(),

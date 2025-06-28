@@ -25,7 +25,7 @@ pub fn jump() -> bool {
 }
 
 pub fn exit_focus() -> bool {
-    is_key_down(macroquad::input::KeyCode::Escape)
+    is_key_released(macroquad::input::KeyCode::Escape)
 }
 
 pub fn toggle_debug() -> bool {
@@ -50,6 +50,10 @@ pub fn increase_render_distance() -> bool {
 
 pub fn decrease_render_distance() -> bool {
     is_key_released(macroquad::input::KeyCode::F1)
+}
+
+pub fn is_enter_inventory() -> bool {
+    is_key_released(macroquad::input::KeyCode::E)
 }
 
 #[derive(Debug, Clone, Copy)]

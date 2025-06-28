@@ -1,5 +1,6 @@
 use macroquad::color::{BLACK, BLUE, Color, LIGHTGRAY, ORANGE, WHITE};
 
+pub const CLEAR_SCREEN_COLOR: Color = Color::from_rgba(0, 0, 0, 100);
 pub const BACKGROUND_COLOR: Color = ORANGE;
 pub const BUTTON_COLOR: Color = WHITE;
 pub const BUTTON_HOVER_COLOR: Color = LIGHTGRAY;

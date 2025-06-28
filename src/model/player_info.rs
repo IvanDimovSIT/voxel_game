@@ -1,7 +1,11 @@
 use bincode::{Decode, Encode};
 use macroquad::math::{Vec3, vec3};
 
-use crate::service::camera_controller::CameraController;
+use crate::{
+    graphics::ui_display::{VOXEL_SELECTION_SIZE, VoxelSelector},
+    model::voxel::Voxel,
+    service::camera_controller::CameraController,
+};
 
 const PLAYER_MOVE_SPEED: f32 = 10.0;
 const PLAYER_SIZE: f32 = 0.2;
@@ -11,6 +15,7 @@ const JUMP_VELOCITY: f32 = -15.0;
 #[derive(Debug)]
 pub struct PlayerInfo {
     pub camera_controller: CameraController,
+    pub voxel_selector: VoxelSelector,
     pub move_speed: f32,
     pub voxel_reach: f32,
     pub size: f32,
@@ -26,6 +31,7 @@ impl PlayerInfo {
             velocity: 0.0,
             jump_velocity: JUMP_VELOCITY,
             size: PLAYER_SIZE,
+            voxel_selector: VoxelSelector::new(),
         }
     }
 
@@ -36,6 +42,8 @@ impl PlayerInfo {
             position: [position.x, position.y, position.z],
             yaw: self.camera_controller.yaw,
             pitch: self.camera_controller.pitch,
+            voxel_selection: self.voxel_selector.get_voxels(),
+            current_selection: self.voxel_selector.get_selected_index(),
         }
     }
 }
@@ -53,6 +61,10 @@ impl From<PlayerInfoDTO> for PlayerInfo {
             velocity: value.velocity,
             jump_velocity: JUMP_VELOCITY,
             size: PLAYER_SIZE,
+            voxel_selector: VoxelSelector::from_saved(
+                value.voxel_selection,
+                value.current_selection,
+            ),
         }
     }
 }
@@ -61,6 +73,8 @@ impl From<PlayerInfoDTO> for PlayerInfo {
 pub struct PlayerInfoDTO {
     velocity: f32,
     position: [f32; 3],
+    voxel_selection: [Option<Voxel>; VOXEL_SELECTION_SIZE],
+    current_selection: usize,
     yaw: f32,
     pitch: f32,
 }

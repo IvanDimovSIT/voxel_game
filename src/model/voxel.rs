@@ -7,7 +7,7 @@ pub const MAX_VOXEL_VARIANTS: usize = 100;
 #[derive(Debug, Clone, Copy, Encode, Decode, PartialEq, Eq, Hash)]
 pub enum Voxel {
     None,
-    Stone,
+    Cobblestone,
     Sand,
     Grass,
     Wood,
@@ -15,6 +15,8 @@ pub enum Voxel {
     Brick,
     Dirt,
     Boards,
+    Stone,
+    Clay,
 }
 impl Voxel {
     pub fn index(self) -> usize {
@@ -24,6 +26,22 @@ impl Voxel {
             "number of voxel variants exceeds the maximum allowed"
         );
         index
+    }
+
+    pub fn display_name(self) -> &'static str {
+        match self {
+            Voxel::None => "None",
+            Voxel::Cobblestone => "Cobblestone",
+            Voxel::Sand => "Sand",
+            Voxel::Grass => "Grass",
+            Voxel::Wood => "Wood",
+            Voxel::Leaves => "Leaves",
+            Voxel::Brick => "Brink",
+            Voxel::Dirt => "Dirt",
+            Voxel::Boards => "Wooden Boards",
+            Voxel::Stone => "Stone",
+            Voxel::Clay => "Clay",
+        }
     }
 }
 impl Default for Voxel {

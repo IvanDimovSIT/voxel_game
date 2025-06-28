@@ -7,11 +7,15 @@ use macroquad::{
     window::set_fullscreen,
 };
 
-use crate::{model::user_settings::UserSettings, service::sound_manager::SoundManager};
-
-use super::{button::draw_button, style::*};
-
-const CLEAR_SCREEN_COLOR: Color = Color::from_rgba(0, 0, 0, 100);
+use crate::{
+    interface::{
+        button::draw_button,
+        style::{BACKGROUND_COLOR, BUTTON_COLOR},
+        util::darken_background,
+    },
+    model::{user_settings::UserSettings, voxel::Voxel},
+    service::sound_manager::SoundManager,
+};
 
 const MENU_BOX_WIDTH: f32 = 400.0;
 const MENU_BOX_HEIGHT: f32 = 400.0;
@@ -34,6 +38,7 @@ pub enum MenuState {
     Hidden,
     Main,
     Options,
+    VoxelSelection(Option<Voxel>),
 }
 impl MenuState {
     /// returns true if a menu is being displayed
@@ -254,10 +259,6 @@ fn calculate_menu_position(width: f32, height: f32) -> (f32, f32) {
     let menu_x = (width - (MENU_BOX_WIDTH)) * 0.5;
     let menu_y = height * 0.1;
     (menu_x, menu_y)
-}
-
-fn darken_background(width: f32, height: f32) {
-    draw_rectangle(0.0, 0.0, width, height, CLEAR_SCREEN_COLOR);
 }
 
 fn draw_menu_background(menu_x: f32, menu_y: f32) {
