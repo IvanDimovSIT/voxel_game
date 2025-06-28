@@ -1,5 +1,5 @@
 use macroquad::{
-    color::{Color, WHITE},
+    color::WHITE,
     input::{is_mouse_button_released, mouse_position},
     math::vec2,
     miniquad::window::screen_size,
@@ -13,7 +13,7 @@ use crate::{
     interface::{
         game_menu::game_menu::MenuSelection,
         style::{BACKGROUND_COLOR, SHADOW_COLOR},
-        util::{darken_background, draw_rect_with_shadow},
+        util::{darken_background, draw_rect_with_shadow, get_text_width},
     },
     model::{player_info::PlayerInfo, voxel::Voxel},
     service::input::exit_focus,
@@ -88,6 +88,8 @@ pub fn draw_voxel_selection_menu(
 }
 
 fn draw_hovered_voxel_name(player_info: &PlayerInfo, voxel_size: f32, menu_x: f32, menu_y: f32) {
+    const TEXT_BOX_X_OFFSET: f32 = 3.0;
+    const TEXT_BOX_Y_OFFSET: f32 = -5.0;
     if let Some(hovered) = get_hovered_voxel(menu_x, menu_y, voxel_size, player_info) {
         let voxel_name = match hovered {
             HoveredVoxel::Inventory(voxel) => voxel,
@@ -106,11 +108,17 @@ fn draw_hovered_voxel_name(player_info: &PlayerInfo, voxel_size: f32, menu_x: f3
         draw_rectangle(
             x,
             y - font_size,
-            0.5 * font_size * voxel_name.len() as f32,
+            get_text_width(voxel_name, font_size) + TEXT_BOX_X_OFFSET,
             font_size,
             SHADOW_COLOR,
         );
-        draw_text(voxel_name, x + 3.0, y - 5.0, font_size, WHITE);
+        draw_text(
+            voxel_name,
+            x + TEXT_BOX_X_OFFSET,
+            y + TEXT_BOX_Y_OFFSET,
+            font_size,
+            WHITE,
+        );
     }
 }
 
@@ -234,10 +242,10 @@ fn draw_selected_voxels(
         } else {
             draw_rectangle(
                 x as f32 * voxel_size + menu_x + voxel_size * BORDER_VOXELS_MULTIPLIER,
-                y + voxel_size * 0.1,
+                y + voxel_size * BORDER_VOXELS_MULTIPLIER,
                 voxel_size * INNER_VOXELS_MULTIPLIER,
                 voxel_size * INNER_VOXELS_MULTIPLIER,
-                Color::from_rgba(0, 0, 0, 100),
+                SHADOW_COLOR,
             );
         }
     }

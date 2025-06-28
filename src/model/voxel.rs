@@ -36,7 +36,7 @@ impl Voxel {
             Voxel::Grass => "Grass",
             Voxel::Wood => "Wood",
             Voxel::Leaves => "Leaves",
-            Voxel::Brick => "Brink",
+            Voxel::Brick => "Brick",
             Voxel::Dirt => "Dirt",
             Voxel::Boards => "Wooden Boards",
             Voxel::Stone => "Stone",
