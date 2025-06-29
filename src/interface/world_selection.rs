@@ -2,7 +2,6 @@ use std::rc::Rc;
 
 use macroquad::{
     camera::set_default_camera,
-    color::WHITE,
     input::clear_input_queue,
     math::{Vec2, vec2},
     miniquad::window::screen_size,
@@ -13,7 +12,7 @@ use macroquad::{
 
 use crate::{
     graphics::texture_manager::TextureManager,
-    interface::background::draw_background,
+    interface::{background::draw_background, style::TEXT_COLOR},
     model::user_settings::UserSettings,
     service::{
         persistence::{
@@ -154,7 +153,7 @@ impl WorldSelectionContext {
             notification_text_x,
             height * 0.4,
             NOTIFICATION_TEXT_SIZE,
-            WHITE,
+            TEXT_COLOR,
         );
     }
 
@@ -246,7 +245,7 @@ impl WorldSelectionContext {
         let text = "Enter world name:";
         let x = (width - get_text_width(text, LABEL_FONT_SIZE)) * 0.5;
         let y = height * 0.15;
-        draw_text(text, x, y, LABEL_FONT_SIZE, WHITE);
+        draw_text(text, x, y, LABEL_FONT_SIZE, TEXT_COLOR);
     }
 
     fn validate(&mut self) {

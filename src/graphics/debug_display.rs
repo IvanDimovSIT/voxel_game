@@ -1,12 +1,13 @@
 use macroquad::{
     camera::Camera3D,
-    color::WHITE,
     prelude::info,
+    shapes::draw_rectangle,
     text::draw_text,
     time::{get_fps, get_frame_time},
 };
 
 use crate::{
+    interface::style::{CLEAR_SCREEN_COLOR, TEXT_COLOR},
     model::{area::VOXELS_IN_AREA, voxel::Voxel, world::World},
     utils::vector_to_location,
 };
@@ -53,19 +54,20 @@ impl DebugDisplay {
         let areas_memory_kb = loaded_areas * size_of::<Voxel>() * VOXELS_IN_AREA / KILOBYTE;
         let waiting_to_be_rendered = renderer.get_areas_waiting_to_be_rendered();
 
+        Self::draw_background();
         draw_text(
             &format!("FPS:{fps}({frame_time_ms:.2}ms)"),
             LEFT_MARGIN,
             FONT_SIZE,
             FONT_SIZE,
-            WHITE,
+            TEXT_COLOR,
         );
         draw_text(
             &format!("Voxel faces:{meshes}"),
             LEFT_MARGIN,
             2.0 * FONT_SIZE,
             FONT_SIZE,
-            WHITE,
+            TEXT_COLOR,
         );
         draw_text(
             &format!(
@@ -75,14 +77,14 @@ impl DebugDisplay {
             LEFT_MARGIN,
             3.0 * FONT_SIZE,
             FONT_SIZE,
-            WHITE,
+            TEXT_COLOR,
         );
         draw_text(
             &format!("Loaded areas:{loaded_areas}({areas_memory_kb}KB)"),
             LEFT_MARGIN,
             4.0 * FONT_SIZE,
             FONT_SIZE,
-            WHITE,
+            TEXT_COLOR,
         );
         draw_text(
             &format!(
@@ -92,7 +94,7 @@ impl DebugDisplay {
             LEFT_MARGIN,
             5.0 * FONT_SIZE,
             FONT_SIZE,
-            WHITE,
+            TEXT_COLOR,
         );
         draw_text(
             &format!(
@@ -102,7 +104,7 @@ impl DebugDisplay {
             LEFT_MARGIN,
             6.0 * FONT_SIZE,
             FONT_SIZE,
-            WHITE,
+            TEXT_COLOR,
         );
         draw_text(
             &format!(
@@ -112,7 +114,11 @@ impl DebugDisplay {
             LEFT_MARGIN,
             7.0 * FONT_SIZE,
             FONT_SIZE,
-            WHITE,
+            TEXT_COLOR,
         );
+    }
+
+    fn draw_background() {
+        draw_rectangle(0.0, 0.0, 530.0, FONT_SIZE * 8.0, CLEAR_SCREEN_COLOR);
     }
 }

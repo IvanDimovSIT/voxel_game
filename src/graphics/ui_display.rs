@@ -9,7 +9,10 @@ use macroquad::{
     texture::{DrawTextureParams, Texture2D, draw_texture_ex},
 };
 
-use crate::model::{location::Location, voxel::Voxel};
+use crate::{
+    interface::style::TEXT_COLOR,
+    model::{location::Location, voxel::Voxel},
+};
 
 use super::texture_manager::TextureManager;
 
@@ -53,6 +56,10 @@ impl VoxelSelector {
     }
 
     pub fn from_saved(voxels: [Option<Voxel>; VOXEL_SELECTION_SIZE], selected: usize) -> Self {
+        for voxel in &voxels {
+            assert_ne!(*voxel, Some(Voxel::None));
+        }
+
         if selected >= voxels.len() {
             error!("Invalid selected index for voxel selector: {}", selected);
             Self::new()
@@ -91,6 +98,7 @@ impl VoxelSelector {
 
     pub fn get_at(&self, index: usize) -> Option<Voxel> {
         if index < self.voxels.len() {
+            debug_assert_ne!(self.voxels[index], Some(Voxel::None));
             self.voxels[index]
         } else {
             error!("Entered invalid voxel selection index: {}", index);
@@ -100,6 +108,7 @@ impl VoxelSelector {
 
     pub fn set_at(&mut self, index: usize, voxel: Option<Voxel>) {
         if index < self.voxels.len() {
+            debug_assert_ne!(self.voxels[index], Some(Voxel::None));
             self.voxels[index] = voxel;
         } else {
             error!("Entered invalid voxel selection index: {}", index);
@@ -137,7 +146,7 @@ impl VoxelSelector {
         is_selected: bool,
     ) {
         let border_color = if is_selected {
-            WHITE
+            TEXT_COLOR
         } else {
             Color::from_rgba(120, 120, 120, 150)
         };

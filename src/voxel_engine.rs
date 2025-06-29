@@ -3,7 +3,7 @@ use std::{f32::consts::PI, rc::Rc};
 use macroquad::{
     camera::set_default_camera,
     math::{Vec3, vec3},
-    prelude::{error, gl_use_default_material},
+    prelude::gl_use_default_material,
     window::{next_frame, screen_height, screen_width},
 };
 
@@ -23,10 +23,7 @@ use crate::{
         },
         interface_context::InterfaceContext,
     },
-    model::{
-        location::Location, player_info::PlayerInfo, user_settings::UserSettings, voxel::Voxel,
-        world::World,
-    },
+    model::{player_info::PlayerInfo, user_settings::UserSettings, voxel::Voxel, world::World},
     service::{
         camera_controller::CameraController,
         input::{self, *},
@@ -40,7 +37,10 @@ use crate::{
         render_zone::{get_load_zone, get_render_zone},
         sound_manager::{SoundId, SoundManager},
         voxel_physics::VoxelSimulator,
-        world_actions::{destroy_voxel, place_voxel, put_player_on_ground},
+        world_actions::{
+            destroy_voxel, place_voxel, process_collisions, push_player_up_if_stuck,
+            put_player_on_ground,
+        },
         world_time::WorldTime,
     },
     utils::vector_to_location,
@@ -125,23 +125,10 @@ impl VoxelEngine {
 
     /// processes and player inputs and returns the looked at voxel from the camera
     pub fn process_input(&mut self, delta: f32) -> RaycastResult {
-        if exit_focus() && !self.menu_state.is_in_menu() {
-            self.menu_state = MenuState::Main;
-            self.player_info.camera_controller.set_focus(false);
-        } else if exit_focus() {
-            self.menu_state = MenuState::Hidden;
-            self.player_info.camera_controller.set_focus(true);
-        }
-
-        self.player_info.camera_controller.update_look(delta);
-        let camera = self.player_info.camera_controller.create_camera();
+        self.manage_menu_state();
         self.check_change_render_distance();
-        let raycast_result = cast_ray(
-            &mut self.world,
-            camera.position,
-            camera.target,
-            self.player_info.voxel_reach,
-        );
+
+        let raycast_result = self.process_mouse_input(delta);
         if self.menu_state.is_in_menu() {
             return raycast_result;
         }
@@ -186,6 +173,28 @@ impl VoxelEngine {
         raycast_result
     }
 
+    fn process_mouse_input(&mut self, delta: f32) -> RaycastResult {
+        self.player_info.camera_controller.update_look(delta);
+        let camera = self.player_info.camera_controller.create_camera();
+
+        cast_ray(
+            &mut self.world,
+            camera.position,
+            camera.target,
+            self.player_info.voxel_reach,
+        )
+    }
+
+    fn manage_menu_state(&mut self) {
+        if exit_focus() && !self.menu_state.is_in_menu() {
+            self.menu_state = MenuState::Main;
+            self.player_info.camera_controller.set_focus(false);
+        } else if exit_focus() {
+            self.menu_state = MenuState::Hidden;
+            self.player_info.camera_controller.set_focus(true);
+        }
+    }
+
     /// updates time dependent processes
     pub fn update_processes(&mut self, delta: f32) {
         if self.menu_state.is_in_menu() {
@@ -197,8 +206,14 @@ impl VoxelEngine {
 
     /// process falling and collisions
     fn process_physics(&mut self, delta: f32) {
-        self.process_collisions(delta);
-        self.push_player_up();
+        process_collisions(
+            &mut self.player_info,
+            &mut self.world,
+            &self.sound_manager,
+            &self.user_settings,
+            delta,
+        );
+        push_player_up_if_stuck(&mut self.player_info, &mut self.world);
         self.voxel_simulator
             .simulate_falling(&mut self.world, &mut self.renderer, delta);
     }
@@ -501,57 +516,6 @@ impl VoxelEngine {
             |camera_controller, v, d| camera_controller.get_right_displacement(v, d),
             |camera_controller, v, d| camera_controller.move_right(v, d),
         );
-    }
-
-    fn push_player_up(&mut self) {
-        let down_position = self.player_info.camera_controller.get_position() + vec3(0.0, 0.0, 1.0);
-        let down_location: Location = vector_to_location(down_position);
-        let voxel = self.world.get(down_location);
-        if voxel == Voxel::None {
-            return;
-        }
-        error!("Player is stuck!");
-        self.player_info
-            .camera_controller
-            .set_position(down_position - vec3(0.0, 0.0, 2.5));
-        self.push_player_up();
-    }
-
-    fn process_collisions(&mut self, delta: f32) {
-        const GRAVITY: f32 = 25.0;
-        const MAX_FALL_SPEED: f32 = 60.0;
-
-        self.player_info.velocity =
-            (self.player_info.velocity + GRAVITY * delta).min(MAX_FALL_SPEED);
-
-        let top_position = self.player_info.camera_controller.get_position()
-            + vec3(0.0, 0.0, self.player_info.velocity * delta);
-        let down_position = top_position + vec3(0.0, 0.0, 1.5);
-
-        let down_location = vector_to_location(down_position);
-        let down_voxel = self.world.get(down_location);
-        if down_voxel != Voxel::None {
-            if self.player_info.velocity > MAX_FALL_SPEED * 0.2 {
-                self.sound_manager
-                    .play_sound(SoundId::Fall, &self.user_settings);
-            }
-            self.player_info.velocity = 0.0;
-            self.player_info.camera_controller.set_position(
-                vec3(top_position.x, top_position.y, down_location.z as f32) - vec3(0.0, 0.0, 2.0),
-            );
-            return;
-        }
-
-        let top_location = vector_to_location(top_position);
-        let top_voxel = self.world.get(top_location);
-        if top_voxel != Voxel::None {
-            self.player_info.velocity = 0.0;
-            return;
-        }
-
-        self.player_info
-            .camera_controller
-            .set_position(top_position);
     }
 }
 impl Drop for VoxelEngine {

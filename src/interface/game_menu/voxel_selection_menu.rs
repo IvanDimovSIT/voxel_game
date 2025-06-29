@@ -1,6 +1,6 @@
 use macroquad::{
     color::WHITE,
-    input::{is_mouse_button_released, mouse_position},
+    input::{MouseButton, is_mouse_button_pressed, is_mouse_button_released, mouse_position},
     math::vec2,
     miniquad::window::screen_size,
     shapes::draw_rectangle,
@@ -12,7 +12,7 @@ use crate::{
     graphics::{texture_manager::TextureManager, ui_display::VOXEL_SELECTION_SIZE},
     interface::{
         game_menu::game_menu::MenuSelection,
-        style::{BACKGROUND_COLOR, SHADOW_COLOR},
+        style::{BACKGROUND_COLOR, SHADOW_COLOR, TEXT_COLOR},
         util::{darken_background, draw_rect_with_shadow, get_text_width},
     },
     model::{player_info::PlayerInfo, voxel::Voxel},
@@ -37,7 +37,7 @@ const INNER_VOXELS_MULTIPLIER: f32 = 0.8;
 const BORDER_VOXELS_MULTIPLIER: f32 = (1.0 - INNER_VOXELS_MULTIPLIER) / 2.0;
 const VOXELS_IN_ROW: usize = VOXEL_SELECTION_SIZE;
 const VOXELS_IN_COLUMN: usize = 5;
-const SELECTED_VOXELS_OFFSET: f32 = 0.05;
+const SELECTED_VOXELS_OFFSET: f32 = 0.6;
 
 fn get_voxel_at_index(index: usize) -> Option<Voxel> {
     if index < VOXELS_IN_SELECTION_MENU.len() {
@@ -53,12 +53,14 @@ pub fn draw_voxel_selection_menu(
     player_info: &mut PlayerInfo,
     mut selected: Option<Voxel>,
 ) -> (Option<Voxel>, MenuSelection) {
+    debug_assert_ne!(selected, Some(Voxel::None));
     let (width, height) = screen_size();
     darken_background(width, height);
 
     let voxel_size = VOXEL_SIZE * width.min(height);
     let menu_width = VOXELS_IN_ROW as f32 * voxel_size;
-    let menu_height = VOXELS_IN_COLUMN as f32 * voxel_size + SELECTED_VOXELS_OFFSET + voxel_size;
+    let menu_height =
+        VOXELS_IN_COLUMN as f32 * voxel_size + SELECTED_VOXELS_OFFSET * voxel_size + voxel_size;
     let menu_x = (width - menu_width) * 0.5;
     let menu_y = (height - menu_height) * 0.5;
     draw_rect_with_shadow(menu_x, menu_y, menu_width, menu_height, BACKGROUND_COLOR);
@@ -71,7 +73,9 @@ pub fn draw_voxel_selection_menu(
         draw_held_voxel(texture_manager, voxel_size, selected_voxel);
     }
 
-    if is_mouse_button_released(macroquad::input::MouseButton::Left) {
+    if is_mouse_button_pressed(MouseButton::Left)
+        || (is_mouse_button_released(MouseButton::Left) && selected.is_some())
+    {
         if let Some(some_voxel) = selected {
             selected = None;
             set_voxel_in_selection(menu_x, menu_y, voxel_size, player_info, some_voxel);
@@ -117,7 +121,7 @@ fn draw_hovered_voxel_name(player_info: &PlayerInfo, voxel_size: f32, menu_x: f3
             x + TEXT_BOX_X_OFFSET,
             y + TEXT_BOX_Y_OFFSET,
             font_size,
-            WHITE,
+            TEXT_COLOR,
         );
     }
 }
@@ -164,8 +168,8 @@ fn get_hovered_voxel(
         }
     }
 
-    let selection_y =
-        mouse_y - (menu_y + SELECTED_VOXELS_OFFSET + VOXELS_IN_COLUMN as f32 * voxel_size);
+    let selection_y = mouse_y
+        - (menu_y + SELECTED_VOXELS_OFFSET * voxel_size + VOXELS_IN_COLUMN as f32 * voxel_size);
     if selection_y >= 0.0 && selection_y < voxel_size {
         let found_voxel = player_info.voxel_selector.get_at(x as usize);
         return found_voxel.map(|_| HoveredVoxel::Selection(x as usize));
@@ -181,13 +185,15 @@ fn set_voxel_in_selection(
     player_info: &mut PlayerInfo,
     selected_voxel: Voxel,
 ) {
+    debug_assert_ne!(selected_voxel, Voxel::None);
     let (mouse_x, mouse_y) = mouse_position();
     let x = ((mouse_x - menu_x) / voxel_size).floor() as i32;
     if x < 0 || x >= VOXELS_IN_ROW as i32 {
         return;
     }
 
-    let y = mouse_y - (menu_y + SELECTED_VOXELS_OFFSET + VOXELS_IN_COLUMN as f32 * voxel_size);
+    let y = mouse_y
+        - (menu_y + SELECTED_VOXELS_OFFSET * voxel_size + VOXELS_IN_COLUMN as f32 * voxel_size);
     if y < 0.0 || y >= voxel_size {
         return;
     }
@@ -197,6 +203,7 @@ fn set_voxel_in_selection(
 }
 
 fn draw_held_voxel(texture_manager: &TextureManager, voxel_size: f32, selected_voxel: Voxel) {
+    debug_assert_ne!(selected_voxel, Voxel::None);
     let (mouse_x, mouse_y) = mouse_position();
     let texture = texture_manager.get(selected_voxel);
     draw_voxel_texture(&texture, voxel_size, mouse_x, mouse_y);
@@ -225,9 +232,9 @@ fn draw_selected_voxels(
     menu_x: f32,
     menu_y: f32,
 ) {
-    let y = menu_y + voxel_size * VOXELS_IN_COLUMN as f32 + SELECTED_VOXELS_OFFSET;
+    let y = menu_y + voxel_size * VOXELS_IN_COLUMN as f32 + SELECTED_VOXELS_OFFSET * voxel_size;
     let text_size = voxel_size * 0.6;
-    draw_text("Selected:", menu_x, y, text_size, WHITE);
+    draw_text("Selected:", menu_x, y, text_size, TEXT_COLOR);
 
     for x in 0..VOXELS_IN_ROW {
         let option_voxel = player_info.voxel_selector.get_at(x);
@@ -260,17 +267,15 @@ fn draw_inventory_voxels(
     for y in 0..VOXELS_IN_COLUMN {
         for x in 0..VOXELS_IN_ROW {
             let index = y * VOXELS_IN_ROW + x;
-            let x_pos = menu_x + x as f32 * voxel_size;
-            let y_pos = menu_y + y as f32 * voxel_size;
+            let x_pos = menu_x + x as f32 * voxel_size + voxel_size * BORDER_VOXELS_MULTIPLIER;
+            let y_pos = menu_y + y as f32 * voxel_size + voxel_size * BORDER_VOXELS_MULTIPLIER;
 
             if let Some(voxel) = get_voxel_at_index(index) {
                 let texture = texture_manager.get(voxel);
-                draw_voxel_texture(
-                    &texture,
-                    voxel_size,
-                    x_pos + voxel_size * BORDER_VOXELS_MULTIPLIER,
-                    y_pos + voxel_size * BORDER_VOXELS_MULTIPLIER,
-                );
+                draw_voxel_texture(&texture, voxel_size, x_pos, y_pos);
+            } else {
+                let empty_slot_size = voxel_size * INNER_VOXELS_MULTIPLIER;
+                draw_rectangle(x_pos, y_pos, empty_slot_size, empty_slot_size, SHADOW_COLOR);
             }
         }
     }

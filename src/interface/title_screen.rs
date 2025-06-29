@@ -1,15 +1,13 @@
 use macroquad::{
-    camera::set_default_camera,
-    color::{BLACK, WHITE},
-    input::clear_input_queue,
-    miniquad::window::screen_size,
-    text::draw_text,
-    window::next_frame,
+    camera::set_default_camera, color::BLACK, input::clear_input_queue,
+    miniquad::window::screen_size, text::draw_text, window::next_frame,
 };
 
 use crate::{
     graphics::texture_manager::TextureManager,
-    interface::{background::draw_background, button::draw_button, util::get_text_width},
+    interface::{
+        background::draw_background, button::draw_button, style::TEXT_COLOR, util::get_text_width,
+    },
     model::user_settings::UserSettings,
     service::sound_manager::SoundManager,
 };
@@ -37,7 +35,7 @@ impl TitleScreenContext {
         let x = (width - get_text_width(TITLE_TEXT, TITLE_SIZE)) * 0.5;
         let y = height * 0.15;
         draw_text("Voxel World", x + 2.0, y + 2.0, TITLE_SIZE, BLACK);
-        draw_text("Voxel World", x, y, TITLE_SIZE, WHITE);
+        draw_text("Voxel World", x, y, TITLE_SIZE, TEXT_COLOR);
     }
 
     fn draw_play_button(
