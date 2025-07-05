@@ -28,7 +28,7 @@ use super::{
     voxel_shader::VoxelShader,
 };
 
-const AREA_RENDER_THRESHOLD: f32 = 0.4;
+const AREA_RENDER_THRESHOLD: f32 = 0.35;
 const LOOK_DOWN_RENDER_MULTIPLIER: f32 = 0.5;
 const VOXEL_RENDER_THRESHOLD: f32 = 0.71;
 const VOXEL_PROXIMITY_THRESHOLD: f32 = 5.5;
@@ -275,32 +275,6 @@ impl Renderer {
         area_look.dot(look) >= AREA_RENDER_THRESHOLD
     }
 
-    fn calculate_render_distance(look: Vec3, render_size: u32) -> f32 {
-        const DOWN: Vec3 = vec3(0.0, 0.0, 1.0);
-        let dot_product = look.dot(DOWN).abs();
-        // 1 - (1 - dot_product)^2
-        let dot_product_smooth = 1.0 - (1.0 - dot_product) * (1.0 - dot_product);
-        let render_distance = dot_product_smooth * (AREA_SIZE * render_size) as f32;
-        (render_distance * LOOK_DOWN_RENDER_MULTIPLIER).max(AREA_SIZE as f32)
-    }
-
-    fn is_voxel_visible(
-        internal_location: &InternalLocation,
-        look: Vec3,
-        camera_position: Vec3,
-    ) -> bool {
-        let location: Location = (*internal_location).into();
-        let location_vec = vec3(location.x as f32, location.y as f32, location.z as f32);
-        // norm(location - camera)
-        let direction_to_location = (location_vec - camera_position).normalize_or_zero();
-        let dot_product = direction_to_location.dot(look);
-
-        dot_product > VOXEL_RENDER_THRESHOLD
-            || !((location_vec.x - camera_position.x).abs() > VOXEL_PROXIMITY_THRESHOLD
-                || (location_vec.y - camera_position.y).abs() > VOXEL_PROXIMITY_THRESHOLD
-                || (location_vec.z - camera_position.z).abs() > VOXEL_PROXIMITY_THRESHOLD)
-    }
-
     /// returns an iterator of the voxel meshes to be rendered in an optimised order
     fn optimise_render_order<'a>(
         mesh_infos: &'a [(&'a InternalLocation, &'a MeshInfo)],
@@ -326,23 +300,12 @@ impl Renderer {
         set_camera(&normalised_camera);
         self.shader
             .set_voxel_material(camera, render_size, world_time);
-        let position: Vec3 = camera.position;
-        let look = (camera.target - position).normalize_or_zero();
-        let render_distance = Self::calculate_render_distance(look, render_size);
+        let look = (camera.target - camera.position).normalize_or_zero();
 
-        let visible_areas: Vec<_> = self
-            .meshes
-            .iter()
-            .filter(|(area, _meshes)| Self::is_area_visible(**area, camera, look, render_distance))
-            .collect();
+        let visible_areas = self.prepare_visible_areas(camera, look, render_size);
 
-        let visible_voxels: Vec<_> = visible_areas
-            .par_iter()
-            .flat_map(|(_, y)| *y)
-            .filter(|(location, _mesh_with_face_count)| {
-                Self::is_voxel_visible(location, look, position)
-            })
-            .collect();
+        let visible_voxels =
+            Self::filter_visible_voxels(camera.position, look, &visible_areas, render_size);
         let optimised_voxel_meshes = Self::optimise_render_order(&visible_voxels);
 
         let mut faces_visible: usize = 0;
@@ -398,5 +361,82 @@ impl Renderer {
 
     pub fn get_texture_manager_copy(&self) -> Rc<TextureManager> {
         self.mesh_generator.get_texture_manager_copy()
+    }
+
+    /// prepares the areas that are visible to the camera
+    fn prepare_visible_areas(
+        &self,
+        camera: &Camera3D,
+        look: Vec3,
+        render_size: u32,
+    ) -> Vec<(&AreaLocation, &HashMap<InternalLocation, (u8, Voxel, Mesh)>)> {
+        let area_render_distance = Self::calculate_area_render_distance(look, render_size);
+
+        self.meshes
+            .iter()
+            .filter(|(area, _meshes)| {
+                Self::is_area_visible(**area, camera, look, area_render_distance)
+            })
+            .collect()
+    }
+
+    /// filters the visible voxels based on the camera position and look direction
+    fn filter_visible_voxels<'a>(
+        camera_position: Vec3,
+        look: Vec3,
+        visible_areas: &'a Vec<(
+            &'a AreaLocation,
+            &'a HashMap<InternalLocation, (u8, Voxel, Mesh)>,
+        )>,
+        render_size: u32,
+    ) -> Vec<(&'a InternalLocation, &'a (u8, Voxel, Mesh))> {
+        let render_distance = (render_size * AREA_SIZE) as f32;
+
+        visible_areas
+            .par_iter()
+            .flat_map(|(_, y)| *y)
+            .filter(|(location, _mesh_with_face_count)| {
+                Self::is_voxel_visible(location, look, camera_position, render_distance)
+            })
+            .collect()
+    }
+
+    /// calculates the area render distance based on the camera look direction
+    fn calculate_area_render_distance(look: Vec3, render_size: u32) -> f32 {
+        const DOWN: Vec3 = vec3(0.0, 0.0, 1.0);
+        let dot_product = look.dot(DOWN).abs();
+        // 1 - (1 - dot_product)^2
+        let dot_product_smooth = 1.0 - (1.0 - dot_product) * (1.0 - dot_product);
+        let render_distance = dot_product_smooth * (AREA_SIZE * render_size) as f32;
+
+        (render_distance * LOOK_DOWN_RENDER_MULTIPLIER).max(AREA_SIZE as f32)
+    }
+
+    /// checks if the voxel is visible from the camera position
+    fn is_voxel_visible(
+        internal_location: &InternalLocation,
+        look: Vec3,
+        camera_position: Vec3,
+        max_distance: f32,
+    ) -> bool {
+        let voxel_location: Vec3 = Location::from(*internal_location).into();
+        let is_in_proximiity = (voxel_location.x - camera_position.x).abs()
+            <= VOXEL_PROXIMITY_THRESHOLD
+            && (voxel_location.y - camera_position.y).abs() <= VOXEL_PROXIMITY_THRESHOLD
+            && (voxel_location.z - camera_position.z).abs() <= VOXEL_PROXIMITY_THRESHOLD;
+        if is_in_proximiity {
+            return true;
+        }
+
+        let direction_to_voxel = voxel_location - camera_position;
+        let distance_to_voxel = direction_to_voxel.length();
+        if distance_to_voxel > max_distance {
+            return false;
+        }
+
+        let dot_product = direction_to_voxel.dot(look);
+
+        // look . direction_to_voxel > VT * |direction_to_voxel|
+        dot_product > VOXEL_RENDER_THRESHOLD * distance_to_voxel
     }
 }
