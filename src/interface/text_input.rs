@@ -105,7 +105,7 @@ impl TextInput {
     }
 
     pub fn set_text(&mut self, new_text: String) {
-        if new_text.chars().all(|c| Self::is_character_allowed(c)) {
+        if new_text.chars().all(Self::is_character_allowed) {
             self.text = new_text;
             self.text.truncate(self.max_length);
         }

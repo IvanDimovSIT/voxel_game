@@ -118,7 +118,7 @@ impl ListInput {
         &self,
         draw_params: &DrawParams,
         index: usize,
-        value: &String,
+        value: &str,
     ) -> bool {
         let row_y = draw_params.y + index as f32 * draw_params.y_offset;
         let is_selected = self.selected.is_some()

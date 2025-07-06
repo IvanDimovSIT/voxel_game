@@ -2,15 +2,19 @@ use std::rc::Rc;
 
 use crate::{
     graphics::texture_manager::TextureManager,
-    interface::{title_screen::TitleScreenContext, world_selection::WorldSelectionContext},
+    interface::{
+        settings_menu::SettingsContext, title_screen::TitleScreenContext,
+        world_selection::WorldSelectionContext,
+    },
     model::user_settings::UserSettings,
     service::sound_manager::SoundManager,
     voxel_engine::VoxelEngine,
 };
 
-enum InterfaceScreen {
+pub enum InterfaceScreen {
     WorldSelection(WorldSelectionContext),
     TitleScreen(TitleScreenContext),
+    Settings(SettingsContext),
 }
 
 pub struct InterfaceContext {
@@ -61,29 +65,38 @@ impl InterfaceContext {
     pub async fn draw(&mut self) {
         match &mut self.current_screen {
             InterfaceScreen::WorldSelection(world_selection_context) => {
-                world_selection_context
+                let new_screen = world_selection_context
                     .draw(
                         &self.texture_manager,
                         &self.sound_manager,
                         &self.user_settings,
                     )
                     .await;
-                if world_selection_context.should_go_to_title() {
-                    self.current_screen = InterfaceScreen::TitleScreen(TitleScreenContext::new())
+
+                if let Some(screen) = new_screen {
+                    self.current_screen = screen;
                 }
             }
             InterfaceScreen::TitleScreen(title_screen_context) => {
-                title_screen_context
+                let new_screen = title_screen_context
                     .draw(
                         &self.texture_manager,
                         &self.sound_manager,
                         &self.user_settings,
                     )
                     .await;
-                if title_screen_context.should_play() {
-                    self.current_screen =
-                        InterfaceScreen::WorldSelection(WorldSelectionContext::new())
-                }
+
+                self.current_screen = new_screen;
+            }
+            InterfaceScreen::Settings(settings_context) => {
+                let new_screen = settings_context
+                    .draw(
+                        &self.texture_manager,
+                        &self.sound_manager,
+                        &mut self.user_settings,
+                    )
+                    .await;
+                self.current_screen = new_screen;
             }
         }
     }

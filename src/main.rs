@@ -1,3 +1,5 @@
+#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+
 use std::{rc::Rc, thread::sleep, time::Duration};
 
 use graphics::texture_manager::TextureManager;

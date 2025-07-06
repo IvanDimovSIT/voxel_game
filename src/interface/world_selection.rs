@@ -12,7 +12,10 @@ use macroquad::{
 
 use crate::{
     graphics::texture_manager::TextureManager,
-    interface::{background::draw_background, style::TEXT_COLOR},
+    interface::{
+        background::draw_background, interface_context::InterfaceScreen, style::TEXT_COLOR,
+        title_screen::TitleScreenContext,
+    },
     model::user_settings::UserSettings,
     service::{
         persistence::{
@@ -47,7 +50,6 @@ pub struct WorldSelectionContext {
     world_name_input: TextInput,
     error: String,
     should_enter: bool,
-    should_go_to_title: bool,
     world_list: ListInput,
 }
 impl WorldSelectionContext {
@@ -58,8 +60,6 @@ impl WorldSelectionContext {
             error: "".to_owned(),
             should_enter: false,
             world_list: ListInput::new(read_world_list(), WORLD_LIST_ROWS),
-
-            should_go_to_title: false,
         }
     }
 
@@ -83,16 +83,12 @@ impl WorldSelectionContext {
         }
     }
 
-    pub fn should_go_to_title(&self) -> bool {
-        self.should_go_to_title
-    }
-
     pub async fn draw(
         &mut self,
         texture_manager: &TextureManager,
         sound_manager: &SoundManager,
         user_settings: &UserSettings,
-    ) {
+    ) -> Option<InterfaceScreen> {
         set_default_camera();
         let (width, height) = screen_size();
         draw_background(width, height, texture_manager);
@@ -103,7 +99,7 @@ impl WorldSelectionContext {
 
         let play_button_pressed =
             self.handle_play_button(width, height, sound_manager, user_settings);
-        self.handle_back_button(sound_manager, user_settings);
+        let should_go_back = self.handle_back_button(sound_manager, user_settings);
 
         if let Some(selected_index) = self.world_list.get_selected_index() {
             let should_delete =
@@ -124,6 +120,12 @@ impl WorldSelectionContext {
         self.draw_notification_text(width, height);
 
         next_frame().await;
+
+        if should_go_back {
+            Some(InterfaceScreen::TitleScreen(TitleScreenContext::new()))
+        } else {
+            None
+        }
     }
 
     fn handle_world_list(&mut self, width: f32, height: f32) {
@@ -200,8 +202,12 @@ impl WorldSelectionContext {
         )
     }
 
-    fn handle_back_button(&mut self, sound_manager: &SoundManager, user_settings: &UserSettings) {
-        let back_button_pressed = draw_button(
+    fn handle_back_button(
+        &mut self,
+        sound_manager: &SoundManager,
+        user_settings: &UserSettings,
+    ) -> bool {
+        draw_button(
             10.0,
             10.0,
             BACK_BUTTON_SIZE,
@@ -210,11 +216,7 @@ impl WorldSelectionContext {
             BACK_BUTTON_FONT_SIZE,
             sound_manager,
             user_settings,
-        );
-
-        if back_button_pressed {
-            self.should_go_to_title = true;
-        }
+        )
     }
 
     fn handle_world_name_input(&mut self, width: f32, height: f32) {

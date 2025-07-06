@@ -3,6 +3,7 @@ pub mod button;
 pub mod game_menu;
 pub mod interface_context;
 pub mod list_input;
+pub mod settings_menu;
 pub mod style;
 pub mod text_input;
 pub mod title_screen;
