@@ -109,6 +109,7 @@ impl WorldSelectionContext {
                     selected_index,
                     self.world_list.get_selected().unwrap_or_default(),
                 );
+                self.world_name_input.set_text("".to_owned());
             }
         }
 

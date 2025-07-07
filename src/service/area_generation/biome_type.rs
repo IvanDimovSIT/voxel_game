@@ -1,7 +1,8 @@
 use libnoise::{Fbm, Generator, Simplex};
 
 use crate::{
-    model::area::AreaLocation, service::area_generation::algorithms::get_point_on_noise_map,
+    model::area::AreaLocation,
+    service::area_generation::algorithms::{get_point_on_noise_map, normalise_sample},
 };
 
 #[derive(Debug, Clone, Copy)]
@@ -22,7 +23,7 @@ impl BiomeTypeGenerator {
 
     pub fn sample(&self, area_location: AreaLocation, x: u32, y: u32) -> BiomeType {
         let point = get_point_on_noise_map(area_location, x, y);
-        let value = (self.noise.sample(point) * 100.0) as i32;
+        let value = normalise_sample(self.noise.sample(point)) as i32;
 
         match value {
             0..70 => BiomeType::Wet,

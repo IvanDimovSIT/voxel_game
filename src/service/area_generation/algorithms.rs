@@ -46,3 +46,8 @@ pub fn split_mix64(seed: u64) -> u64 {
     z = (z ^ (z >> 27)).wrapping_mul(0x94d049bb133111eb);
     z ^ (z >> 31)
 }
+
+/// normalises a noise sample value from the range [-1.0, 1.0] to [0.0, 100.0]
+pub fn normalise_sample(value: f64) -> f64 {
+    (value + 1.0) * 50.0
+}

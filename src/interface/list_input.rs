@@ -58,8 +58,8 @@ impl ListInput {
 
         self.values.remove(index);
         if let Some(selected) = self.selected {
-            if selected > index {
-                self.selected = Some(selected - 1);
+            if selected == self.values.len() || selected > index {
+                self.selected = Some(selected.saturating_sub(1));
             }
             if self.values.is_empty() {
                 self.selected = None;

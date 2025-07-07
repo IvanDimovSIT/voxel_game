@@ -369,7 +369,7 @@ impl Renderer {
         camera: &Camera3D,
         look: Vec3,
         render_size: u32,
-    ) -> Vec<(&AreaLocation, &HashMap<InternalLocation, (u8, Voxel, Mesh)>)> {
+    ) -> Vec<(&AreaLocation, &HashMap<InternalLocation, MeshInfo>)> {
         let area_render_distance = Self::calculate_area_render_distance(look, render_size);
 
         self.meshes
@@ -384,12 +384,9 @@ impl Renderer {
     fn filter_visible_voxels<'a>(
         camera_position: Vec3,
         look: Vec3,
-        visible_areas: &'a Vec<(
-            &'a AreaLocation,
-            &'a HashMap<InternalLocation, (u8, Voxel, Mesh)>,
-        )>,
+        visible_areas: &'a Vec<(&'a AreaLocation, &'a HashMap<InternalLocation, MeshInfo>)>,
         render_size: u32,
-    ) -> Vec<(&'a InternalLocation, &'a (u8, Voxel, Mesh))> {
+    ) -> Vec<(&'a InternalLocation, &'a MeshInfo)> {
         let render_distance = (render_size * AREA_SIZE) as f32;
 
         visible_areas
