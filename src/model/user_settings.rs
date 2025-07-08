@@ -1,7 +1,9 @@
+use bincode::{Decode, Encode};
+
 const MIN_RENDER_DISTANCE: u32 = 3;
 const MAX_RENDER_DISTANCE: u32 = 16;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Encode, Decode)]
 pub struct UserSettings {
     render_distance: u32,
     pub has_sound: bool,

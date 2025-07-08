@@ -1,19 +1,18 @@
 use std::{
     collections::HashSet,
-    fs::{self, File, remove_dir_all},
-    io::{Read, Write},
+    fs::{self, remove_dir_all},
     mem::take,
     sync::{Arc, Mutex},
 };
 
-use bincode::{decode_from_slice, encode_to_vec};
-use macroquad::logging::{error, info, warn};
+use macroquad::logging::{error, info};
 use rayon::iter::{IntoParallelIterator, IntoParallelRefIterator, ParallelIterator};
 
 use crate::{
     model::area::{Area, AreaDTO, AreaLocation},
     service::{
-        area_generation::generator::AreaGenerator, persistence::config::SERIALIZATION_CONFIG,
+        area_generation::generator::AreaGenerator,
+        persistence::generic_persistence::{read_binary_object, write_binary_object},
     },
     utils::Semaphore,
 };
@@ -30,30 +29,9 @@ fn get_filepath(area_x: u32, area_y: u32, world_name: &str) -> String {
 pub fn store_blocking(area: Area, world_name: &str) {
     debug_assert!(area.has_changed);
     let filepath = get_filepath(area.get_x(), area.get_y(), world_name);
-
     let area_dto: AreaDTO = area.into();
-    let encode_result = match encode_to_vec(area_dto, SERIALIZATION_CONFIG) {
-        Ok(ok) => ok,
-        Err(err) => {
-            error!("Error encoding area: {}", err);
-            return;
-        }
-    };
-
     let _ = fs::create_dir_all(world_name);
-    let mut file = match File::create(&filepath) {
-        Ok(ok) => ok,
-        Err(err) => {
-            error!("Error creating file '{}': {}", filepath, err);
-            return;
-        }
-    };
-
-    if let Err(err) = file.write_all(&encode_result) {
-        error!("Error saving area data: {}", err)
-    } else {
-        info!("Saved '{}'", filepath)
-    }
+    let _result = write_binary_object(&filepath, &area_dto);
 }
 
 /// stores an area on a background thread
@@ -78,31 +56,11 @@ pub fn store_all_blocking(areas: Vec<Area>, world_name: String) {
 /// loads an area from disk
 pub fn load_blocking(area_location: AreaLocation, world_name: &str) -> Area {
     let filepath = get_filepath(area_location.x, area_location.y, world_name);
+    let area_dto: Option<AreaDTO> = read_binary_object(&filepath);
 
-    let mut file = match File::open(&filepath) {
-        Ok(ok) => ok,
-        Err(err) => {
-            warn!("Couldn't open file '{}': {}", filepath, err);
-            return AreaGenerator::generate_area(area_location, world_name);
-        }
-    };
-
-    let mut buf = vec![];
-    if let Err(err) = file.read_to_end(&mut buf) {
-        error!("Error reading file '{}': {}", filepath, err);
-        return AreaGenerator::generate_area(area_location, world_name);
-    };
-
-    let (area_dto, _read): (AreaDTO, usize) = match decode_from_slice(&buf, SERIALIZATION_CONFIG) {
-        Ok(ok) => ok,
-        Err(err) => {
-            error!("Error decoding file '{}': {}", filepath, err);
-            return AreaGenerator::generate_area(area_location, world_name);
-        }
-    };
-    info!("Loaded '{}'", filepath);
-
-    area_dto.into_area(area_location, false)
+    area_dto
+        .map(|dto| dto.into_area(area_location, false))
+        .unwrap_or_else(|| AreaGenerator::generate_area(area_location, world_name))
 }
 
 /// struct to load areas asynchronously

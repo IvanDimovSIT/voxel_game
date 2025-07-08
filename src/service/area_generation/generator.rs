@@ -31,7 +31,7 @@ pub struct AreaGenerator {
     biome_type_noise: BiomeTypeGenerator,
     cave_noise: CaveGenerator,
     voxel_type_generator: VoxelTypeGenerator,
-    trees_location: StackVec<(InternalLocation, TreeType), AREA_SURFACE>,
+    tree_locations: StackVec<(InternalLocation, TreeType), AREA_SURFACE>,
 }
 impl AreaGenerator {
     /// generates an area at a specific location with the world name as the seed
@@ -42,34 +42,46 @@ impl AreaGenerator {
         let mut area = Area::new(area_location);
         for x in 0..AREA_SIZE {
             for y in 0..AREA_SIZE {
-                let height = generator.height_noise.sample(area_location, x, y);
-                let biome_type = generator.biome_type_noise.sample(area_location, x, y);
-                for z in 1..=height {
-                    if generator.cave_noise.should_be_cave(area_location, x, y, z) {
-                        continue;
-                    }
-                    let current_voxel = generator.voxel_type_generator.calculate_voxel_type(
-                        area_location,
-                        x,
-                        y,
-                        z,
-                        height,
-                        biome_type,
-                    );
-                    area.set(InternalLocation::new(x, y, AREA_HEIGHT - z), current_voxel);
-                }
-                let local = InternalLocation::new(x, y, AREA_HEIGHT - height);
-                let tree_type =
-                    should_generate_tree(area.get(local), generator.seed, area_location, local);
-                if tree_type != TreeType::None {
-                    generator.trees_location.push((local, tree_type));
-                }
+                generator.generate_column(&mut area, area_location, x, y);
             }
         }
-        generate_trees(&mut area, &generator.trees_location);
+        generate_trees(&mut area, &generator.tree_locations);
 
         debug_assert!(area.has_changed);
         area
+    }
+
+    /// generates a single column in an area and marks any potential tree locations
+    fn generate_column(&mut self, area: &mut Area, area_location: AreaLocation, x: u32, y: u32) {
+        let height = self.height_noise.sample(area_location, x, y);
+        let biome_type = self.biome_type_noise.sample(area_location, x, y);
+
+        for z_inverted in 1..=height {
+            if self
+                .cave_noise
+                .should_be_cave(area_location, x, y, z_inverted)
+            {
+                continue;
+            }
+            let current_voxel = self.voxel_type_generator.calculate_voxel_type(
+                area_location,
+                x,
+                y,
+                z_inverted,
+                height,
+                biome_type,
+            );
+            area.set(
+                InternalLocation::new(x, y, AREA_HEIGHT - z_inverted),
+                current_voxel,
+            );
+        }
+
+        let local = InternalLocation::new(x, y, AREA_HEIGHT - height);
+        let tree_type = should_generate_tree(area.get(local), self.seed, area_location, local);
+        if tree_type != TreeType::None {
+            self.tree_locations.push((local, tree_type));
+        }
     }
 
     /// private constructor
@@ -81,7 +93,7 @@ impl AreaGenerator {
             biome_type_noise: BiomeTypeGenerator::new(seed),
             cave_noise: CaveGenerator::new(seed),
             voxel_type_generator: VoxelTypeGenerator::new(seed),
-            trees_location: StackVec::new(),
+            tree_locations: StackVec::new(),
         }
     }
 }

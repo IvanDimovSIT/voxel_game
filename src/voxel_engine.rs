@@ -29,6 +29,7 @@ use crate::{
         input::{self, *},
         persistence::{
             player_persistence::{load_player_info, save_player_info},
+            user_settings_persistence::write_user_settings_blocking,
             world_metadata_persistence::{
                 WorldMetadata, load_world_metadata, store_world_metadata,
             },
@@ -67,7 +68,7 @@ impl VoxelEngine {
         let world_name = world_name.into();
         let (mut player_info, successful_load) = load_player_info(&world_name)
             .map(|x| (x, true))
-            .unwrap_or_else(|_| (PlayerInfo::new(vec3(0.0, 0.0, 0.0)), false));
+            .unwrap_or_else(|| (PlayerInfo::new(vec3(0.0, 0.0, 0.0)), false));
 
         player_info.camera_controller.set_focus(true);
         let world_time = if let Some(world_metadata) = load_world_metadata(&world_name) {
@@ -523,6 +524,7 @@ impl Drop for VoxelEngine {
         save_player_info(self.world.get_world_name(), &self.player_info);
         let world_metadata = WorldMetadata::new(&self.world_time);
         store_world_metadata(world_metadata, self.world.get_world_name());
+        write_user_settings_blocking(&self.user_settings);
         self.world.save_all_blocking();
     }
 }

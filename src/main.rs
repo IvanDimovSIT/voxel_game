@@ -3,12 +3,19 @@
 use std::{rc::Rc, thread::sleep, time::Duration};
 
 use graphics::texture_manager::TextureManager;
-use macroquad::{conf::Conf, texture::FilterMode, time::get_frame_time};
+use macroquad::{
+    conf::Conf, miniquad::window::set_fullscreen, texture::FilterMode, time::get_frame_time,
+};
 use model::user_settings::UserSettings;
 use service::sound_manager::SoundManager;
 use voxel_engine::VoxelEngine;
 
-use crate::interface::interface_context::InterfaceContext;
+use crate::{
+    interface::interface_context::InterfaceContext,
+    service::persistence::user_settings_persistence::{
+        read_or_initialise_user_settings, write_user_settings,
+    },
+};
 
 mod graphics;
 mod interface;
@@ -49,7 +56,10 @@ impl GameState {
 async fn main() {
     let texture_manager = Rc::new(TextureManager::new().await);
     let sound_manager = Rc::new(SoundManager::new().await);
-    let user_settings = UserSettings::default();
+    let user_settings = read_or_initialise_user_settings();
+    if user_settings.is_fullscreen {
+        set_fullscreen(true);
+    }
     let mut state = GameState::new(
         texture_manager.clone(),
         sound_manager.clone(),

@@ -12,7 +12,9 @@ use crate::{
         style::TEXT_COLOR, title_screen::TitleScreenContext, util::get_text_width,
     },
     model::user_settings::UserSettings,
-    service::sound_manager::SoundManager,
+    service::{
+        persistence::user_settings_persistence::write_user_settings, sound_manager::SoundManager,
+    },
 };
 
 const BACK_BUTTON_SIZE: f32 = 60.0;
@@ -50,6 +52,7 @@ impl SettingsContext {
         next_frame().await;
 
         if should_exit {
+            write_user_settings(user_settings);
             InterfaceScreen::TitleScreen(TitleScreenContext::new())
         } else {
             InterfaceScreen::Settings(SettingsContext)

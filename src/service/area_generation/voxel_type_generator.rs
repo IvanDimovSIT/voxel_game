@@ -31,16 +31,16 @@ impl VoxelTypeGenerator {
         area_location: AreaLocation,
         x: u32,
         y: u32,
-        z: u32,
+        z_inverted: u32,
         height: u32,
         biome_type: BiomeType,
     ) -> Voxel {
         match biome_type {
             BiomeType::Dry => {
-                self.calculate_voxel_type_for_dry_biome(area_location, x, y, z, height)
+                self.calculate_voxel_type_for_dry_biome(area_location, x, y, z_inverted, height)
             }
             BiomeType::Wet => {
-                self.calculate_voxel_type_for_wet_biome(area_location, x, y, z, height)
+                self.calculate_voxel_type_for_wet_biome(area_location, x, y, z_inverted, height)
             }
         }
     }
@@ -50,12 +50,12 @@ impl VoxelTypeGenerator {
         area_location: AreaLocation,
         x: u32,
         y: u32,
-        z: u32,
+        z_inverted: u32,
         height: u32,
     ) -> Voxel {
-        if (z + SAND_HEIGHT) >= height {
-            let threshold = (1.0 - z as f64 / AREA_HEIGHT as f64) * BASE_STONE_THRESHOLD;
-            if self.should_generate_alternative_voxel(area_location, x, y, z, threshold) {
+        if (z_inverted + SAND_HEIGHT) >= height {
+            let threshold = (1.0 - z_inverted as f64 / AREA_HEIGHT as f64) * BASE_STONE_THRESHOLD;
+            if self.should_generate_alternative_voxel(area_location, x, y, z_inverted, threshold) {
                 return Voxel::Stone;
             } else {
                 return Voxel::Sand;
@@ -70,19 +70,31 @@ impl VoxelTypeGenerator {
         area_location: AreaLocation,
         x: u32,
         y: u32,
-        z: u32,
+        z_inverted: u32,
         height: u32,
     ) -> Voxel {
-        if z >= height {
-            if self.should_generate_alternative_voxel(area_location, x, y, z, CLAY_THRESHOLD) {
+        if z_inverted >= height {
+            if self.should_generate_alternative_voxel(
+                area_location,
+                x,
+                y,
+                z_inverted,
+                CLAY_THRESHOLD,
+            ) {
                 return Voxel::Clay;
             } else {
                 return Voxel::Grass;
             }
         }
 
-        if z + 1 >= height {
-            if self.should_generate_alternative_voxel(area_location, x, y, z, CLAY_THRESHOLD) {
+        if z_inverted + 1 >= height {
+            if self.should_generate_alternative_voxel(
+                area_location,
+                x,
+                y,
+                z_inverted,
+                CLAY_THRESHOLD,
+            ) {
                 return Voxel::Clay;
             } else {
                 return Voxel::Dirt;
@@ -97,10 +109,10 @@ impl VoxelTypeGenerator {
         area_location: AreaLocation,
         x: u32,
         y: u32,
-        z: u32,
+        z_inverted: u32,
         threshold: f64,
     ) -> bool {
-        let point = get_point_on_noise_map_3d(area_location, x, y, z);
+        let point = get_point_on_noise_map_3d(area_location, x, y, z_inverted);
         let value = normalise_sample(self.alternative_voxel_type.sample(point));
 
         value >= threshold

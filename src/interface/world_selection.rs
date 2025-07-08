@@ -92,31 +92,15 @@ impl WorldSelectionContext {
         set_default_camera();
         let (width, height) = screen_size();
         draw_background(width, height, texture_manager);
+
         Self::draw_input_label(width, height);
         self.handle_world_name_input(width, height);
-
         self.handle_world_list(width, height);
+        self.handle_play_button(sound_manager, user_settings, width, height);
 
-        let play_button_pressed =
-            self.handle_play_button(width, height, sound_manager, user_settings);
-        let should_go_back = self.handle_back_button(sound_manager, user_settings);
+        let should_go_back = self.draw_back_button(sound_manager, user_settings);
 
-        if let Some(selected_index) = self.world_list.get_selected_index() {
-            let should_delete =
-                self.handle_delete_button(width, height, sound_manager, user_settings);
-            if should_delete {
-                self.delete_world(
-                    selected_index,
-                    self.world_list.get_selected().unwrap_or_default(),
-                );
-                self.world_name_input.set_text("".to_owned());
-            }
-        }
-
-        if play_button_pressed {
-            self.validate();
-            self.should_enter = self.error.is_empty();
-        }
+        self.handle_delete_button(sound_manager, user_settings, width, height);
 
         self.draw_notification_text(width, height);
 
@@ -126,6 +110,41 @@ impl WorldSelectionContext {
             Some(InterfaceScreen::TitleScreen(TitleScreenContext::new()))
         } else {
             None
+        }
+    }
+
+    fn handle_play_button(
+        &mut self,
+        sound_manager: &SoundManager,
+        user_settings: &UserSettings,
+        width: f32,
+        height: f32,
+    ) {
+        let play_button_pressed =
+            self.draw_play_button(width, height, sound_manager, user_settings);
+        if play_button_pressed {
+            self.validate();
+            self.should_enter = self.error.is_empty();
+        }
+    }
+
+    fn handle_delete_button(
+        &mut self,
+        sound_manager: &SoundManager,
+        user_settings: &UserSettings,
+        width: f32,
+        height: f32,
+    ) {
+        if let Some(selected_index) = self.world_list.get_selected_index() {
+            let should_delete =
+                self.draw_delete_button(width, height, sound_manager, user_settings);
+            if should_delete {
+                self.delete_world(
+                    selected_index,
+                    self.world_list.get_selected().unwrap_or_default(),
+                );
+                self.world_name_input.set_text("".to_owned());
+            }
         }
     }
 
@@ -161,7 +180,7 @@ impl WorldSelectionContext {
     }
 
     /// returns true if pressed
-    fn handle_delete_button(
+    fn draw_delete_button(
         &mut self,
         width: f32,
         height: f32,
@@ -182,7 +201,7 @@ impl WorldSelectionContext {
     }
 
     /// returns true if pressed
-    fn handle_play_button(
+    fn draw_play_button(
         &mut self,
         width: f32,
         height: f32,
@@ -203,7 +222,7 @@ impl WorldSelectionContext {
         )
     }
 
-    fn handle_back_button(
+    fn draw_back_button(
         &mut self,
         sound_manager: &SoundManager,
         user_settings: &UserSettings,
