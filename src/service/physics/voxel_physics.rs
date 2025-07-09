@@ -9,12 +9,13 @@ use macroquad::{
 use crate::{
     graphics::{falling_shader::FallingShader, renderer::Renderer},
     model::{area::AREA_HEIGHT, location::Location, voxel::Voxel, world::World},
+    service::camera_controller::CameraController,
     utils::{StackVec, vector_to_location},
 };
 
-use super::camera_controller::CameraController;
-
 const FALLING_VOXELS: [Voxel; 3] = [Voxel::Sand, Voxel::Dirt, Voxel::Grass];
+const MAX_FALL_SPEED: f32 = 3.0;
+const GRAVITY: f32 = 0.2;
 
 #[derive(Debug)]
 struct SimulatedVoxel {
@@ -23,9 +24,6 @@ struct SimulatedVoxel {
     position: Vec3,
     velocity: f32,
 }
-
-const MAX_FALL_SPEED: f32 = 3.0;
-const GRAVITY: f32 = 0.2;
 
 pub struct VoxelSimulator {
     shader: FallingShader,
@@ -73,7 +71,7 @@ impl VoxelSimulator {
         }
     }
 
-    /// checks if the voxels aroung the input one should be simulated for falling
+    /// checks if the voxels around the input one should be simulated for falling
     pub fn update_voxels(
         &mut self,
         world: &mut World,
@@ -124,33 +122,8 @@ impl VoxelSimulator {
             voxel.position.z += voxel.velocity;
         }
 
-        self.simulated_voxels = std::mem::take(&mut self.simulated_voxels)
-            .into_iter()
-            .filter(|voxel| {
-                let location = vector_to_location(voxel.position + vec3(0.0, 0.0, 0.5));
-                if location.z >= AREA_HEIGHT as i32 {
-                    return false;
-                }
-                let world_voxel = world.get(location);
-                if world_voxel == Voxel::None {
-                    return true;
-                }
-                if location.z <= 0 {
-                    return false;
-                }
-                let up_location = Location {
-                    z: location.z - 1,
-                    ..location
-                };
-                let up_voxel = world.get(up_location);
-                if up_voxel == Voxel::None {
-                    world.set(up_location, voxel.voxel_type);
-                    renderer.update_location(world, up_location);
-                }
-
-                false
-            })
-            .collect();
+        self.simulated_voxels
+            .retain(|voxel| Self::retain_or_place_voxel(voxel, world, renderer));
     }
 
     pub fn draw(&self, camera: &Camera3D) {
@@ -171,6 +144,36 @@ impl VoxelSimulator {
             let voxel_location = vector_to_location(voxel.position);
             voxel_location == location
         })
+    }
+
+    /// returns true if the voxel should continue falling, otherwise returns false and places it in the world
+    fn retain_or_place_voxel(
+        voxel: &SimulatedVoxel,
+        world: &mut World,
+        renderer: &mut Renderer,
+    ) -> bool {
+        let location = vector_to_location(voxel.position + vec3(0.0, 0.0, 0.5));
+        if location.z >= AREA_HEIGHT as i32 {
+            return false;
+        }
+        let world_voxel = world.get(location);
+        if world_voxel == Voxel::None {
+            return true;
+        }
+        if location.z <= 0 {
+            return false;
+        }
+        let up_location = Location {
+            z: location.z - 1,
+            ..location
+        };
+        let up_voxel = world.get(up_location);
+        if up_voxel == Voxel::None {
+            world.set(up_location, voxel.voxel_type);
+            renderer.update_location(world, up_location);
+        }
+
+        false
     }
 
     fn draw_voxel(simulated_voxel: &SimulatedVoxel) {

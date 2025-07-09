@@ -12,8 +12,7 @@ pub fn read_or_initialise_user_settings() -> UserSettings {
 }
 
 pub fn write_user_settings_blocking(user_settings: &UserSettings) {
-    let user_settings_copy = user_settings.clone();
-    let _result = write_binary_object(USER_SETTINGS_FILEPATH, &user_settings_copy);
+    let _result = write_binary_object(USER_SETTINGS_FILEPATH, &user_settings);
 }
 
 /// non blocking write

@@ -92,14 +92,6 @@ impl CameraController {
         Self::ignore_z(self.right) * speed * delta
     }
 
-    pub fn move_forward(&mut self, speed: f32, delta: f32) {
-        self.position += self.get_forward_displacement(speed, delta);
-    }
-
-    pub fn move_right(&mut self, speed: f32, delta: f32) {
-        self.position += self.get_right_displacement(speed, delta);
-    }
-
     pub fn get_position(&self) -> Vec3 {
         self.position
     }

@@ -12,9 +12,7 @@ use voxel_engine::VoxelEngine;
 
 use crate::{
     interface::interface_context::InterfaceContext,
-    service::persistence::user_settings_persistence::{
-        read_or_initialise_user_settings, write_user_settings,
-    },
+    service::persistence::user_settings_persistence::read_or_initialise_user_settings,
 };
 
 mod graphics;
@@ -69,23 +67,13 @@ async fn main() {
     loop {
         match &mut state {
             GameState::Running { voxel_engine } => {
-                let delta = get_frame_time().min(0.2);
-                let raycast_result = voxel_engine.process_input(delta);
-                voxel_engine.update_processes(delta);
-                voxel_engine.update_loaded_areas();
-                let change_context = voxel_engine.draw_scene(raycast_result).await;
-                if let Some(new_context) = change_context {
-                    state = new_context
+                if let Some(new_state) = handle_running_state(voxel_engine).await {
+                    state = new_state;
                 }
             }
             GameState::Menu { context } => {
-                if let Some(mut voxel_engine) = context.enter_game() {
-                    voxel_engine.load_world();
-                    state = GameState::Running { voxel_engine }
-                } else if context.should_exit() {
-                    state = GameState::Exit
-                } else {
-                    context.draw().await;
+                if let Some(new_state) = handle_menu_state(context).await {
+                    state = new_state;
                 }
             }
             GameState::Exit => {
@@ -93,5 +81,25 @@ async fn main() {
                 break;
             }
         }
+    }
+}
+
+async fn handle_running_state(voxel_engine: &mut Box<VoxelEngine>) -> Option<GameState> {
+    let delta = get_frame_time().min(0.2);
+    let raycast_result = voxel_engine.process_input(delta);
+    voxel_engine.update_processes(delta);
+    voxel_engine.update_loaded_areas();
+    voxel_engine.draw_scene(raycast_result).await
+}
+
+async fn handle_menu_state(context: &mut Box<InterfaceContext>) -> Option<GameState> {
+    if let Some(mut voxel_engine) = context.enter_game() {
+        voxel_engine.load_world();
+        Some(GameState::Running { voxel_engine })
+    } else if context.should_exit() {
+        Some(GameState::Exit)
+    } else {
+        context.draw().await;
+        None
     }
 }

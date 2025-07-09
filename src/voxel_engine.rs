@@ -2,7 +2,7 @@ use std::{f32::consts::PI, rc::Rc};
 
 use macroquad::{
     camera::set_default_camera,
-    math::{Vec3, vec3},
+    math::vec3,
     prelude::gl_use_default_material,
     window::{next_frame, screen_height, screen_width},
 };
@@ -25,7 +25,6 @@ use crate::{
     },
     model::{player_info::PlayerInfo, user_settings::UserSettings, voxel::Voxel, world::World},
     service::{
-        camera_controller::CameraController,
         input::{self, *},
         persistence::{
             player_persistence::{load_player_info, save_player_info},
@@ -34,17 +33,18 @@ use crate::{
                 WorldMetadata, load_world_metadata, store_world_metadata,
             },
         },
+        physics::{
+            player_physics::{
+                CollisionType, process_collisions, push_player_up_if_stuck, try_jump, try_move,
+            },
+            voxel_physics::VoxelSimulator,
+        },
         raycast::{RaycastResult, cast_ray},
         render_zone::{get_load_zone, get_render_zone},
         sound_manager::{SoundId, SoundManager},
-        voxel_physics::VoxelSimulator,
-        world_actions::{
-            destroy_voxel, place_voxel, process_collisions, push_player_up_if_stuck,
-            put_player_on_ground,
-        },
+        world_actions::{destroy_voxel, place_voxel, put_player_on_ground},
         world_time::WorldTime,
     },
-    utils::vector_to_location,
 };
 
 pub struct VoxelEngine {
@@ -148,7 +148,7 @@ impl VoxelEngine {
             self.try_replace_voxel(raycast_result);
         }
         if jump() {
-            self.try_jump();
+            try_jump(&mut self.player_info, &mut self.world);
         }
         if move_forward() {
             self.try_move_forward(self.player_info.move_speed, delta);
@@ -207,13 +207,12 @@ impl VoxelEngine {
 
     /// process falling and collisions
     fn process_physics(&mut self, delta: f32) {
-        process_collisions(
-            &mut self.player_info,
-            &mut self.world,
-            &self.sound_manager,
-            &self.user_settings,
-            delta,
-        );
+        let collision_type = process_collisions(&mut self.player_info, &mut self.world, delta);
+        if collision_type == CollisionType::Strong {
+            self.sound_manager
+                .play_sound(SoundId::Fall, &self.user_settings);
+        }
+
         push_player_up_if_stuck(&mut self.player_info, &mut self.world);
         self.voxel_simulator
             .simulate_falling(&mut self.world, &mut self.renderer, delta);
@@ -250,7 +249,6 @@ impl VoxelEngine {
         if let RaycastResult::Hit {
             first_non_empty,
             last_empty: _,
-            distance: _,
         } = raycast_result
         {
             draw_selected_voxel(first_non_empty, &camera);
@@ -351,7 +349,6 @@ impl VoxelEngine {
             RaycastResult::Hit {
                 first_non_empty: _,
                 last_empty,
-                distance: _,
             } => {
                 let selected_voxel = self.player_info.voxel_selector.get_selected();
                 if selected_voxel.is_none() {
@@ -385,7 +382,6 @@ impl VoxelEngine {
             RaycastResult::Hit {
                 first_non_empty,
                 last_empty: _,
-                distance: _,
             } => {
                 let has_destroyed =
                     destroy_voxel(first_non_empty, &mut self.world, &mut self.renderer);
@@ -409,7 +405,6 @@ impl VoxelEngine {
             RaycastResult::Hit {
                 first_non_empty,
                 last_empty: _,
-                distance: _,
             } => {
                 let selected_voxel = self.player_info.voxel_selector.get_selected();
                 if selected_voxel.is_none() {
@@ -442,81 +437,20 @@ impl VoxelEngine {
         }
     }
 
-    fn try_jump(&mut self) {
-        let bottom_voxel_position = self.player_info.camera_controller.get_bottom_position();
-        let voxel = self.world.get(vector_to_location(bottom_voxel_position));
-        if voxel != Voxel::None {
-            self.player_info.velocity = self.player_info.jump_velocity;
-        }
-    }
-
-    fn try_move<D, M>(&mut self, velocity: f32, delta: f32, get_displacement: D, move_fn: M)
-    where
-        D: Fn(&CameraController, f32, f32) -> Vec3,
-        M: Fn(&mut CameraController, f32, f32),
-    {
-        let top_position = self.player_info.camera_controller.get_position();
-        let bottom_position =
-            self.player_info.camera_controller.get_bottom_position() - vec3(0.0, 0.0, 0.55);
-        let displacement = get_displacement(&self.player_info.camera_controller, velocity, delta);
-        let displacement_magnitude = displacement.length();
-
-        let top_result = cast_ray(
-            &mut self.world,
-            top_position,
-            top_position + displacement,
-            displacement_magnitude,
-        );
-        let bottom_result = cast_ray(
-            &mut self.world,
-            bottom_position,
-            bottom_position + displacement,
-            displacement_magnitude,
-        );
-
-        if matches!(top_result, RaycastResult::NoneHit)
-            && matches!(bottom_result, RaycastResult::NoneHit)
-        {
-            move_fn(&mut self.player_info.camera_controller, velocity, delta);
-        } else {
-            let top_displacement = match top_result {
-                RaycastResult::NoneHit => displacement_magnitude,
-                RaycastResult::Hit { distance, .. } => (distance - self.player_info.size).max(0.0),
-            };
-            let bottom_displacement = match bottom_result {
-                RaycastResult::NoneHit => displacement_magnitude,
-                RaycastResult::Hit { distance, .. } => (distance - self.player_info.size).max(0.0),
-            };
-            let new_displacement = top_displacement.min(bottom_displacement) * 0.95;
-
-            if new_displacement.abs() <= 0.05 {
-                return;
-            }
-
-            move_fn(
-                &mut self.player_info.camera_controller,
-                new_displacement,
-                if velocity < 0.0 { -1.0 } else { 1.0 },
-            );
-        }
-    }
-
     fn try_move_forward(&mut self, velocity: f32, delta: f32) {
-        self.try_move(
-            velocity,
-            delta,
-            |camera_controller, v, d| camera_controller.get_forward_displacement(v, d),
-            |camera_controller, v, d| camera_controller.move_forward(v, d),
-        );
+        let displacement = self
+            .player_info
+            .camera_controller
+            .get_forward_displacement(velocity, delta);
+        try_move(&mut self.player_info, &mut self.world, displacement);
     }
 
     fn try_move_right(&mut self, velocity: f32, delta: f32) {
-        self.try_move(
-            velocity,
-            delta,
-            |camera_controller, v, d| camera_controller.get_right_displacement(v, d),
-            |camera_controller, v, d| camera_controller.move_right(v, d),
-        );
+        let displacement = self
+            .player_info
+            .camera_controller
+            .get_right_displacement(velocity, delta);
+        try_move(&mut self.player_info, &mut self.world, displacement);
     }
 }
 impl Drop for VoxelEngine {

@@ -14,7 +14,6 @@ pub enum RaycastResult {
     Hit {
         first_non_empty: Location,
         last_empty: Location,
-        distance: f32,
     },
 }
 
@@ -85,7 +84,6 @@ pub fn cast_ray(world: &mut World, from: Vec3, to: Vec3, max_distance: f32) -> R
         return RaycastResult::Hit {
             first_non_empty: current_position,
             last_empty: previous_position,
-            distance: distance_traveled,
         };
     }
 
@@ -122,7 +120,6 @@ pub fn cast_ray(world: &mut World, from: Vec3, to: Vec3, max_distance: f32) -> R
             return RaycastResult::Hit {
                 first_non_empty: current_position,
                 last_empty: previous_position,
-                distance: distance_traveled,
             };
         }
     }

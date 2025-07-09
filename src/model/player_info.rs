@@ -8,7 +8,7 @@ use crate::{
 };
 
 const PLAYER_MOVE_SPEED: f32 = 10.0;
-const PLAYER_SIZE: f32 = 0.2;
+const PLAYER_SIZE: f32 = 0.3;
 const VOXEL_REACH: f32 = 7.0;
 const JUMP_VELOCITY: f32 = -15.0;
 
