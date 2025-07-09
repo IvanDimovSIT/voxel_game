@@ -6,6 +6,7 @@ use crate::model::{
 
 use super::algorithms::{combine_seed, split_mix64};
 
+const ALLOWED_TREE_BASES: [Voxel; 2] = [Voxel::Grass, Voxel::Clay];
 const PROBABILITY: u64 = 60;
 const SHORT_WOOD_LOCATIONS: [Location; 3] = [
     Location::new(0, 0, -1),
@@ -46,10 +47,9 @@ pub fn should_generate_tree(
     area_location: AreaLocation,
     local: InternalLocation,
 ) -> TreeType {
-    match voxel {
-        Voxel::Grass => {}
-        _ => return TreeType::None,
-    };
+    if !ALLOWED_TREE_BASES.contains(&voxel) {
+        return TreeType::None;
+    }
 
     let combined_seed = combine_seed(seed, area_location, local);
     let mut random_value = split_mix64(combined_seed);

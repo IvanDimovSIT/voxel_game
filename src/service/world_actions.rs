@@ -5,21 +5,22 @@ use crate::{
     model::{
         area::AREA_HEIGHT, location::Location, player_info::PlayerInfo, voxel::Voxel, world::World,
     },
-    service::physics::voxel_physics::VoxelSimulator,
+    service::physics::{
+        player_physics::will_new_voxel_cause_collision, voxel_physics::VoxelSimulator,
+    },
     utils::vector_to_location,
 };
 
 pub fn place_voxel(
     location: Location,
     voxel: Voxel,
-    camera_location: Location,
+    player_info: &PlayerInfo,
     world: &mut World,
     renderer: &mut Renderer,
-    voxel_simulator: &VoxelSimulator,
+    voxel_simulator: &mut VoxelSimulator,
 ) -> bool {
     let unable_to_place_voxel = world.get(location) != Voxel::None
-        || location == camera_location
-        || location == Location::new(camera_location.x, camera_location.y, camera_location.z + 1)
+        || will_new_voxel_cause_collision(player_info, location)
         || voxel_simulator.location_has_voxel(location);
 
     if unable_to_place_voxel {
@@ -28,17 +29,42 @@ pub fn place_voxel(
 
     world.set(location, voxel);
     renderer.update_location(world, location);
+    voxel_simulator.update_voxels(world, renderer, location);
 
     true
 }
 
-pub fn destroy_voxel(location: Location, world: &mut World, renderer: &mut Renderer) -> bool {
+pub fn replace_voxel(
+    location: Location,
+    voxel: Voxel,
+    world: &mut World,
+    renderer: &mut Renderer,
+    voxel_simulator: &mut VoxelSimulator,
+) -> bool {
+    if world.get(location) == Voxel::None || location.z == AREA_HEIGHT as i32 - 1 {
+        return false;
+    }
+
+    world.set(location, voxel);
+    renderer.update_location(world, location);
+    voxel_simulator.update_voxels(world, renderer, location);
+
+    true
+}
+
+pub fn destroy_voxel(
+    location: Location,
+    world: &mut World,
+    renderer: &mut Renderer,
+    voxel_simulator: &mut VoxelSimulator,
+) -> bool {
     if world.get(location) == Voxel::None || location.z == AREA_HEIGHT as i32 - 1 {
         return false;
     }
 
     world.set(location, Voxel::None);
     renderer.update_location(world, location);
+    voxel_simulator.update_voxels(world, renderer, location);
 
     true
 }

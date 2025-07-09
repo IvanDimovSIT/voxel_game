@@ -40,6 +40,15 @@ impl MeshGenerator {
     const LEFT_NORMAL: Vec4 = Vec4::new(1.0, 0.0, 0.0, 0.0);
     const DOWN_NORMAL: Vec4 = Vec4::new(0.0, 0.0, 1.0, 0.0);
     const UP_NORMAL: Vec4 = Vec4::new(0.0, 0.0, -1.0, 0.0);
+    const ALL_DIRECTIONS: [FaceDirection; 6] = [
+        FaceDirection::Front,
+        FaceDirection::Back,
+        FaceDirection::Left,
+        FaceDirection::Right,
+        FaceDirection::Up,
+        FaceDirection::Down,
+    ];
+    const VERTICES_PER_FACE: usize = 4;
 
     pub fn new(texture_manager: Rc<TextureManager>) -> Self {
         Self { texture_manager }
@@ -62,7 +71,7 @@ impl MeshGenerator {
         let middle_y = location.y as f32;
         let middle_z = location.z as f32;
 
-        let mut vertices = Vec::with_capacity(4);
+        let mut vertices = Vec::with_capacity(Self::VERTICES_PER_FACE);
         let mut indices = Vec::with_capacity(Self::INDECIES.len());
         let mut index_offset = 0;
 
@@ -78,6 +87,27 @@ impl MeshGenerator {
             vertices.extend(face_verticies);
             indices.extend(face_indecies);
         }
+
+        Mesh {
+            vertices,
+            indices,
+            texture: Some(self.texture_manager.get(voxel)),
+        }
+    }
+
+    pub fn generate_mesh_for_falling_voxel(&self, voxel: Voxel, position: Vec3) -> Mesh {
+        let vertices: Vec<_> = Self::ALL_DIRECTIONS
+            .iter()
+            .flat_map(|dir| Self::get_verticies_for_voxel(*dir, position.x, position.y, position.z))
+            .collect();
+
+        let indices: Vec<_> = (0..Self::ALL_DIRECTIONS.len() as u16)
+            .flat_map(|offset| {
+                Self::INDECIES
+                    .into_iter()
+                    .map(move |ind| ind + offset * Self::VERTICES_PER_FACE as u16)
+            })
+            .collect();
 
         Mesh {
             vertices,

@@ -355,6 +355,10 @@ impl Renderer {
         }
     }
 
+    pub fn get_mesh_generator(&self) -> &MeshGenerator {
+        &self.mesh_generator
+    }
+
     pub fn get_texture_manager(&self) -> &TextureManager {
         self.mesh_generator.get_texture_manager()
     }

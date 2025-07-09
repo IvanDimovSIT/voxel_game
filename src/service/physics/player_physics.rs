@@ -92,6 +92,24 @@ pub fn try_jump(player_info: &mut PlayerInfo, world: &mut World) {
     }
 }
 
+/// checks if the new voxel location will cause a collision with the player
+pub fn will_new_voxel_cause_collision(
+    player_info: &PlayerInfo,
+    new_voxel_location: Location,
+) -> bool {
+    let top_position = player_info.camera_controller.get_position();
+    let down_position = top_position + vec3(0.0, 0.0, 1.0);
+    let mut down_locations = StackVec::new();
+    let mut top_locations = StackVec::new();
+    find_locations_for_collisions(down_position, player_info.size, &mut down_locations);
+    find_locations_for_collisions(top_position, player_info.size, &mut top_locations);
+
+    down_locations
+        .into_iter()
+        .chain(top_locations)
+        .any(|location| location == new_voxel_location)
+}
+
 /// move and process horizontal collisions for the player
 pub fn try_move(player_info: &mut PlayerInfo, world: &mut World, displacement: Vec3) {
     let top_position = player_info.camera_controller.get_position();

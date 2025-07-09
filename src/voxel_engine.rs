@@ -42,7 +42,7 @@ use crate::{
         raycast::{RaycastResult, cast_ray},
         render_zone::{get_load_zone, get_render_zone},
         sound_manager::{SoundId, SoundManager},
-        world_actions::{destroy_voxel, place_voxel, put_player_on_ground},
+        world_actions::{destroy_voxel, place_voxel, put_player_on_ground, replace_voxel},
         world_time::WorldTime,
     },
 };
@@ -71,19 +71,26 @@ impl VoxelEngine {
             .unwrap_or_else(|| (PlayerInfo::new(vec3(0.0, 0.0, 0.0)), false));
 
         player_info.camera_controller.set_focus(true);
-        let world_time = if let Some(world_metadata) = load_world_metadata(&world_name) {
-            WorldTime::new(world_metadata.delta)
-        } else {
-            WorldTime::new(PI * 0.5)
-        };
+        let (world_time, simulated_voxels) =
+            if let Some(world_metadata) = load_world_metadata(&world_name) {
+                (
+                    WorldTime::new(world_metadata.delta),
+                    world_metadata.simulated_voxels,
+                )
+            } else {
+                (WorldTime::new(PI * 0.5), vec![])
+            };
+
+        let renderer = Renderer::new(texture_manager);
+        let voxel_simulator = VoxelSimulator::new(simulated_voxels, renderer.get_mesh_generator());
 
         let mut engine = Self {
             world: World::new(world_name),
-            renderer: Renderer::new(texture_manager),
+            renderer,
             player_info,
             debug_display: DebugDisplay::new(),
             user_settings,
-            voxel_simulator: VoxelSimulator::new(),
+            voxel_simulator,
             sound_manager,
             menu_state: MenuState::Hidden,
             world_time,
@@ -358,20 +365,17 @@ impl VoxelEngine {
                 let has_placed = place_voxel(
                     last_empty,
                     selected_voxel.unwrap(),
-                    self.player_info
-                        .camera_controller
-                        .get_camera_voxel_location(),
+                    &self.player_info,
                     &mut self.world,
                     &mut self.renderer,
-                    &self.voxel_simulator,
+                    &mut self.voxel_simulator,
                 );
                 if !has_placed {
                     return;
                 }
+
                 self.sound_manager
                     .play_sound(SoundId::Place, &self.user_settings);
-                self.voxel_simulator
-                    .update_voxels(&mut self.world, &mut self.renderer, last_empty);
             }
         }
     }
@@ -383,18 +387,18 @@ impl VoxelEngine {
                 first_non_empty,
                 last_empty: _,
             } => {
-                let has_destroyed =
-                    destroy_voxel(first_non_empty, &mut self.world, &mut self.renderer);
+                let has_destroyed = destroy_voxel(
+                    first_non_empty,
+                    &mut self.world,
+                    &mut self.renderer,
+                    &mut self.voxel_simulator,
+                );
                 if !has_destroyed {
                     return;
                 }
+
                 self.sound_manager
                     .play_sound(SoundId::Destroy, &self.user_settings);
-                self.voxel_simulator.update_voxels(
-                    &mut self.world,
-                    &mut self.renderer,
-                    first_non_empty,
-                );
             }
         }
     }
@@ -410,29 +414,20 @@ impl VoxelEngine {
                 if selected_voxel.is_none() {
                     return;
                 }
-                let has_destroyed =
-                    destroy_voxel(first_non_empty, &mut self.world, &mut self.renderer);
-                if !has_destroyed {
+
+                let has_replaced = replace_voxel(
+                    first_non_empty,
+                    selected_voxel.unwrap(),
+                    &mut self.world,
+                    &mut self.renderer,
+                    &mut self.voxel_simulator,
+                );
+                if !has_replaced {
                     return;
                 }
 
-                place_voxel(
-                    first_non_empty,
-                    selected_voxel.unwrap(),
-                    self.player_info
-                        .camera_controller
-                        .get_camera_voxel_location(),
-                    &mut self.world,
-                    &mut self.renderer,
-                    &self.voxel_simulator,
-                );
                 self.sound_manager
                     .play_sound(SoundId::Destroy, &self.user_settings);
-                self.voxel_simulator.update_voxels(
-                    &mut self.world,
-                    &mut self.renderer,
-                    first_non_empty,
-                );
             }
         }
     }
@@ -456,7 +451,7 @@ impl VoxelEngine {
 impl Drop for VoxelEngine {
     fn drop(&mut self) {
         save_player_info(self.world.get_world_name(), &self.player_info);
-        let world_metadata = WorldMetadata::new(&self.world_time);
+        let world_metadata = WorldMetadata::new(&self.world_time, &self.voxel_simulator);
         store_world_metadata(world_metadata, self.world.get_world_name());
         write_user_settings_blocking(&self.user_settings);
         self.world.save_all_blocking();

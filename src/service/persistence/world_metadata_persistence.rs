@@ -4,17 +4,20 @@ use bincode::{Decode, Encode};
 
 use crate::service::{
     persistence::generic_persistence::{read_binary_object, write_binary_object},
+    physics::voxel_physics::{SimulatedVoxelDTO, VoxelSimulator},
     world_time::WorldTime,
 };
 
 #[derive(Debug, Clone, Encode, Decode)]
 pub struct WorldMetadata {
     pub delta: f32,
+    pub simulated_voxels: Vec<SimulatedVoxelDTO>,
 }
 impl WorldMetadata {
-    pub fn new(world_time: &WorldTime) -> Self {
+    pub fn new(world_time: &WorldTime, voxel_simulator: &VoxelSimulator) -> Self {
         Self {
             delta: world_time.get_delta(),
+            simulated_voxels: voxel_simulator.create_simulated_voxel_dtos(),
         }
     }
 }
