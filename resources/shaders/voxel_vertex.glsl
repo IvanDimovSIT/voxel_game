@@ -12,6 +12,7 @@ uniform mat4 Model;
 uniform mat4 Projection;
 uniform	vec3 cameraPos;
 uniform vec3 cameraTarget;
+uniform float shadowAmount;
 
 void main() {
     facePosition = position - cameraPos;

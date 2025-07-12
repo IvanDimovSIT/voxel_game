@@ -10,6 +10,7 @@ use macroquad::{
 use crate::{
     GameState,
     graphics::{
+        average_max_height::calculate_average_height_around_location,
         debug_display::DebugDisplay,
         renderer::Renderer,
         sky::draw_sky,
@@ -250,6 +251,12 @@ impl VoxelEngine {
             &camera,
             self.user_settings.get_render_distance(),
             &self.world_time,
+            Some(calculate_average_height_around_location(
+                &mut self.world,
+                self.player_info
+                    .camera_controller
+                    .get_camera_voxel_location(),
+            )),
         );
         self.voxel_simulator.draw(&camera);
         gl_use_default_material();

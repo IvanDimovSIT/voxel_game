@@ -14,6 +14,7 @@ uniform float fogNear;
 uniform float lightLevel;
 uniform vec3 fogBaseColorLight;
 uniform vec3 fogBaseColorDark;
+uniform float shadowAmount;
 
 const vec3 lightDir = normalize(vec3(0.2, 0.8, -1.0));
 const float reflectionIntensity = 0.05;
@@ -24,11 +25,11 @@ const float dropShadowLight = 0.2;
 const float playerLightStrength = 15.0;
 
 
-float calculateDiffuseLight(vec3 normal) {
+float calculateDiffuseLight(vec3 normal, float shadowedLightLevel) {
     float diffuse = max(dot(normal, lightDir), 0.0);
     if (facePosition.z > 0.0 && 
         distance(vec2(0.0, 0.0), vec2(facePosition.x, facePosition.y)) < dropShadowRadius) {
-        diffuse = dropShadowLight * lightLevel;
+        diffuse = dropShadowLight * shadowedLightLevel;
     }
 
     return diffuse;
@@ -48,19 +49,22 @@ float addPlayerLight(float baseLight, float distanceToFace, float darkLevel) {
 }
 
 void main() {
-    float darkLevel = 1.0 - lightLevel;
     vec4 texColor = texture2D(Texture, uv);
     vec3 normal = normalize(fragNormal);
     float distanceToFace = length(facePosition);
+    float directLightingAmount = 1.0 - shadowAmount;
     
-    float diffuse = calculateDiffuseLight(normal);
+    float shadowedLightLevel = directLightingAmount  * lightLevel;
+    float darkLevel = 1.0 - shadowedLightLevel;
 
-    float sunLighting = min(lightLevel, 1.0) * (ambient + diffuse * (1.0 - ambient));
+    float diffuse = calculateDiffuseLight(normal, shadowedLightLevel);
+
+    float sunLighting = min(shadowedLightLevel, 1.0) * (ambient + diffuse * (1.0 - ambient));
     float lighting = addPlayerLight(sunLighting, distanceToFace, darkLevel);
 
     vec3 viewDir = normalize(-facePosition);
     vec3 reflectDir = reflect(-lightDir, normal);
-    float specular = pow(max(dot(reflectDir, viewDir), 0.0), 32.0) * specularStrength * lightLevel;
+    float specular = pow(max(dot(reflectDir, viewDir), 0.0), 32.0) * specularStrength * shadowedLightLevel;
     
     float fresnel = pow(1.0 - max(dot(normal, viewDir), 0.0), 3.0);
     float rim = fresnel * reflectionIntensity;

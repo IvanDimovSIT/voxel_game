@@ -13,6 +13,8 @@ use crate::{
     service::world_time::WorldTime,
 };
 
+const SHADOW_CHANGE_STEEPNESS: f32 = 10.0;
+
 const VOXEL_VERTEX_SHADER: &str = include_str!("../../resources/shaders/voxel_vertex.glsl");
 const VOXEL_FRAGMENT_SHADER: &str = include_str!("../../resources/shaders/voxel_fragment.glsl");
 
@@ -23,6 +25,7 @@ const FOG_FAR_UNIFORM: &str = "fogFar";
 const LIGHT_LEVEL_UNIFORM: &str = "lightLevel";
 const FOG_BASE_COLOR_LIGHT_UNIFORM: &str = "fogBaseColorLight";
 const FOG_BASE_COLOR_DARK_UNIFORM: &str = "fogBaseColorDark";
+const SHADOW_AMOUNT_UNIFORM: &str = "shadowAmount";
 
 /// default 3D material shader for voxels
 pub struct VoxelShader {
@@ -46,6 +49,8 @@ impl VoxelShader {
             UniformDesc::new(FOG_BASE_COLOR_LIGHT_UNIFORM, UniformType::Float3);
         let fog_dark_color_uniform =
             UniformDesc::new(FOG_BASE_COLOR_DARK_UNIFORM, UniformType::Float3);
+        let average_max_height_uniform =
+            UniformDesc::new(SHADOW_AMOUNT_UNIFORM, UniformType::Float1);
 
         let voxel_material = load_material(
             ShaderSource::Glsl {
@@ -62,6 +67,7 @@ impl VoxelShader {
                     light_level_uniform,
                     fog_light_color_uniform,
                     fog_dark_color_uniform,
+                    average_max_height_uniform,
                 ],
                 ..Default::default()
             },
@@ -72,7 +78,13 @@ impl VoxelShader {
     }
 
     /// sets the current OpenGL shader to render the world voxels
-    pub fn set_voxel_material(&self, camera: &Camera3D, render_size: u32, world_time: &WorldTime) {
+    pub fn set_voxel_material(
+        &self,
+        camera: &Camera3D,
+        render_size: u32,
+        world_time: &WorldTime,
+        average_max_height: Option<f32>,
+    ) {
         self.voxel_material.set_uniform(
             CAMERA_POSITION_UNIFORM,
             [camera.position.x, camera.position.y, camera.position.z],
@@ -92,8 +104,22 @@ impl VoxelShader {
         );
         self.voxel_material
             .set_uniform(FOG_BASE_COLOR_DARK_UNIFORM, SKY_DARK_COLOR.to_vec().xyz());
+        let shadow_amount = average_max_height
+            .map(|max_z| Self::calculate_shadow_amount(max_z, camera))
+            .unwrap_or(0.0);
+        self.voxel_material
+            .set_uniform(SHADOW_AMOUNT_UNIFORM, shadow_amount);
 
         gl_use_material(&self.voxel_material);
+    }
+
+    fn calculate_shadow_amount(average_max_height: f32, camera: &Camera3D) -> f32 {
+        let player_z = camera.position.z - 1.0;
+        if average_max_height >= player_z {
+            0.0
+        } else {
+            ((player_z - average_max_height) / SHADOW_CHANGE_STEEPNESS).clamp(0.0, 0.7)
+        }
     }
 
     fn calulate_fog_distances(render_size: u32) -> (f32, f32) {

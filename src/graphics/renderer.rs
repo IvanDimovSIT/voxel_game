@@ -295,11 +295,12 @@ impl Renderer {
         camera: &Camera3D,
         render_size: u32,
         world_time: &WorldTime,
+        average_max_height: Option<f32>,
     ) -> (usize, usize) {
         let normalised_camera = CameraController::normalize_camera_3d(camera);
         set_camera(&normalised_camera);
         self.shader
-            .set_voxel_material(camera, render_size, world_time);
+            .set_voxel_material(camera, render_size, world_time, average_max_height);
         let look = (camera.target - camera.position).normalize_or_zero();
 
         let visible_areas = self.prepare_visible_areas(camera, look, render_size);
