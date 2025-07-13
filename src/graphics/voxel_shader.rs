@@ -1,6 +1,6 @@
 use macroquad::{
     camera::Camera3D,
-    math::Vec4Swizzles,
+    math::{Vec3, Vec4Swizzles, vec3},
     prelude::{
         Comparison, Material, MaterialParams, PipelineParams, ShaderSource, UniformDesc,
         UniformType, gl_use_material, load_material,
@@ -9,11 +9,15 @@ use macroquad::{
 
 use crate::{
     graphics::sky::{SKY_BRIGHT_COLOR, SKY_DARK_COLOR},
-    model::area::AREA_SIZE,
+    model::{
+        area::AREA_SIZE,
+        location::{InternalLocation, Location},
+    },
     service::world_time::WorldTime,
 };
 
 const SHADOW_CHANGE_STEEPNESS: f32 = 10.0;
+const MAX_LIGHTS: usize = 32;
 
 const VOXEL_VERTEX_SHADER: &str = include_str!("../../resources/shaders/voxel_vertex.glsl");
 const VOXEL_FRAGMENT_SHADER: &str = include_str!("../../resources/shaders/voxel_fragment.glsl");
@@ -26,6 +30,8 @@ const LIGHT_LEVEL_UNIFORM: &str = "lightLevel";
 const FOG_BASE_COLOR_LIGHT_UNIFORM: &str = "fogBaseColorLight";
 const FOG_BASE_COLOR_DARK_UNIFORM: &str = "fogBaseColorDark";
 const SHADOW_AMOUNT_UNIFORM: &str = "shadowAmount";
+const LIGHTS_COUNT_UNIFORM: &str = "lightsCount";
+const LIGHTS_UNIFORM: &str = "lights";
 
 /// default 3D material shader for voxels
 pub struct VoxelShader {
@@ -51,6 +57,9 @@ impl VoxelShader {
             UniformDesc::new(FOG_BASE_COLOR_DARK_UNIFORM, UniformType::Float3);
         let average_max_height_uniform =
             UniformDesc::new(SHADOW_AMOUNT_UNIFORM, UniformType::Float1);
+        let lights_count_uniform = UniformDesc::new(LIGHTS_COUNT_UNIFORM, UniformType::Int1);
+        let lights_uniform =
+            UniformDesc::new(LIGHTS_UNIFORM, UniformType::Float3).array(MAX_LIGHTS);
 
         let voxel_material = load_material(
             ShaderSource::Glsl {
@@ -68,6 +77,8 @@ impl VoxelShader {
                     fog_light_color_uniform,
                     fog_dark_color_uniform,
                     average_max_height_uniform,
+                    lights_count_uniform,
+                    lights_uniform,
                 ],
                 ..Default::default()
             },
@@ -84,6 +95,7 @@ impl VoxelShader {
         render_size: u32,
         world_time: &WorldTime,
         average_max_height: Option<f32>,
+        lights: &[InternalLocation],
     ) {
         self.voxel_material.set_uniform(
             CAMERA_POSITION_UNIFORM,
@@ -109,8 +121,35 @@ impl VoxelShader {
             .unwrap_or(0.0);
         self.voxel_material
             .set_uniform(SHADOW_AMOUNT_UNIFORM, shadow_amount);
+        self.set_lights(lights, camera);
 
         gl_use_material(&self.voxel_material);
+    }
+
+    fn set_lights(&self, lights: &[InternalLocation], camera: &Camera3D) {
+        let mut lights_array: [Vec3; MAX_LIGHTS] = [Vec3::ZERO; MAX_LIGHTS];
+        let lights_count = lights.len().min(MAX_LIGHTS);
+        let lights_iter = lights
+            .iter()
+            .take(MAX_LIGHTS)
+            .map(|internal_location| {
+                let location: Location = internal_location.clone().into();
+                vec3(
+                    location.x as f32 - camera.position.x,
+                    location.y as f32 - camera.position.y,
+                    location.z as f32 - camera.position.z,
+                )
+            })
+            .enumerate();
+
+        for (i, light_position) in lights_iter {
+            lights_array[i] = light_position;
+        }
+
+        self.voxel_material
+            .set_uniform_array(LIGHTS_UNIFORM, &lights_array);
+        self.voxel_material
+            .set_uniform(LIGHTS_COUNT_UNIFORM, lights_count as i32);
     }
 
     fn calculate_shadow_amount(average_max_height: f32, camera: &Camera3D) -> f32 {

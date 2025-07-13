@@ -15,6 +15,7 @@ use crate::{
     model::{
         area::{AREA_HEIGHT, AREA_SIZE, AreaLocation},
         location::{InternalLocation, LOCATION_OFFSET, Location},
+        user_settings::UserSettings,
         voxel::{MAX_VOXEL_VARIANTS, Voxel},
         world::World,
     },
@@ -36,7 +37,32 @@ const AREAS_TO_LOAD_PER_FRAME: usize = 2;
 
 /// stores the face count, voxel type and mesh data
 type MeshInfo = (u8, Voxel, Mesh);
-type Meshes = HashMap<AreaLocation, HashMap<InternalLocation, MeshInfo>>;
+type Meshes = HashMap<AreaLocation, RenderArea>;
+
+struct RenderArea {
+    mesh_map: HashMap<InternalLocation, MeshInfo>,
+    lights: HashSet<InternalLocation>,
+}
+impl RenderArea {
+    pub fn new_empty() -> Self {
+        Self {
+            mesh_map: HashMap::new(),
+            lights: HashSet::new(),
+        }
+    }
+
+    pub fn insert(&mut self, location: InternalLocation, mesh_info: MeshInfo) {
+        if mesh_info.1 == Voxel::Lamp {
+            self.lights.insert(location);
+        }
+        self.mesh_map.insert(location, mesh_info);
+    }
+
+    pub fn remove(&mut self, location: &InternalLocation) {
+        self.lights.remove(location);
+        self.mesh_map.remove(location);
+    }
+}
 
 struct GeneratedMeshResult {
     pub mesh: Option<Mesh>,
@@ -146,7 +172,7 @@ impl Renderer {
 
         let mut area = self.meshes.get_mut(&area_location);
         if area.is_none() {
-            self.meshes.insert(area_location, HashMap::new());
+            self.meshes.insert(area_location, RenderArea::new_empty());
             area = self.meshes.get_mut(&area_location);
         }
         let area = area.unwrap();
@@ -296,14 +322,21 @@ impl Renderer {
         render_size: u32,
         world_time: &WorldTime,
         average_max_height: Option<f32>,
+        user_settings: &UserSettings,
     ) -> (usize, usize) {
         let normalised_camera = CameraController::normalize_camera_3d(camera);
         set_camera(&normalised_camera);
-        self.shader
-            .set_voxel_material(camera, render_size, world_time, average_max_height);
         let look = (camera.target - camera.position).normalize_or_zero();
 
         let visible_areas = self.prepare_visible_areas(camera, look, render_size);
+        let lights = Self::prepare_lights(&visible_areas, user_settings);
+        self.shader.set_voxel_material(
+            camera,
+            render_size,
+            world_time,
+            average_max_height,
+            &lights,
+        );
 
         let visible_voxels =
             Self::filter_visible_voxels(camera.position, look, &visible_areas, render_size);
@@ -322,7 +355,7 @@ impl Renderer {
     pub fn get_voxel_face_count(&self) -> usize {
         self.meshes
             .values()
-            .flat_map(|areas| areas.values())
+            .flat_map(|areas| areas.mesh_map.values())
             .map(|voxel_meshes| voxel_meshes.0 as usize)
             .sum()
     }
@@ -368,13 +401,27 @@ impl Renderer {
         self.mesh_generator.get_texture_manager_copy()
     }
 
+    fn prepare_lights(
+        render_areas: &[(&AreaLocation, &RenderArea)],
+        user_settings: &UserSettings,
+    ) -> Vec<InternalLocation> {
+        if !user_settings.dynamic_lighting {
+            return vec![];
+        }
+
+        render_areas
+            .iter()
+            .flat_map(|(_, area)| area.lights.iter().map(|x| *x))
+            .collect()
+    }
+
     /// prepares the areas that are visible to the camera
     fn prepare_visible_areas(
         &self,
         camera: &Camera3D,
         look: Vec3,
         render_size: u32,
-    ) -> Vec<(&AreaLocation, &HashMap<InternalLocation, MeshInfo>)> {
+    ) -> Vec<(&AreaLocation, &RenderArea)> {
         let area_render_distance = Self::calculate_area_render_distance(look, render_size);
 
         self.meshes
@@ -389,14 +436,14 @@ impl Renderer {
     fn filter_visible_voxels<'a>(
         camera_position: Vec3,
         look: Vec3,
-        visible_areas: &'a Vec<(&'a AreaLocation, &'a HashMap<InternalLocation, MeshInfo>)>,
+        visible_areas: &'a Vec<(&'a AreaLocation, &'a RenderArea)>,
         render_size: u32,
     ) -> Vec<(&'a InternalLocation, &'a MeshInfo)> {
         let render_distance = (render_size * AREA_SIZE) as f32;
 
         visible_areas
             .par_iter()
-            .flat_map(|(_, y)| *y)
+            .flat_map(|(_, y)| &y.mesh_map)
             .filter(|(location, _mesh_with_face_count)| {
                 Self::is_voxel_visible(location, look, camera_position, render_distance)
             })

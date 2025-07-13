@@ -251,12 +251,14 @@ impl VoxelEngine {
             &camera,
             self.user_settings.get_render_distance(),
             &self.world_time,
-            Some(calculate_average_height_around_location(
+            calculate_average_height_around_location(
                 &mut self.world,
                 self.player_info
                     .camera_controller
                     .get_camera_voxel_location(),
-            )),
+                &self.user_settings,
+            ),
+            &self.user_settings,
         );
         self.voxel_simulator.draw(&camera);
         gl_use_default_material();

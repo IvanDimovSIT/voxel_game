@@ -15,6 +15,8 @@ uniform float lightLevel;
 uniform vec3 fogBaseColorLight;
 uniform vec3 fogBaseColorDark;
 uniform float shadowAmount;
+uniform int lightsCount;
+uniform vec3 lights[32];
 
 const vec3 lightDir = normalize(vec3(0.2, 0.8, -1.0));
 const float reflectionIntensity = 0.05;
@@ -23,6 +25,7 @@ const float specularStrength = 0.25;
 const float dropShadowRadius = 0.4;
 const float dropShadowLight = 0.2;
 const float playerLightStrength = 15.0;
+const float lampStrength = 6.0;
 
 
 float calculateDiffuseLight(vec3 normal, float shadowedLightLevel) {
@@ -48,6 +51,15 @@ float addPlayerLight(float baseLight, float distanceToFace, float darkLevel) {
     return min(baseLight + darkLevel * playerLightProximity * playerLightProximity, 1.0);
 }
 
+float addLampLighting(float lighting) {
+    for (int i = 0; i < lightsCount; i++) {
+        float distanceToLight = length(facePosition - lights[i]);
+        lighting += max(1.0 - distanceToLight/lampStrength, 0.0);
+    }
+
+    return min(lighting, 1.0);
+}
+
 void main() {
     vec4 texColor = texture2D(Texture, uv);
     vec3 normal = normalize(fragNormal);
@@ -60,7 +72,7 @@ void main() {
     float diffuse = calculateDiffuseLight(normal, shadowedLightLevel);
 
     float sunLighting = min(shadowedLightLevel, 1.0) * (ambient + diffuse * (1.0 - ambient));
-    float lighting = addPlayerLight(sunLighting, distanceToFace, darkLevel);
+    float lighting = addLampLighting(addPlayerLight(sunLighting, distanceToFace, darkLevel));
 
     vec3 viewDir = normalize(-facePosition);
     vec3 reflectDir = reflect(-lightDir, normal);

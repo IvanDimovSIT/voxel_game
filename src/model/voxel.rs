@@ -17,6 +17,7 @@ pub enum Voxel {
     Boards,
     Stone,
     Clay,
+    Lamp,
 }
 impl Voxel {
     pub fn index(self) -> usize {
@@ -41,6 +42,7 @@ impl Voxel {
             Voxel::Boards => "Wooden Boards",
             Voxel::Stone => "Stone",
             Voxel::Clay => "Clay",
+            Voxel::Lamp => "Lamp",
         }
     }
 }

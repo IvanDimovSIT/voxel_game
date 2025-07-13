@@ -8,6 +8,7 @@ pub struct UserSettings {
     render_distance: u32,
     pub has_sound: bool,
     pub is_fullscreen: bool,
+    pub dynamic_lighting: bool,
 }
 impl UserSettings {
     pub fn get_render_distance(&self) -> u32 {
@@ -38,6 +39,7 @@ impl Default for UserSettings {
             render_distance: 7,
             has_sound: true,
             is_fullscreen: false,
+            dynamic_lighting: true,
         }
     }
 }
