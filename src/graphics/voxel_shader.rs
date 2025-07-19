@@ -133,7 +133,7 @@ impl VoxelShader {
             .iter()
             .take(MAX_LIGHTS)
             .map(|internal_location| {
-                let location: Location = internal_location.clone().into();
+                let location: Location = (*internal_location).into();
                 vec3(
                     location.x as f32 - camera.position.x,
                     location.y as f32 - camera.position.y,

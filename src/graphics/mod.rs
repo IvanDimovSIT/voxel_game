@@ -1,5 +1,5 @@
-pub mod average_max_height;
 pub mod debug_display;
+pub mod max_height;
 pub mod mesh_generator;
 pub mod renderer;
 pub mod sky;

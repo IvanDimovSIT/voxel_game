@@ -10,8 +10,8 @@ use macroquad::{
 use crate::{
     GameState,
     graphics::{
-        average_max_height::calculate_average_height_around_location,
         debug_display::DebugDisplay,
+        max_height::calculate_max_height_around_location,
         renderer::Renderer,
         sky::draw_sky,
         texture_manager::TextureManager,
@@ -251,7 +251,7 @@ impl VoxelEngine {
             &camera,
             self.user_settings.get_render_distance(),
             &self.world_time,
-            calculate_average_height_around_location(
+            calculate_max_height_around_location(
                 &mut self.world,
                 self.player_info
                     .camera_controller

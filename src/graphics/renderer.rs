@@ -411,7 +411,7 @@ impl Renderer {
 
         render_areas
             .iter()
-            .flat_map(|(_, area)| area.lights.iter().map(|x| *x))
+            .flat_map(|(_, area)| area.lights.iter().copied())
             .collect()
     }
 
