@@ -41,7 +41,11 @@ pub fn replace_voxel(
     renderer: &mut Renderer,
     voxel_simulator: &mut VoxelSimulator,
 ) -> bool {
-    if world.get(location) == Voxel::None || location.z == AREA_HEIGHT as i32 - 1 {
+    let to_be_replaced = world.get(location);
+    if to_be_replaced == Voxel::None
+        || location.z == AREA_HEIGHT as i32 - 1
+        || to_be_replaced == voxel
+    {
         return false;
     }
 

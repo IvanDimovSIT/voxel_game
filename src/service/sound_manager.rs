@@ -54,11 +54,15 @@ impl SoundManager {
         }
     }
 
-    pub fn play_sound_for_collision(&self, collision_type: CollisionType, user_settings: &UserSettings) {
+    pub fn play_sound_for_collision(
+        &self,
+        collision_type: CollisionType,
+        user_settings: &UserSettings,
+    ) {
         match collision_type {
             CollisionType::Bounce => self.play_sound(SoundId::Bounce, user_settings),
             CollisionType::Strong => self.play_sound(SoundId::Fall, user_settings),
-            _ => {},
+            _ => {}
         }
     }
 }

@@ -14,14 +14,14 @@ const MAX_FALL_SPEED: f32 = 60.0;
 const STRONG_COLLISION_SPEED: f32 = MAX_FALL_SPEED * 0.2;
 const MAX_LOCATIONS_TO_CHECK: usize = 9;
 const MOVE_CHECKS: usize = 4;
-const MIN_VELOCITY_TO_BOUNCE: f32 = 0.1;
+const MIN_VELOCITY_TO_BOUNCE: f32 = 1.5;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CollisionType {
     None,
     Weak,
     Strong,
-    Bounce
+    Bounce,
 }
 
 pub fn push_player_up_if_stuck(player_info: &mut PlayerInfo, world: &mut World) {
