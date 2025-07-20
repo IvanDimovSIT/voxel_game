@@ -216,10 +216,7 @@ impl VoxelEngine {
     /// process falling and collisions
     fn process_physics(&mut self, delta: f32) {
         let collision_type = process_collisions(&mut self.player_info, &mut self.world, delta);
-        if collision_type == CollisionType::Strong {
-            self.sound_manager
-                .play_sound(SoundId::Fall, &self.user_settings);
-        }
+        self.sound_manager.play_sound_for_collision(collision_type, &self.user_settings);
 
         push_player_up_if_stuck(&mut self.player_info, &mut self.world);
         self.voxel_simulator

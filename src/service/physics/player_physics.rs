@@ -14,12 +14,14 @@ const MAX_FALL_SPEED: f32 = 60.0;
 const STRONG_COLLISION_SPEED: f32 = MAX_FALL_SPEED * 0.2;
 const MAX_LOCATIONS_TO_CHECK: usize = 9;
 const MOVE_CHECKS: usize = 4;
+const MIN_VELOCITY_TO_BOUNCE: f32 = 0.1;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CollisionType {
     None,
     Weak,
     Strong,
+    Bounce
 }
 
 pub fn push_player_up_if_stuck(player_info: &mut PlayerInfo, world: &mut World) {
@@ -54,7 +56,12 @@ pub fn process_collisions(
     find_locations_for_collisions(top_position, player_info.size, &mut top_locations);
 
     for down_location in down_locations {
-        if is_location_non_empty(down_location, world) {
+        let voxel_hit = world.get(down_location);
+        if voxel_hit != Voxel::None {
+            if voxel_hit == Voxel::Trampoline && should_bounce_from_trampoline(player_info) {
+                return CollisionType::Bounce;
+            }
+
             let mut collision_type = CollisionType::Weak;
             if player_info.velocity >= STRONG_COLLISION_SPEED {
                 collision_type = CollisionType::Strong;
@@ -76,6 +83,15 @@ pub fn process_collisions(
 
     player_info.camera_controller.set_position(top_position);
     CollisionType::None
+}
+
+fn should_bounce_from_trampoline(player_info: &mut PlayerInfo) -> bool {
+    if player_info.velocity < MIN_VELOCITY_TO_BOUNCE {
+        return false;
+    }
+
+    player_info.velocity = -player_info.velocity;
+    true
 }
 
 pub fn try_jump(player_info: &mut PlayerInfo, world: &mut World) {
