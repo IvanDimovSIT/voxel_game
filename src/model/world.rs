@@ -73,6 +73,23 @@ impl World {
         )
     }
 
+    /// finds the maximum height of a voxel column at the given location
+    pub fn find_max_height_for_column(&mut self, location: impl Into<InternalLocation>) -> u32 {
+        let internal_location = location.into();
+        let (area_location, local) =
+            Self::convert_global_to_area_and_local_location(internal_location);
+        self.load_area(area_location);
+        let area = &self.areas[&area_location];
+
+        (0..AREA_HEIGHT)
+            .find(|z| {
+                let current_location = InternalLocation { z: *z, ..local };
+
+                area.get(current_location) != Voxel::None
+            })
+            .unwrap_or(AREA_HEIGHT as u32 - 1)
+    }
+
     pub fn get_renderable_voxels_for_area(
         &mut self,
         area_location: AreaLocation,

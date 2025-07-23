@@ -469,15 +469,15 @@ impl Renderer {
         max_distance: f32,
     ) -> bool {
         let voxel_location: Vec3 = Location::from(*internal_location).into();
-        let is_in_proximiity = (voxel_location.x - camera_position.x).abs()
-            <= VOXEL_PROXIMITY_THRESHOLD
-            && (voxel_location.y - camera_position.y).abs() <= VOXEL_PROXIMITY_THRESHOLD
-            && (voxel_location.z - camera_position.z).abs() <= VOXEL_PROXIMITY_THRESHOLD;
+        let direction_to_voxel = voxel_location - camera_position;
+
+        let is_in_proximiity = direction_to_voxel.x.abs() <= VOXEL_PROXIMITY_THRESHOLD
+            && direction_to_voxel.y.abs() <= VOXEL_PROXIMITY_THRESHOLD
+            && direction_to_voxel.z.abs() <= VOXEL_PROXIMITY_THRESHOLD;
         if is_in_proximiity {
             return true;
         }
 
-        let direction_to_voxel = voxel_location - camera_position;
         let distance_to_voxel = direction_to_voxel.length();
         if distance_to_voxel > max_distance {
             return false;

@@ -19,6 +19,7 @@ pub fn place_voxel(
     renderer: &mut Renderer,
     voxel_simulator: &mut VoxelSimulator,
 ) -> bool {
+    debug_assert!(voxel != Voxel::None);
     let unable_to_place_voxel = world.get(location) != Voxel::None
         || will_new_voxel_cause_collision(player_info, location)
         || voxel_simulator.location_has_voxel(location);
@@ -41,6 +42,7 @@ pub fn replace_voxel(
     renderer: &mut Renderer,
     voxel_simulator: &mut VoxelSimulator,
 ) -> bool {
+    debug_assert!(voxel != Voxel::None);
     let to_be_replaced = world.get(location);
     if to_be_replaced == Voxel::None
         || location.z == AREA_HEIGHT as i32 - 1

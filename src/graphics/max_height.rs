@@ -1,6 +1,4 @@
-use crate::model::{
-    area::AREA_HEIGHT, location::Location, user_settings::UserSettings, voxel::Voxel, world::World,
-};
+use crate::model::{location::Location, user_settings::UserSettings, world::World};
 
 const SAMPLE_RADIUS: i32 = 2;
 
@@ -24,11 +22,5 @@ pub fn calculate_max_height_around_location(
 }
 
 fn find_max_height(world: &mut World, x: i32, y: i32) -> f32 {
-    (0..AREA_HEIGHT as i32)
-        .find(|z| {
-            let voxel = world.get(Location::new(x, y, *z));
-            voxel != Voxel::None
-        })
-        .map(|max_height| max_height as f32)
-        .unwrap_or(AREA_HEIGHT as f32)
+    world.find_max_height_for_column(Location::new(x, y, 0)) as f32
 }
