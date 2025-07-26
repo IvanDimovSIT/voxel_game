@@ -149,6 +149,10 @@ impl WorldSelectionContext {
     }
 
     fn handle_world_list(&mut self, width: f32, height: f32) {
+        if self.world_list.len() == 0 {
+            return;
+        }
+
         let world_list_x = (width - WORLD_LIST_WIDTH) * 0.5;
         let world_list_y = height * 0.6;
         let possible_selection = self.world_list.draw(

@@ -19,8 +19,15 @@ pub enum Voxel {
     Clay,
     Lamp,
     Trampoline,
+    Glass,
 }
 impl Voxel {
+    /// voxels that are fully or partially transparent
+    pub const TRANSPARENT: [Self; 2] = [Self::None, Self::Glass];
+
+    /// voxels that can fall down
+    pub const FALLING: [Self; 3] = [Self::Sand, Self::Dirt, Self::Grass];
+
     pub fn index(self) -> usize {
         let index = self as usize;
         debug_assert!(
@@ -32,19 +39,20 @@ impl Voxel {
 
     pub fn display_name(self) -> &'static str {
         match self {
-            Voxel::None => "None",
-            Voxel::Cobblestone => "Cobblestone",
-            Voxel::Sand => "Sand",
-            Voxel::Grass => "Grass",
-            Voxel::Wood => "Wood",
-            Voxel::Leaves => "Leaves",
-            Voxel::Brick => "Brick",
-            Voxel::Dirt => "Dirt",
-            Voxel::Boards => "Wooden Boards",
-            Voxel::Stone => "Stone",
-            Voxel::Clay => "Clay",
-            Voxel::Lamp => "Lamp",
-            Voxel::Trampoline => "Trampoline",
+            Self::None => "None",
+            Self::Cobblestone => "Cobblestone",
+            Self::Sand => "Sand",
+            Self::Grass => "Grass",
+            Self::Wood => "Wood",
+            Self::Leaves => "Leaves",
+            Self::Brick => "Brick",
+            Self::Dirt => "Dirt",
+            Self::Boards => "Wooden Boards",
+            Self::Stone => "Stone",
+            Self::Clay => "Clay",
+            Self::Lamp => "Lamp",
+            Self::Trampoline => "Trampoline",
+            Self::Glass => "Glass",
         }
     }
 }

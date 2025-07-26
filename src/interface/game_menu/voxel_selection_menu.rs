@@ -19,7 +19,7 @@ use crate::{
     service::input::exit_focus,
 };
 
-const VOXELS_IN_SELECTION_MENU: [Option<Voxel>; 12] = [
+const VOXELS_IN_SELECTION_MENU: [Option<Voxel>; 13] = [
     Some(Voxel::Stone),
     Some(Voxel::Sand),
     Some(Voxel::Grass),
@@ -32,6 +32,7 @@ const VOXELS_IN_SELECTION_MENU: [Option<Voxel>; 12] = [
     Some(Voxel::Clay),
     Some(Voxel::Lamp),
     Some(Voxel::Trampoline),
+    Some(Voxel::Glass),
 ];
 
 const VOXEL_SIZE: f32 = 0.08;
@@ -275,10 +276,17 @@ fn draw_inventory_voxels(
             if let Some(voxel) = get_voxel_at_index(index) {
                 let texture = texture_manager.get(voxel);
                 draw_voxel_texture(&texture, voxel_size, x_pos, y_pos);
+                if Voxel::TRANSPARENT.contains(&voxel) {
+                    draw_empty_slot(voxel_size, x_pos, y_pos);
+                }
             } else {
-                let empty_slot_size = voxel_size * INNER_VOXELS_MULTIPLIER;
-                draw_rectangle(x_pos, y_pos, empty_slot_size, empty_slot_size, SHADOW_COLOR);
+                draw_empty_slot(voxel_size, x_pos, y_pos);
             }
         }
     }
+}
+
+fn draw_empty_slot(voxel_size: f32, x_pos: f32, y_pos: f32) {
+    let empty_slot_size = voxel_size * INNER_VOXELS_MULTIPLIER;
+    draw_rectangle(x_pos, y_pos, empty_slot_size, empty_slot_size, SHADOW_COLOR);
 }

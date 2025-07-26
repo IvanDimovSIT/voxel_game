@@ -124,24 +124,26 @@ impl Renderer {
 
         let mut face_directions = StackVec::<FaceDirection, 6>::new();
 
-        if Voxel::None == world.get(global_location.offset_x(1)) {
+        if MeshGenerator::should_generate_face(voxel, world.get(global_location.offset_x(1))) {
             face_directions.push(FaceDirection::Left);
         }
-        if Voxel::None == world.get(global_location.offset_x(-1)) {
+        if MeshGenerator::should_generate_face(voxel, world.get(global_location.offset_x(-1))) {
             face_directions.push(FaceDirection::Right);
         }
-        if Voxel::None == world.get(global_location.offset_y(1)) {
+        if MeshGenerator::should_generate_face(voxel, world.get(global_location.offset_y(1))) {
             face_directions.push(FaceDirection::Front);
         }
-        if Voxel::None == world.get(global_location.offset_y(-1)) {
+        if MeshGenerator::should_generate_face(voxel, world.get(global_location.offset_y(-1))) {
             face_directions.push(FaceDirection::Back);
         }
         if global_location.z + 1 < AREA_HEIGHT
-            && Voxel::None == world.get(global_location.offset_z(1))
+            && MeshGenerator::should_generate_face(voxel, world.get(global_location.offset_z(1)))
         {
             face_directions.push(FaceDirection::Down);
         }
-        if global_location.z > 0 && Voxel::None == world.get(global_location.offset_z(-1)) {
+        if global_location.z > 0
+            && MeshGenerator::should_generate_face(voxel, world.get(global_location.offset_z(-1)))
+        {
             face_directions.push(FaceDirection::Up);
         }
 

@@ -1,6 +1,7 @@
 use macroquad::{
     camera::Camera3D,
     math::{Vec3, Vec4Swizzles, vec3},
+    miniquad::{BlendFactor, BlendState, BlendValue, Equation},
     prelude::{
         Comparison, Material, MaterialParams, PipelineParams, ShaderSource, UniformDesc,
         UniformType, gl_use_material, load_material,
@@ -43,6 +44,11 @@ impl VoxelShader {
             depth_write: true,
             depth_test: Comparison::LessOrEqual,
             cull_face: macroquad::miniquad::CullFace::Back,
+            color_blend: Some(BlendState::new(
+                Equation::Add,
+                BlendFactor::Value(BlendValue::SourceAlpha),
+                BlendFactor::OneMinusValue(BlendValue::SourceAlpha),
+            )),
             ..Default::default()
         };
 

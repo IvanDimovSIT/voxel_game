@@ -303,4 +303,10 @@ impl MeshGenerator {
     pub fn get_texture_manager_copy(&self) -> Rc<TextureManager> {
         self.texture_manager.clone()
     }
+
+    /// checks if the face should be generated based on the current voxel and its neighbour
+    pub fn should_generate_face(current_voxel: Voxel, neighbour_voxel: Voxel) -> bool {
+        neighbour_voxel == Voxel::None
+            || (current_voxel != Voxel::Glass && neighbour_voxel == Voxel::Glass)
+    }
 }

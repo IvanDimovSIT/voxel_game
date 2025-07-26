@@ -22,5 +22,5 @@ pub fn calculate_max_height_around_location(
 }
 
 fn find_max_height(world: &mut World, x: i32, y: i32) -> f32 {
-    world.find_max_height_for_column(Location::new(x, y, 0)) as f32
+    world.find_max_height_of_opaque_voxels_for_column(Location::new(x, y, 0)) as f32
 }

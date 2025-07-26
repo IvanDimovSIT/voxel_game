@@ -12,7 +12,6 @@ use crate::{
     utils::{StackVec, vector_to_location},
 };
 
-const FALLING_VOXELS: [Voxel; 3] = [Voxel::Sand, Voxel::Dirt, Voxel::Grass];
 const MAX_FALL_SPEED: f32 = 3.0;
 const GRAVITY: f32 = 0.2;
 const VIEW_CULLING_COEFFICIENT: f32 = 0.7;
@@ -114,7 +113,7 @@ impl VoxelSimulator {
 
         for location in to_check {
             let voxel = world.get(location);
-            if !FALLING_VOXELS.contains(&voxel) || location.z + 1 >= AREA_HEIGHT as i32 {
+            if !Voxel::FALLING.contains(&voxel) || location.z + 1 >= AREA_HEIGHT as i32 {
                 continue;
             }
             let lower = Location {
@@ -142,7 +141,7 @@ impl VoxelSimulator {
                 z: location.z - 1,
                 ..location
             };
-            if up_location.z >= 0 && FALLING_VOXELS.contains(&world.get(up_location)) {
+            if up_location.z >= 0 && Voxel::FALLING.contains(&world.get(up_location)) {
                 self.update_voxels(world, renderer, up_location);
             }
         }

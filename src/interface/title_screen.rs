@@ -38,67 +38,60 @@ impl TitleScreenContext {
         draw_text("Voxel World", x, y, TITLE_SIZE, TEXT_COLOR);
     }
 
-    fn draw_play_button(
-        &self,
+    fn draw_title_screen_button(
         width: f32,
         height: f32,
         sound_manager: &SoundManager,
         user_settings: &UserSettings,
+        text: &str,
+        order: u32,
     ) -> bool {
         let x = (width - BUTTON_WIDTH) * 0.5;
-        let y = height * 0.35;
+        let y = height * 0.35 + BUTTON_HEIGHT_OFFSET * order as f32;
         draw_button(
             x,
             y,
             BUTTON_WIDTH,
             BUTTON_HEIGHT,
-            "   Play",
+            text,
             BUTTON_TEXT_SIZE,
             sound_manager,
             user_settings,
         )
     }
 
-    fn draw_settings_button(
-        &self,
+    fn draw_play_button(
         width: f32,
         height: f32,
         sound_manager: &SoundManager,
         user_settings: &UserSettings,
     ) -> bool {
-        let x = (width - BUTTON_WIDTH) * 0.5;
-        let y = height * 0.35 + BUTTON_HEIGHT_OFFSET;
-        draw_button(
-            x,
-            y,
-            BUTTON_WIDTH,
-            BUTTON_HEIGHT,
-            "   Settings",
-            BUTTON_TEXT_SIZE,
+        Self::draw_title_screen_button(width, height, sound_manager, user_settings, "   Play", 0)
+    }
+
+    fn draw_settings_button(
+        width: f32,
+        height: f32,
+        sound_manager: &SoundManager,
+        user_settings: &UserSettings,
+    ) -> bool {
+        Self::draw_title_screen_button(
+            width,
+            height,
             sound_manager,
             user_settings,
+            "   Settings",
+            1,
         )
     }
 
     fn draw_exit_button(
-        &self,
         width: f32,
         height: f32,
         sound_manager: &SoundManager,
         user_settings: &UserSettings,
     ) -> bool {
-        let x = (width - BUTTON_WIDTH) * 0.5;
-        let y = height * 0.35 + BUTTON_HEIGHT_OFFSET * 2.0;
-        draw_button(
-            x,
-            y,
-            BUTTON_WIDTH,
-            BUTTON_HEIGHT,
-            "   Exit",
-            BUTTON_TEXT_SIZE,
-            sound_manager,
-            user_settings,
-        )
+        Self::draw_title_screen_button(width, height, sound_manager, user_settings, "   Exit", 2)
     }
 
     pub async fn draw(
@@ -111,10 +104,10 @@ impl TitleScreenContext {
         let (width, height) = screen_size();
         draw_background(width, height, texture_manager);
         Self::draw_title(width, height);
-        let should_play = self.draw_play_button(width, height, sound_manager, user_settings);
+        let should_play = Self::draw_play_button(width, height, sound_manager, user_settings);
         let should_enter_settings =
-            self.draw_settings_button(width, height, sound_manager, user_settings);
-        self.should_exit = self.draw_exit_button(width, height, sound_manager, user_settings);
+            Self::draw_settings_button(width, height, sound_manager, user_settings);
+        self.should_exit = Self::draw_exit_button(width, height, sound_manager, user_settings);
         next_frame().await;
 
         if should_enter_settings {

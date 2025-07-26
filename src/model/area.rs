@@ -1,5 +1,7 @@
 use bincode::{Decode, Encode};
 
+use crate::graphics::mesh_generator::MeshGenerator;
+
 use super::{
     location::{InternalLocation, Location},
     voxel::Voxel,
@@ -46,17 +48,17 @@ impl Area {
         }
     }
 
-    fn connvert_to_index(local_location: InternalLocation) -> usize {
+    fn convert_to_index(local_location: InternalLocation) -> usize {
         (local_location.x + local_location.y * AREA_SIZE + local_location.z * AREA_SIZE * AREA_SIZE)
             as usize
     }
 
     pub fn get(&self, local_location: InternalLocation) -> Voxel {
-        self.voxels[Self::connvert_to_index(local_location)]
+        self.voxels[Self::convert_to_index(local_location)]
     }
 
     pub fn set(&mut self, local_location: InternalLocation, voxel: Voxel) {
-        self.voxels[Self::connvert_to_index(local_location)] = voxel;
+        self.voxels[Self::convert_to_index(local_location)] = voxel;
     }
 
     pub fn get_area_location(&self) -> AreaLocation {
@@ -71,8 +73,8 @@ impl Area {
         self.area_location.y
     }
 
-    /// Check if ALL neighbours WITHIN THE AREA are not None
-    pub fn has_nonempty_neighbours(&self, location: InternalLocation) -> bool {
+    /// Check if ALL neighbours WITHIN THE AREA are not transparent
+    pub fn has_non_transparent_neighbours(&self, location: InternalLocation) -> bool {
         if location.x == 0
             || location.x + 1 >= AREA_SIZE
             || location.y == 0
@@ -83,52 +85,65 @@ impl Area {
             return false;
         }
 
-        if self.get(InternalLocation::new(
-            location.x + 1,
-            location.y,
-            location.z,
-        )) == Voxel::None
-        {
+        let current_voxel = self.get(location);
+        if MeshGenerator::should_generate_face(
+            current_voxel,
+            self.get(InternalLocation::new(
+                location.x + 1,
+                location.y,
+                location.z,
+            )),
+        ) {
             return false;
         }
-        if self.get(InternalLocation::new(
-            location.x - 1,
-            location.y,
-            location.z,
-        )) == Voxel::None
-        {
+        if MeshGenerator::should_generate_face(
+            current_voxel,
+            self.get(InternalLocation::new(
+                location.x - 1,
+                location.y,
+                location.z,
+            )),
+        ) {
             return false;
         }
-        if self.get(InternalLocation::new(
-            location.x,
-            location.y + 1,
-            location.z,
-        )) == Voxel::None
-        {
+        if MeshGenerator::should_generate_face(
+            current_voxel,
+            self.get(InternalLocation::new(
+                location.x,
+                location.y + 1,
+                location.z,
+            )),
+        ) {
             return false;
         }
-        if self.get(InternalLocation::new(
-            location.x,
-            location.y - 1,
-            location.z,
-        )) == Voxel::None
-        {
+        if MeshGenerator::should_generate_face(
+            current_voxel,
+            self.get(InternalLocation::new(
+                location.x,
+                location.y - 1,
+                location.z,
+            )),
+        ) {
             return false;
         }
-        if self.get(InternalLocation::new(
-            location.x,
-            location.y,
-            location.z + 1,
-        )) == Voxel::None
-        {
+        if MeshGenerator::should_generate_face(
+            current_voxel,
+            self.get(InternalLocation::new(
+                location.x,
+                location.y,
+                location.z + 1,
+            )),
+        ) {
             return false;
         }
-        if self.get(InternalLocation::new(
-            location.x,
-            location.y,
-            location.z - 1,
-        )) == Voxel::None
-        {
+        if MeshGenerator::should_generate_face(
+            current_voxel,
+            self.get(InternalLocation::new(
+                location.x,
+                location.y,
+                location.z - 1,
+            )),
+        ) {
             return false;
         }
 

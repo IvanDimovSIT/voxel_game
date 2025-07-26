@@ -3,9 +3,7 @@
 use std::{rc::Rc, thread::sleep, time::Duration};
 
 use graphics::texture_manager::TextureManager;
-use macroquad::{
-    conf::Conf, miniquad::window::set_fullscreen, texture::FilterMode, time::get_frame_time,
-};
+use macroquad::{miniquad::window::set_fullscreen, time::get_frame_time};
 use model::user_settings::UserSettings;
 use service::sound_manager::SoundManager;
 use voxel_engine::VoxelEngine;
@@ -21,13 +19,6 @@ mod model;
 mod service;
 mod utils;
 mod voxel_engine;
-
-fn config() -> Conf {
-    Conf {
-        default_filter_mode: FilterMode::Nearest,
-        ..Default::default()
-    }
-}
 
 enum GameState {
     Running { voxel_engine: Box<VoxelEngine> },
@@ -50,7 +41,7 @@ impl GameState {
     }
 }
 
-#[macroquad::main("Voxel World", config)]
+#[macroquad::main("Voxel World")]
 async fn main() {
     let texture_manager = Rc::new(TextureManager::new().await);
     let sound_manager = Rc::new(SoundManager::new().await);

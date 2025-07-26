@@ -173,4 +173,8 @@ impl ListInput {
             ScrollDirection::None => {}
         }
     }
+
+    pub fn len(&self) -> usize {
+        self.values.len()
+    }
 }

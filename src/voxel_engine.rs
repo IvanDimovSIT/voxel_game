@@ -35,9 +35,7 @@ use crate::{
             },
         },
         physics::{
-            player_physics::{
-                CollisionType, process_collisions, push_player_up_if_stuck, try_jump, try_move,
-            },
+            player_physics::{process_collisions, push_player_up_if_stuck, try_jump, try_move},
             voxel_physics::VoxelSimulator,
         },
         raycast::{RaycastResult, cast_ray},

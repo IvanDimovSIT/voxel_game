@@ -73,8 +73,11 @@ impl World {
         )
     }
 
-    /// finds the maximum height of a voxel column at the given location
-    pub fn find_max_height_for_column(&mut self, location: impl Into<InternalLocation>) -> u32 {
+    /// finds the maximum height of a opaque voxel column at the given location
+    pub fn find_max_height_of_opaque_voxels_for_column(
+        &mut self,
+        location: impl Into<InternalLocation>,
+    ) -> u32 {
         let internal_location = location.into();
         let (area_location, local) =
             Self::convert_global_to_area_and_local_location(internal_location);
@@ -84,10 +87,9 @@ impl World {
         (0..AREA_HEIGHT)
             .find(|z| {
                 let current_location = InternalLocation { z: *z, ..local };
-
-                area.get(current_location) != Voxel::None
+                !Voxel::TRANSPARENT.contains(&area.get(current_location))
             })
-            .unwrap_or(AREA_HEIGHT as u32 - 1)
+            .unwrap_or(AREA_HEIGHT - 1)
     }
 
     pub fn get_renderable_voxels_for_area(
@@ -115,7 +117,7 @@ impl World {
                     if voxel == Voxel::None {
                         continue;
                     }
-                    if area.has_nonempty_neighbours(current_location) {
+                    if area.has_non_transparent_neighbours(current_location) {
                         continue;
                     }
 
