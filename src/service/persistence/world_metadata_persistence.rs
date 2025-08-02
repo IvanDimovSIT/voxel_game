@@ -3,7 +3,10 @@ use std::fs::create_dir_all;
 use bincode::{Decode, Encode};
 
 use crate::service::{
-    persistence::generic_persistence::{read_binary_object, write_binary_object},
+    persistence::{
+        generic_persistence::{read_binary_object, write_binary_object},
+        world_persistence::get_world_directory,
+    },
     physics::voxel_physics::{SimulatedVoxelDTO, VoxelSimulator},
     world_time::WorldTime,
 };
@@ -29,7 +32,7 @@ fn get_metadata_filepath(world_name: &str) -> String {
 /// stores the world time
 pub fn store_world_metadata(world_metadata: WorldMetadata, world_name: &str) {
     let filepath = get_metadata_filepath(world_name);
-    let _ = create_dir_all(world_name);
+    let _ = create_dir_all(get_world_directory(world_name));
     let _result = write_binary_object(&filepath, &world_metadata);
 }
 

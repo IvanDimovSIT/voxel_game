@@ -14,7 +14,7 @@ use crate::{
         interface_context::InterfaceScreen,
         style::TEXT_COLOR,
         title_screen::TitleScreenContext,
-        util::{get_text_width, is_point_in_rect},
+        util::{draw_centered_multiline_text, get_text_width, is_point_in_rect},
     },
     model::user_settings::UserSettings,
     service::{
@@ -278,11 +278,12 @@ impl SettingsContext {
             return;
         }
 
-        for (i, description) in descriptions.iter().enumerate() {
-            let text_size = get_text_width(description, DESCRIPTION_FONT_SIZE);
-            let x = (width - text_size) / 2.0;
-            let y = height * 0.92 + i as f32 * DESCRIPTION_FONT_SIZE;
-            draw_text(description, x, y, DESCRIPTION_FONT_SIZE, TEXT_COLOR);
-        }
+        draw_centered_multiline_text(
+            descriptions,
+            height * 0.92,
+            width,
+            DESCRIPTION_FONT_SIZE,
+            TEXT_COLOR,
+        );
     }
 }

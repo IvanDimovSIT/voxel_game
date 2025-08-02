@@ -14,7 +14,7 @@ use crate::{
     graphics::texture_manager::TextureManager,
     interface::{
         background::draw_background, interface_context::InterfaceScreen, style::TEXT_COLOR,
-        title_screen::TitleScreenContext,
+        title_screen::TitleScreenContext, util::draw_centered_multiline_text,
     },
     model::user_settings::UserSettings,
     service::{
@@ -148,8 +148,16 @@ impl WorldSelectionContext {
         }
     }
 
+    fn draw_world_list_empty_text(&self, width: f32, height: f32) {
+        let text = ["No worlds found", "Enter a name to create a new world"];
+        let y = height * 0.7;
+
+        draw_centered_multiline_text(&text, y, width, LABEL_FONT_SIZE, TEXT_COLOR);
+    }
+
     fn handle_world_list(&mut self, width: f32, height: f32) {
         if self.world_list.len() == 0 {
+            self.draw_world_list_empty_text(width, height);
             return;
         }
 

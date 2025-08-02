@@ -17,7 +17,7 @@ use crate::{
     utils::Semaphore,
 };
 
-use super::config::CONCURRENT_FILE_IO_COUNT;
+use super::config::{BASE_SAVE_PATH, CONCURRENT_FILE_IO_COUNT};
 
 static STORE_SEMAPHORE: Semaphore = Semaphore::new(CONCURRENT_FILE_IO_COUNT);
 
@@ -25,12 +25,16 @@ fn get_filepath(area_x: u32, area_y: u32, world_name: &str) -> String {
     format!("{world_name}/area{area_x}_{area_y}.dat")
 }
 
+pub fn get_world_directory(world_name: &str) -> String {
+    format!("{BASE_SAVE_PATH}{world_name}")
+}
+
 /// stores an area and blocks the main thread
 pub fn store_blocking(area: Area, world_name: &str) {
     debug_assert!(area.has_changed);
     let filepath = get_filepath(area.get_x(), area.get_y(), world_name);
     let area_dto: AreaDTO = area.into();
-    let _ = fs::create_dir_all(world_name);
+    let _ = fs::create_dir_all(get_world_directory(world_name));
     let _result = write_binary_object(&filepath, &area_dto);
 }
 
@@ -139,7 +143,7 @@ pub fn delete_world(world_name: &str) {
         return;
     }
 
-    if let Err(err) = remove_dir_all(world_name) {
+    if let Err(err) = remove_dir_all(get_world_directory(world_name)) {
         error!("Error deleting world: '{}'", err);
     } else {
         info!("Deleted world '{}'", world_name);

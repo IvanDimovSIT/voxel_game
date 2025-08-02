@@ -310,7 +310,8 @@ impl Renderer {
         let mut groups: Vec<Vec<(&'a InternalLocation, &'a MeshInfo)>> =
             vec![vec![]; MAX_VOXEL_VARIANTS];
         for pair in mesh_infos {
-            let index = pair.1.1.index();
+            let (_location, (_faces, voxel, _mesh)) = pair;
+            let index = voxel.index();
             groups[index].push(*pair);
         }
 

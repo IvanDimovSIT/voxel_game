@@ -16,12 +16,13 @@ pub enum SoundId {
     Bounce,
 }
 
+const BASE_SOUNDS_PATH: &str = "resources/sounds/";
 const SOUNDS: [(SoundId, &str); 5] = [
-    (SoundId::Fall, "resources/sounds/fall.wav"),
-    (SoundId::Destroy, "resources/sounds/destroy.wav"),
-    (SoundId::Place, "resources/sounds/place.wav"),
-    (SoundId::Click, "resources/sounds/click.wav"),
-    (SoundId::Bounce, "resources/sounds/bounce.wav"),
+    (SoundId::Fall, "fall.wav"),
+    (SoundId::Destroy, "destroy.wav"),
+    (SoundId::Place, "place.wav"),
+    (SoundId::Click, "click.wav"),
+    (SoundId::Bounce, "bounce.wav"),
 ];
 
 pub struct SoundManager {
@@ -32,7 +33,8 @@ impl SoundManager {
     pub async fn new() -> Self {
         let mut sounds = HashMap::new();
         for (id, path) in SOUNDS {
-            let sound = load_sound(path)
+            let full_path = format!("{BASE_SOUNDS_PATH}{path}");
+            let sound = load_sound(&full_path)
                 .await
                 .unwrap_or_else(|_| panic!("Failed to load '{path}'"));
             info!("Loaded sound with id {:?} from '{}'", id, path);

@@ -5,21 +5,22 @@ use macroquad::{
 
 use crate::model::voxel::{MAX_VOXEL_VARIANTS, Voxel};
 
+const BASE_TEXTURES_PATH: &str = "resources/images/";
 const TITLE_SCREEN_BACKGROUND_PATH: &str = "resources/images/title.png";
 const TEXTURES: [(Voxel, &str); 13] = [
-    (Voxel::Stone, "resources/images/stone.png"),
-    (Voxel::Sand, "resources/images/sand.png"),
-    (Voxel::Grass, "resources/images/grass.png"),
-    (Voxel::Wood, "resources/images/wood.png"),
-    (Voxel::Leaves, "resources/images/leaves.png"),
-    (Voxel::Brick, "resources/images/brick.png"),
-    (Voxel::Dirt, "resources/images/dirt.png"),
-    (Voxel::Boards, "resources/images/boards.png"),
-    (Voxel::Cobblestone, "resources/images/cobblestone.png"),
-    (Voxel::Clay, "resources/images/clay.png"),
-    (Voxel::Lamp, "resources/images/lamp.png"),
-    (Voxel::Trampoline, "resources/images/trampoline.png"),
-    (Voxel::Glass, "resources/images/glass.png"),
+    (Voxel::Stone, "stone.png"),
+    (Voxel::Sand, "sand.png"),
+    (Voxel::Grass, "grass.png"),
+    (Voxel::Wood, "wood.png"),
+    (Voxel::Leaves, "leaves.png"),
+    (Voxel::Brick, "brick.png"),
+    (Voxel::Dirt, "dirt.png"),
+    (Voxel::Boards, "boards.png"),
+    (Voxel::Cobblestone, "cobblestone.png"),
+    (Voxel::Clay, "clay.png"),
+    (Voxel::Lamp, "lamp.png"),
+    (Voxel::Trampoline, "trampoline.png"),
+    (Voxel::Glass, "glass.png"),
 ];
 const MAX_TEXTURE_COUNT: usize = MAX_VOXEL_VARIANTS;
 
@@ -42,7 +43,8 @@ impl TextureManager {
     async fn load_voxel_textures() -> Vec<Option<Texture2D>> {
         let mut textures = vec![None; MAX_TEXTURE_COUNT];
         for (texture_type, texture_path) in TEXTURES {
-            let texture = Self::load_image(texture_path).await;
+            let full_path = format!("{BASE_TEXTURES_PATH}{texture_path}");
+            let texture = Self::load_image(&full_path).await;
             texture.set_filter(FilterMode::Nearest);
             textures[texture_type.index()] = Some(texture);
             info!(

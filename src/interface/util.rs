@@ -1,6 +1,7 @@
 use macroquad::{
     color::Color,
     shapes::{draw_rectangle, draw_rectangle_lines},
+    text::draw_text,
 };
 
 use crate::interface::style::CLEAR_SCREEN_COLOR;
@@ -23,4 +24,19 @@ pub fn draw_rect_with_shadow(x: f32, y: f32, w: f32, h: f32, color: Color) {
 
 pub fn darken_background(width: f32, height: f32) {
     draw_rectangle(0.0, 0.0, width, height, CLEAR_SCREEN_COLOR);
+}
+
+pub fn draw_centered_multiline_text(
+    text: &[&str],
+    y: f32,
+    width: f32,
+    font_size: f32,
+    color: Color,
+) {
+    for (i, line) in text.iter().enumerate() {
+        let text_size = get_text_width(line, font_size);
+        let line_x = (width - text_size) / 2.0;
+        let line_y = y + i as f32 * font_size;
+        draw_text(line, line_x, line_y, font_size, color);
+    }
 }

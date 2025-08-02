@@ -125,11 +125,9 @@ impl VoxelSelector {
         let y = screen_height - border_size;
 
         for (index, voxel) in self.voxels.iter().enumerate() {
-            let texture = if let Some(non_empty) = voxel {
-                Some(texture_manager.get(*non_empty))
-            } else {
-                None
-            };
+            let texture = voxel
+                .as_ref()
+                .map(|non_empty| texture_manager.get(*non_empty));
             let is_selected = self.selected == index;
             let x = x_start + index as f32 * border_size;
 

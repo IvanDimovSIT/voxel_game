@@ -10,7 +10,10 @@ use voxel_engine::VoxelEngine;
 
 use crate::{
     interface::interface_context::InterfaceContext,
-    service::persistence::user_settings_persistence::read_or_initialise_user_settings,
+    service::persistence::{
+        generic_persistence::initialise_save_directory,
+        user_settings_persistence::read_or_initialise_user_settings,
+    },
 };
 
 mod graphics;
@@ -43,6 +46,7 @@ impl GameState {
 
 #[macroquad::main("Voxel World")]
 async fn main() {
+    initialise_save_directory();
     let texture_manager = Rc::new(TextureManager::new().await);
     let sound_manager = Rc::new(SoundManager::new().await);
     let user_settings = read_or_initialise_user_settings();

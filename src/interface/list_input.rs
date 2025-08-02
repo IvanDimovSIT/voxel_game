@@ -57,14 +57,7 @@ impl ListInput {
         }
 
         self.values.remove(index);
-        if let Some(selected) = self.selected {
-            if selected == self.values.len() || selected > index {
-                self.selected = Some(selected.saturating_sub(1));
-            }
-            if self.values.is_empty() {
-                self.selected = None;
-            }
-        }
+        self.selected = None;
     }
 
     /// returns the newly selected value
