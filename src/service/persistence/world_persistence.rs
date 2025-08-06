@@ -1,6 +1,5 @@
 use std::{
     collections::HashSet,
-    fs::{self, remove_dir_all},
     mem::take,
     sync::{Arc, Mutex},
 };
@@ -12,7 +11,9 @@ use crate::{
     model::area::{Area, AreaDTO, AreaLocation},
     service::{
         area_generation::generator::AreaGenerator,
-        persistence::generic_persistence::{read_binary_object, write_binary_object},
+        persistence::generic_persistence::{
+            create_directory, read_binary_object, remove_directory, write_binary_object,
+        },
     },
     utils::Semaphore,
 };
@@ -34,7 +35,7 @@ pub fn store_blocking(area: Area, world_name: &str) {
     debug_assert!(area.has_changed);
     let filepath = get_filepath(area.get_x(), area.get_y(), world_name);
     let area_dto: AreaDTO = area.into();
-    let _ = fs::create_dir_all(get_world_directory(world_name));
+    let _ = create_directory(world_name);
     let _result = write_binary_object(&filepath, &area_dto);
 }
 
@@ -143,7 +144,7 @@ pub fn delete_world(world_name: &str) {
         return;
     }
 
-    if let Err(err) = remove_dir_all(get_world_directory(world_name)) {
+    if let Err(err) = remove_directory(world_name) {
         error!("Error deleting world: '{}'", err);
     } else {
         info!("Deleted world '{}'", world_name);

@@ -208,7 +208,7 @@ fn set_voxel_in_selection(
 fn draw_held_voxel(texture_manager: &TextureManager, voxel_size: f32, selected_voxel: Voxel) {
     debug_assert_ne!(selected_voxel, Voxel::None);
     let (mouse_x, mouse_y) = mouse_position();
-    let texture = texture_manager.get(selected_voxel);
+    let texture = texture_manager.get_icon(selected_voxel);
     draw_voxel_texture(&texture, voxel_size, mouse_x, mouse_y);
 }
 
@@ -242,7 +242,7 @@ fn draw_selected_voxels(
     for x in 0..VOXELS_IN_ROW {
         let option_voxel = player_info.voxel_selector.get_at(x);
         if let Some(voxel) = option_voxel {
-            let texture = texture_manager.get(voxel);
+            let texture = texture_manager.get_icon(voxel);
             draw_voxel_texture(
                 &texture,
                 voxel_size,
@@ -274,7 +274,7 @@ fn draw_inventory_voxels(
             let y_pos = menu_y + y as f32 * voxel_size + voxel_size * BORDER_VOXELS_MULTIPLIER;
 
             if let Some(voxel) = get_voxel_at_index(index) {
-                let texture = texture_manager.get(voxel);
+                let texture = texture_manager.get_icon(voxel);
                 draw_voxel_texture(&texture, voxel_size, x_pos, y_pos);
                 if Voxel::TRANSPARENT.contains(&voxel) {
                     draw_empty_slot(voxel_size, x_pos, y_pos);

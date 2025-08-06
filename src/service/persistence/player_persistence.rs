@@ -1,10 +1,7 @@
-use std::fs::create_dir_all;
-
 use crate::{
     model::player_info::{PlayerInfo, PlayerInfoDTO},
-    service::persistence::{
-        generic_persistence::{read_binary_object, write_binary_object},
-        world_persistence::get_world_directory,
+    service::persistence::generic_persistence::{
+        create_directory, read_binary_object, write_binary_object,
     },
 };
 
@@ -21,6 +18,6 @@ pub fn load_player_info(world_name: &str) -> Option<PlayerInfo> {
 pub fn save_player_info(world_name: &str, player_info: &PlayerInfo) {
     let dto = player_info.create_dto();
     let filepath = get_filepath(world_name);
-    let _ = create_dir_all(get_world_directory(world_name));
+    let _ = create_directory(world_name);
     let _result = write_binary_object(&filepath, &dto);
 }

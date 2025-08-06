@@ -1,13 +1,16 @@
 use std::{
     any::type_name,
-    fs::{File, create_dir},
+    fs::{File, create_dir, create_dir_all, remove_dir_all},
     io::{Read, Write},
 };
 
 use bincode::{Decode, Encode, decode_from_slice, encode_to_vec};
 use macroquad::prelude::{error, info};
 
-use crate::service::persistence::config::{BASE_SAVE_PATH, SERIALIZATION_CONFIG};
+use crate::service::persistence::{
+    config::{BASE_SAVE_PATH, SERIALIZATION_CONFIG},
+    world_persistence::get_world_directory,
+};
 
 pub fn read_binary_object<T: Decode<()>>(filepath: &str) -> Option<T> {
     let filepath = format!("{BASE_SAVE_PATH}{filepath}");
@@ -88,4 +91,12 @@ pub fn initialise_save_directory() {
     } else {
         info!("Save directory '{}' initialised", BASE_SAVE_PATH);
     }
+}
+
+pub fn create_directory(world_name: &str) -> Result<(), std::io::Error> {
+    create_dir_all(get_world_directory(world_name))
+}
+
+pub fn remove_directory(world_name: &str) -> Result<(), std::io::Error> {
+    remove_dir_all(get_world_directory(world_name))
 }

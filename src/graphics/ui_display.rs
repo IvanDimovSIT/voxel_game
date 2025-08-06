@@ -127,7 +127,7 @@ impl VoxelSelector {
         for (index, voxel) in self.voxels.iter().enumerate() {
             let texture = voxel
                 .as_ref()
-                .map(|non_empty| texture_manager.get(*non_empty));
+                .map(|non_empty| texture_manager.get_icon(*non_empty));
             let is_selected = self.selected == index;
             let x = x_start + index as f32 * border_size;
 
