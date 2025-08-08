@@ -49,27 +49,40 @@ impl MeshGenerator {
         FaceDirection::Down,
     ];
     const VERTICES_PER_FACE: usize = 4;
+
+    // UVs:
     const UV_REPEATING: [Vec2; 4] = [
         Vec2::new(0.0, 1.0),
         Vec2::new(1.0, 1.0),
         Vec2::new(1.0, 0.0),
         Vec2::new(0.0, 0.0),
     ];
+    /// gap size in px between textures
+    const GAP_SIZE: f32 = 32.0;
+    /// single texture size
+    const TEXTURE_SIZE: f32 = 64.0;
+    /// whole texture map size
+    const TEXTURE_HEIGHT: f32 = Self::TEXTURE_SIZE*3.0 + Self::GAP_SIZE*2.0;
+    const PIXEL_SIZE: f32 = 1.0/Self::TEXTURE_HEIGHT;
+    const UV_OFFSET1: f32 = Self::TEXTURE_SIZE*Self::PIXEL_SIZE;
+    const UV_OFFSET2: f32 = Self::TEXTURE_SIZE*Self::PIXEL_SIZE + Self::GAP_SIZE*Self::PIXEL_SIZE;
+    const UV_OFFSET3: f32 = 2.0*Self::TEXTURE_SIZE*Self::PIXEL_SIZE + Self::GAP_SIZE*Self::PIXEL_SIZE;
+    const UV_OFFSET4: f32 = 2.0*Self::TEXTURE_SIZE*Self::PIXEL_SIZE + 2.0*Self::GAP_SIZE*Self::PIXEL_SIZE;
     const TOP_UV: [Vec2; 4] = [
-        Vec2::new(0.0, 2.0 / 3.0),
-        Vec2::new(1.0, 2.0 / 3.0),
-        Vec2::new(1.0, 1.0 / 3.0),
-        Vec2::new(0.0, 1.0 / 3.0),
+        Vec2::new(0.0, Self::UV_OFFSET3),
+        Vec2::new(1.0, Self::UV_OFFSET3),
+        Vec2::new(1.0, Self::UV_OFFSET2),
+        Vec2::new(0.0, Self::UV_OFFSET2),
     ];
     const SIDE_UV: [Vec2; 4] = [
         Vec2::new(0.0, 1.0),
         Vec2::new(1.0, 1.0),
-        Vec2::new(1.0, 2.0 / 3.0),
-        Vec2::new(0.0, 2.0 / 3.0),
+        Vec2::new(1.0, Self::UV_OFFSET4),
+        Vec2::new(0.0, Self::UV_OFFSET4),
     ];
     const BOTTOM_UV: [Vec2; 4] = [
-        Vec2::new(0.0, 1.0 / 3.0),
-        Vec2::new(1.0, 1.0 / 3.0),
+        Vec2::new(0.0, Self::UV_OFFSET1),
+        Vec2::new(1.0, Self::UV_OFFSET1),
         Vec2::new(1.0, 0.0),
         Vec2::new(0.0, 0.0),
     ];
