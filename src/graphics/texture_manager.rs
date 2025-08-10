@@ -9,7 +9,7 @@ use crate::model::voxel::{MAX_VOXEL_VARIANTS, Voxel};
 
 const BASE_TEXTURES_PATH: &str = "resources/images/";
 const TITLE_SCREEN_BACKGROUND_PATH: &str = "resources/images/title.png";
-const TEXTURES: [(Voxel, &str); 13] = [
+const TEXTURES: [(Voxel, &str); 14] = [
     (Voxel::Stone, "stone.png"),
     (Voxel::Sand, "sand.png"),
     (Voxel::Grass, "grass.png"),
@@ -23,10 +23,12 @@ const TEXTURES: [(Voxel, &str); 13] = [
     (Voxel::Lamp, "lamp.png"),
     (Voxel::Trampoline, "trampoline.png"),
     (Voxel::Glass, "glass.png"),
+    (Voxel::Cactus, "cactus.png"),
 ];
-const ICON_TEXTURES: [(Voxel, &str); 2] = [
+const ICON_TEXTURES: [(Voxel, &str); 3] = [
     (Voxel::Grass, "grass-icon.png"),
     (Voxel::Trampoline, "trampoline-icon.png"),
+    (Voxel::Wood, "wood-icon.png"),
 ];
 const MAX_TEXTURE_COUNT: usize = MAX_VOXEL_VARIANTS;
 
@@ -36,7 +38,8 @@ pub struct TextureManager {
     voxel_icons: HashMap<Voxel, Texture2D>,
 }
 impl TextureManager {
-    pub const VOXELS_WITH_DIFFERENT_FACES: [Voxel; 2] = [Voxel::Grass, Voxel::Trampoline];
+    pub const VOXELS_WITH_DIFFERENT_FACES: [Voxel; 3] =
+        [Voxel::Grass, Voxel::Trampoline, Voxel::Wood];
 
     /// loads all of the textures
     pub async fn new() -> Self {

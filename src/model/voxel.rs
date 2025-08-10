@@ -19,6 +19,7 @@ pub enum Voxel {
     Clay,
     Lamp,
     Trampoline,
+    Cactus,
     Glass,
 }
 impl Voxel {
@@ -53,6 +54,7 @@ impl Voxel {
             Self::Lamp => "Lamp",
             Self::Trampoline => "Trampoline",
             Self::Glass => "Glass",
+            Self::Cactus => "Cactus",
         }
     }
 }

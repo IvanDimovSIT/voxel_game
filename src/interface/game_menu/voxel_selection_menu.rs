@@ -19,7 +19,7 @@ use crate::{
     service::input::exit_focus,
 };
 
-const VOXELS_IN_SELECTION_MENU: [Option<Voxel>; 13] = [
+const VOXELS_IN_SELECTION_MENU: [Option<Voxel>; 14] = [
     Some(Voxel::Stone),
     Some(Voxel::Sand),
     Some(Voxel::Grass),
@@ -33,6 +33,7 @@ const VOXELS_IN_SELECTION_MENU: [Option<Voxel>; 13] = [
     Some(Voxel::Lamp),
     Some(Voxel::Trampoline),
     Some(Voxel::Glass),
+    Some(Voxel::Cactus),
 ];
 
 const VOXEL_SIZE: f32 = 0.08;

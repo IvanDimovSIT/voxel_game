@@ -6,7 +6,7 @@ use crate::model::{
 
 use super::algorithms::{combine_seed, split_mix64};
 
-const ALLOWED_TREE_BASES: [Voxel; 2] = [Voxel::Grass, Voxel::Clay];
+const ALLOWED_TREE_BASES: [Voxel; 3] = [Voxel::Grass, Voxel::Clay, Voxel::Sand];
 const PROBABILITY: u64 = 60;
 const SHORT_WOOD_LOCATIONS: [Location; 3] = [
     Location::new(0, 0, -1),
@@ -33,12 +33,18 @@ const TALL_LEAVES_LOCATIONS: [Location; 5] = [
     Location::new(1, 0, -4),
     Location::new(-1, 0, -4),
 ];
+const CACTUS_LOCATIONS: [Location; 3] = [
+    Location::new(0, 0, -1),
+    Location::new(0, 0, -2),
+    Location::new(0, 0, -3),
+];
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TreeType {
     None,
     Short,
     Tall,
+    Cactus,
 }
 
 pub fn should_generate_tree(
@@ -55,6 +61,10 @@ pub fn should_generate_tree(
     let mut random_value = split_mix64(combined_seed);
 
     if (random_value >> 4) % PROBABILITY == 0 {
+        if voxel == Voxel::Sand {
+            return TreeType::Cactus;
+        }
+
         random_value = split_mix64(random_value);
         if (random_value >> 4) % 2 == 0 {
             TreeType::Short
@@ -66,6 +76,14 @@ pub fn should_generate_tree(
     }
 }
 
+pub fn generate_trees(area: &mut Area, locations: &[(InternalLocation, TreeType)]) {
+    for (location, tree_type) in locations {
+        if can_generate_tree(area, *location, *tree_type) {
+            generate_tree(area, *location, *tree_type);
+        }
+    }
+}
+
 fn get_leaves_locations_for_tree_type(tree_type: TreeType) -> &'static [Location] {
     debug_assert!(tree_type != TreeType::None);
 
@@ -73,6 +91,7 @@ fn get_leaves_locations_for_tree_type(tree_type: TreeType) -> &'static [Location
         TreeType::None => unreachable!(),
         TreeType::Short => SHORT_LEAVES_LOCATIONS.as_slice(),
         TreeType::Tall => TALL_LEAVES_LOCATIONS.as_slice(),
+        TreeType::Cactus => &[],
     }
 }
 
@@ -83,6 +102,7 @@ fn get_wood_locations_for_tree_type(tree_type: TreeType) -> &'static [Location] 
         TreeType::None => unreachable!(),
         TreeType::Short => SHORT_WOOD_LOCATIONS.as_slice(),
         TreeType::Tall => TALL_WOOD_LOCATIONS.as_slice(),
+        TreeType::Cactus => CACTUS_LOCATIONS.as_slice(),
     }
 }
 
@@ -114,9 +134,18 @@ fn can_generate_tree(area: &mut Area, local: InternalLocation, tree_type: TreeTy
         })
 }
 
+fn get_wood_voxel_type(tree_type: TreeType) -> Voxel {
+    match tree_type {
+        TreeType::None => unreachable!(),
+        TreeType::Short | TreeType::Tall => Voxel::Wood,
+        TreeType::Cactus => Voxel::Cactus,
+    }
+}
+
 fn generate_tree(area: &mut Area, local: InternalLocation, tree_type: TreeType) {
     let wood_locations = get_wood_locations_for_tree_type(tree_type);
     let leaves_location = get_leaves_locations_for_tree_type(tree_type);
+    let wood_voxel = get_wood_voxel_type(tree_type);
 
     for wood in wood_locations.iter() {
         let offset_x = wood.x + local.x as i32;
@@ -124,7 +153,7 @@ fn generate_tree(area: &mut Area, local: InternalLocation, tree_type: TreeType) 
         let offset_z = wood.z + local.z as i32;
         let offset_location =
             InternalLocation::new(offset_x as u32, offset_y as u32, offset_z as u32);
-        area.set(offset_location, Voxel::Wood);
+        area.set(offset_location, wood_voxel);
     }
 
     for leaves in leaves_location.iter() {
@@ -134,13 +163,5 @@ fn generate_tree(area: &mut Area, local: InternalLocation, tree_type: TreeType) 
         let offset_location =
             InternalLocation::new(offset_x as u32, offset_y as u32, offset_z as u32);
         area.set(offset_location, Voxel::Leaves);
-    }
-}
-
-pub fn generate_trees(area: &mut Area, locations: &[(InternalLocation, TreeType)]) {
-    for (location, tree_type) in locations {
-        if can_generate_tree(area, *location, *tree_type) {
-            generate_tree(area, *location, *tree_type);
-        }
     }
 }
