@@ -9,6 +9,8 @@ use crate::model::voxel::{MAX_VOXEL_VARIANTS, Voxel};
 
 const BASE_TEXTURES_PATH: &str = "resources/images/";
 const TITLE_SCREEN_BACKGROUND_PATH: &str = "resources/images/title.png";
+const SUN_PATH: &str = "resources/images/sun.png";
+const MOON_PATH: &str = "resources/images/moon.png";
 const TEXTURES: [(Voxel, &str); 14] = [
     (Voxel::Stone, "stone.png"),
     (Voxel::Sand, "sand.png"),
@@ -35,6 +37,8 @@ const MAX_TEXTURE_COUNT: usize = MAX_VOXEL_VARIANTS;
 pub struct TextureManager {
     textures: Vec<Option<Texture2D>>,
     title_screen_background: Texture2D,
+    sun_texture: Texture2D,
+    moon_texture: Texture2D,
     voxel_icons: HashMap<Voxel, Texture2D>,
 }
 impl TextureManager {
@@ -45,12 +49,16 @@ impl TextureManager {
     pub async fn new() -> Self {
         let textures = Self::load_voxel_textures().await;
         let title_screen_background = Self::load_image(TITLE_SCREEN_BACKGROUND_PATH).await;
+        let sun_texture = Self::load_image(SUN_PATH).await;
+        let moon_texture = Self::load_image(MOON_PATH).await;
         let voxel_icons = Self::load_voxel_icon_textures().await;
 
         Self {
             textures,
             title_screen_background,
             voxel_icons,
+            sun_texture,
+            moon_texture,
         }
     }
 
@@ -121,5 +129,13 @@ impl TextureManager {
 
     pub fn get_title_screen_background(&self) -> Texture2D {
         self.title_screen_background.weak_clone()
+    }
+
+    pub fn get_sun_texture(&self) -> Texture2D {
+        self.sun_texture.weak_clone()
+    }
+
+    pub fn get_moon_texture(&self) -> Texture2D {
+        self.moon_texture.weak_clone()
     }
 }

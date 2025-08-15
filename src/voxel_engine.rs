@@ -13,7 +13,7 @@ use crate::{
         debug_display::DebugDisplay,
         max_height::calculate_max_height_around_location,
         renderer::Renderer,
-        sky::draw_sky,
+        sky::Sky,
         texture_manager::TextureManager,
         ui_display::{draw_crosshair, draw_selected_voxel},
     },
@@ -56,6 +56,7 @@ pub struct VoxelEngine {
     user_settings: UserSettings,
     menu_state: MenuState,
     world_time: WorldTime,
+    sky: Sky,
 }
 impl VoxelEngine {
     pub fn new(
@@ -80,6 +81,7 @@ impl VoxelEngine {
                 (WorldTime::new(PI * 0.5), vec![])
             };
 
+        let sky = Sky::new(&texture_manager);
         let renderer = Renderer::new(texture_manager);
         let voxel_simulator = VoxelSimulator::new(simulated_voxels, renderer.get_mesh_generator());
 
@@ -93,6 +95,7 @@ impl VoxelEngine {
             sound_manager,
             menu_state: MenuState::Hidden,
             world_time,
+            sky,
         };
 
         if !successful_load {
@@ -238,11 +241,10 @@ impl VoxelEngine {
 
     /// draws the current frame, return the new context if changed
     pub async fn draw_scene(&mut self, raycast_result: RaycastResult) -> Option<GameState> {
-        draw_sky(&self.world_time);
-
         let width = screen_width();
         let height = screen_height();
         let camera = self.player_info.camera_controller.create_camera();
+        self.sky.draw_sky(&self.world_time, &camera);
         let rendered = self.renderer.render_voxels(
             &camera,
             self.user_settings.get_render_distance(),

@@ -18,7 +18,7 @@ use crate::{
 };
 
 const SHADOW_CHANGE_STEEPNESS: f32 = 10.0;
-const MAX_LIGHTS: usize = 32;
+const MAX_LIGHTS: usize = 64;
 
 const VOXEL_VERTEX_SHADER: &str = include_str!("../../resources/shaders/voxel_vertex.glsl");
 const VOXEL_FRAGMENT_SHADER: &str = include_str!("../../resources/shaders/voxel_fragment.glsl");

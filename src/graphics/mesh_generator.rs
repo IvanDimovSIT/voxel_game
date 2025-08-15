@@ -33,6 +33,7 @@ pub struct MeshGenerator {
     texture_manager: Rc<TextureManager>,
 }
 impl MeshGenerator {
+    const COLOR: [u8; 4] = [255, 255, 255, 255];
     const INDECIES: [u16; 6] = [0, 1, 2, 0, 2, 3];
     const FRONT_NORMAL: Vec4 = Vec4::new(0.0, 1.0, 0.0, 0.0);
     const BACK_NORMAL: Vec4 = Vec4::new(0.0, -1.0, 0.0, 0.0);
@@ -165,7 +166,6 @@ impl MeshGenerator {
         offset_y: f32,
         offset_z: f32,
     ) -> Vec<Vertex> {
-        let color = [255, 255, 255, 255];
         let (top_uv, sides_uv, bottom_uv) =
             if TextureManager::VOXELS_WITH_DIFFERENT_FACES.contains(&voxel) {
                 (Self::TOP_UV, Self::SIDE_UV, Self::BOTTOM_UV)
@@ -179,25 +179,25 @@ impl MeshGenerator {
                     Vertex {
                         position: Vec3::new(offset_x - 0.5, offset_y + 0.5, offset_z + 0.5),
                         uv: sides_uv[0],
-                        color,
+                        color: Self::COLOR,
                         normal: Self::FRONT_NORMAL,
                     },
                     Vertex {
                         position: Vec3::new(offset_x + 0.5, offset_y + 0.5, offset_z + 0.5),
                         uv: sides_uv[1],
-                        color,
+                        color: Self::COLOR,
                         normal: Self::FRONT_NORMAL,
                     },
                     Vertex {
                         position: Vec3::new(offset_x + 0.5, offset_y + 0.5, offset_z - 0.5),
                         uv: sides_uv[2],
-                        color,
+                        color: Self::COLOR,
                         normal: Self::FRONT_NORMAL,
                     },
                     Vertex {
                         position: Vec3::new(offset_x - 0.5, offset_y + 0.5, offset_z - 0.5),
                         uv: sides_uv[3],
-                        color,
+                        color: Self::COLOR,
                         normal: Self::FRONT_NORMAL,
                     },
                 ]
@@ -207,25 +207,25 @@ impl MeshGenerator {
                     Vertex {
                         position: Vec3::new(offset_x - 0.5, offset_y - 0.5, offset_z - 0.5),
                         uv: sides_uv[3],
-                        color,
+                        color: Self::COLOR,
                         normal: Self::BACK_NORMAL,
                     },
                     Vertex {
                         position: Vec3::new(offset_x + 0.5, offset_y - 0.5, offset_z - 0.5),
                         uv: sides_uv[2],
-                        color,
+                        color: Self::COLOR,
                         normal: Self::BACK_NORMAL,
                     },
                     Vertex {
                         position: Vec3::new(offset_x + 0.5, offset_y - 0.5, offset_z + 0.5),
                         uv: sides_uv[1],
-                        color,
+                        color: Self::COLOR,
                         normal: Self::BACK_NORMAL,
                     },
                     Vertex {
                         position: Vec3::new(offset_x - 0.5, offset_y - 0.5, offset_z + 0.5),
                         uv: sides_uv[0],
-                        color,
+                        color: Self::COLOR,
                         normal: Self::BACK_NORMAL,
                     },
                 ]
@@ -235,25 +235,25 @@ impl MeshGenerator {
                     Vertex {
                         position: Vec3::new(offset_x - 0.5, offset_y - 0.5, offset_z - 0.5),
                         uv: sides_uv[3],
-                        color,
+                        color: Self::COLOR,
                         normal: Self::RIGHT_NORMAL,
                     },
                     Vertex {
                         position: Vec3::new(offset_x - 0.5, offset_y - 0.5, offset_z + 0.5),
                         uv: sides_uv[0],
-                        color,
+                        color: Self::COLOR,
                         normal: Self::RIGHT_NORMAL,
                     },
                     Vertex {
                         position: Vec3::new(offset_x - 0.5, offset_y + 0.5, offset_z + 0.5),
                         uv: sides_uv[1],
-                        color,
+                        color: Self::COLOR,
                         normal: Self::RIGHT_NORMAL,
                     },
                     Vertex {
                         position: Vec3::new(offset_x - 0.5, offset_y + 0.5, offset_z - 0.5),
                         uv: sides_uv[2],
-                        color,
+                        color: Self::COLOR,
                         normal: Self::RIGHT_NORMAL,
                     },
                 ]
@@ -263,25 +263,25 @@ impl MeshGenerator {
                     Vertex {
                         position: Vec3::new(offset_x + 0.5, offset_y - 0.5, offset_z + 0.5),
                         uv: sides_uv[1],
-                        color,
+                        color: Self::COLOR,
                         normal: Self::LEFT_NORMAL,
                     },
                     Vertex {
                         position: Vec3::new(offset_x + 0.5, offset_y - 0.5, offset_z - 0.5),
                         uv: sides_uv[2],
-                        color,
+                        color: Self::COLOR,
                         normal: Self::LEFT_NORMAL,
                     },
                     Vertex {
                         position: Vec3::new(offset_x + 0.5, offset_y + 0.5, offset_z - 0.5),
                         uv: sides_uv[3],
-                        color,
+                        color: Self::COLOR,
                         normal: Self::LEFT_NORMAL,
                     },
                     Vertex {
                         position: Vec3::new(offset_x + 0.5, offset_y + 0.5, offset_z + 0.5),
                         uv: sides_uv[0],
-                        color,
+                        color: Self::COLOR,
                         normal: Self::LEFT_NORMAL,
                     },
                 ]
@@ -291,25 +291,25 @@ impl MeshGenerator {
                     Vertex {
                         position: Vec3::new(offset_x - 0.5, offset_y - 0.5, offset_z + 0.5),
                         uv: bottom_uv[0],
-                        color,
+                        color: Self::COLOR,
                         normal: Self::DOWN_NORMAL,
                     },
                     Vertex {
                         position: Vec3::new(offset_x + 0.5, offset_y - 0.5, offset_z + 0.5),
                         uv: bottom_uv[1],
-                        color,
+                        color: Self::COLOR,
                         normal: Self::DOWN_NORMAL,
                     },
                     Vertex {
                         position: Vec3::new(offset_x + 0.5, offset_y + 0.5, offset_z + 0.5),
                         uv: bottom_uv[2],
-                        color,
+                        color: Self::COLOR,
                         normal: Self::DOWN_NORMAL,
                     },
                     Vertex {
                         position: Vec3::new(offset_x - 0.5, offset_y + 0.5, offset_z + 0.5),
                         uv: bottom_uv[3],
-                        color,
+                        color: Self::COLOR,
                         normal: Self::DOWN_NORMAL,
                     },
                 ]
@@ -319,25 +319,25 @@ impl MeshGenerator {
                     Vertex {
                         position: Vec3::new(offset_x + 0.5, offset_y - 0.5, offset_z - 0.5),
                         uv: top_uv[0],
-                        color,
+                        color: Self::COLOR,
                         normal: Self::UP_NORMAL,
                     },
                     Vertex {
                         position: Vec3::new(offset_x - 0.5, offset_y - 0.5, offset_z - 0.5),
                         uv: top_uv[1],
-                        color,
+                        color: Self::COLOR,
                         normal: Self::UP_NORMAL,
                     },
                     Vertex {
                         position: Vec3::new(offset_x - 0.5, offset_y + 0.5, offset_z - 0.5),
                         uv: top_uv[2],
-                        color,
+                        color: Self::COLOR,
                         normal: Self::UP_NORMAL,
                     },
                     Vertex {
                         position: Vec3::new(offset_x + 0.5, offset_y + 0.5, offset_z - 0.5),
                         uv: top_uv[3],
-                        color,
+                        color: Self::COLOR,
                         normal: Self::UP_NORMAL,
                     },
                 ]
@@ -357,5 +357,51 @@ impl MeshGenerator {
     pub fn should_generate_face(current_voxel: Voxel, neighbour_voxel: Voxel) -> bool {
         neighbour_voxel == Voxel::None
             || (current_voxel != Voxel::Glass && neighbour_voxel == Voxel::Glass)
+    }
+
+    /// generates an untextured quad mesh at the origin (0,0,0)
+    pub fn generate_quad_mesh(size: f32) -> Mesh {
+        let vertices = [
+            Vertex {
+                position: Vec3::new(-0.5, -0.5, 0.0),
+                uv: Self::UV_REPEATING[0],
+                color: Self::COLOR,
+                normal: Self::DOWN_NORMAL,
+            },
+            Vertex {
+                position: Vec3::new(0.5, -0.5, 0.0),
+                uv: Self::UV_REPEATING[1],
+                color: Self::COLOR,
+                normal: Self::DOWN_NORMAL,
+            },
+            Vertex {
+                position: Vec3::new(0.5, 0.5, 0.0),
+                uv: Self::UV_REPEATING[2],
+                color: Self::COLOR,
+                normal: Self::DOWN_NORMAL,
+            },
+            Vertex {
+                position: Vec3::new(-0.5, 0.5, 0.0),
+                uv: Self::UV_REPEATING[3],
+                color: Self::COLOR,
+                normal: Self::DOWN_NORMAL,
+            },
+        ]
+        .into_iter()
+        .map(|v| Vertex {
+            position: Vec3::new(
+                v.position.x * size,
+                v.position.y * size,
+                v.position.z * size,
+            ),
+            ..v
+        })
+        .collect();
+
+        Mesh {
+            vertices,
+            indices: Self::INDECIES.as_slice().to_vec(),
+            texture: None,
+        }
     }
 }

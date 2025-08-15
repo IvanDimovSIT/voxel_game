@@ -33,7 +33,7 @@ use super::{
 
 const LABEL_FONT_SIZE: f32 = 40.0;
 const TEXT_INPUT_SIZE: Vec2 = vec2(350.0, 50.0);
-const TEXT_INPUT_FONT_SIZE: u16 = 35;
+const TEXT_INPUT_FONT_SIZE: u16 = 36;
 const PLAY_BUTTON_SIZE: Vec2 = vec2(220.0, 50.0);
 const PLAY_BUTTON_FONT_SIZE: u16 = 40;
 const BACK_BUTTON_SIZE: f32 = 60.0;

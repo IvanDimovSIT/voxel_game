@@ -16,7 +16,7 @@ uniform vec3 fogBaseColorLight;
 uniform vec3 fogBaseColorDark;
 uniform float shadowAmount;
 uniform int lightsCount;
-uniform vec3 lights[32];
+uniform vec3 lights[64];
 
 const vec3 lightDir = normalize(vec3(0.2, 0.8, -1.0));
 const float reflectionIntensity = 0.05;

@@ -1,3 +1,5 @@
+use std::borrow::Cow;
+
 use macroquad::{
     color::BLACK,
     input::{
@@ -84,16 +86,16 @@ impl TextInput {
             BUTTON_COLOR
         };
 
-        let (border_size, border_color) = if self.is_selected {
-            (5.0, SELECTED_COLOR)
+        let (border_size, border_color, text_to_draw) = if self.is_selected {
+            (5.0, SELECTED_COLOR, Cow::Owned(format!("{}|", &self.text)))
         } else {
-            (2.0, BLACK)
+            (2.0, BLACK, Cow::Borrowed(&self.text))
         };
 
         draw_rect_with_shadow(x, y, w, h, text_input_color);
         draw_rectangle_lines(x, y, w, h, border_size, border_color);
         draw_text_ex(
-            &self.text,
+            &text_to_draw,
             x + MARGIN,
             y + h * 0.5 + text_size as f32 * 0.5,
             TextParams {
