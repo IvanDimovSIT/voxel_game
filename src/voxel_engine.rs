@@ -24,7 +24,10 @@ use crate::{
         },
         interface_context::InterfaceContext,
     },
-    model::{player_info::PlayerInfo, user_settings::UserSettings, voxel::Voxel, world::World},
+    model::{
+        inventory::Item, player_info::PlayerInfo, user_settings::UserSettings, voxel::Voxel,
+        world::World,
+    },
     service::{
         input::{self, *},
         persistence::{
@@ -145,7 +148,9 @@ impl VoxelEngine {
 
         if is_enter_inventory() {
             self.player_info.camera_controller.set_focus(false);
-            self.menu_state = MenuState::VoxelSelection(None);
+            self.menu_state = MenuState::ItemSelection {
+                currently_selected_item: None,
+            };
         }
         if is_place_voxel(&self.player_info.camera_controller) {
             self.try_place_voxel(raycast_result);
@@ -269,9 +274,10 @@ impl VoxelEngine {
         }
         set_default_camera();
         draw_crosshair(width, height);
-        self.player_info
-            .voxel_selector
-            .draw(self.renderer.get_texture_manager());
+        self.player_info.voxel_selector.draw(
+            &self.player_info.inventory,
+            self.renderer.get_texture_manager(),
+        );
         self.debug_display
             .draw_debug_display(&self.world, &self.renderer, &camera, rendered);
         let menu_result = self.process_menu();
@@ -286,18 +292,28 @@ impl VoxelEngine {
             MenuState::Hidden => None,
             MenuState::Main => self.process_main_menu(),
             MenuState::Options => self.process_options_menu(),
-            MenuState::VoxelSelection(voxel) => self.process_voxel_selection_menu(voxel),
+            MenuState::ItemSelection {
+                currently_selected_item,
+            } => self.process_voxel_selection_menu(currently_selected_item),
         }
     }
 
-    fn process_voxel_selection_menu(&mut self, selected_voxel: Option<Voxel>) -> Option<GameState> {
-        let (selected_voxel, menu_selection) = draw_voxel_selection_menu(
+    fn process_voxel_selection_menu(
+        &mut self,
+        currently_selected_item: Option<Item>,
+    ) -> Option<GameState> {
+        let (selected_item, menu_selection) = draw_voxel_selection_menu(
             self.renderer.get_texture_manager(),
             &mut self.player_info,
-            selected_voxel,
+            currently_selected_item,
         );
-        if let MenuState::VoxelSelection(_) = self.menu_state {
-            self.menu_state = MenuState::VoxelSelection(selected_voxel)
+        if let MenuState::ItemSelection {
+            currently_selected_item: _,
+        } = self.menu_state
+        {
+            self.menu_state = MenuState::ItemSelection {
+                currently_selected_item: selected_item,
+            }
         }
 
         self.handle_menu_selection(menu_selection)
@@ -364,14 +380,15 @@ impl VoxelEngine {
                 first_non_empty: _,
                 last_empty,
             } => {
-                let selected_voxel = self.player_info.voxel_selector.get_selected();
-                if selected_voxel.is_none() {
+                let selected_index = self.player_info.voxel_selector.get_selected_index();
+                let selected_item = self.player_info.inventory.selected[selected_index];
+                if selected_item.is_none() {
                     return;
                 }
 
                 let has_placed = place_voxel(
                     last_empty,
-                    selected_voxel.unwrap(),
+                    selected_item.unwrap().voxel,
                     &self.player_info,
                     &mut self.world,
                     &mut self.renderer,
@@ -380,6 +397,9 @@ impl VoxelEngine {
                 if !has_placed {
                     return;
                 }
+                self.player_info
+                    .inventory
+                    .reduce_selected_at(selected_index);
 
                 self.sound_manager
                     .play_sound(SoundId::Place, &self.user_settings);
@@ -394,18 +414,20 @@ impl VoxelEngine {
                 first_non_empty,
                 last_empty: _,
             } => {
-                let has_destroyed = destroy_voxel(
+                let maybe_destroyed = destroy_voxel(
                     first_non_empty,
                     &mut self.world,
                     &mut self.renderer,
                     &mut self.voxel_simulator,
                 );
-                if !has_destroyed {
-                    return;
+                if let Some(destroyed) = maybe_destroyed {
+                    self.player_info.inventory.add_item(Item {
+                        voxel: destroyed,
+                        count: 1,
+                    });
+                    self.sound_manager
+                        .play_sound(SoundId::Destroy, &self.user_settings);
                 }
-
-                self.sound_manager
-                    .play_sound(SoundId::Destroy, &self.user_settings);
             }
         }
     }
@@ -417,24 +439,28 @@ impl VoxelEngine {
                 first_non_empty,
                 last_empty: _,
             } => {
-                let selected_voxel = self.player_info.voxel_selector.get_selected();
-                if selected_voxel.is_none() {
+                let index = self.player_info.voxel_selector.get_selected_index();
+                let selected_item = self.player_info.inventory.selected[index];
+                if selected_item.is_none() {
                     return;
                 }
 
-                let has_replaced = replace_voxel(
+                let maybe_replaced = replace_voxel(
                     first_non_empty,
-                    selected_voxel.unwrap(),
+                    selected_item.unwrap().voxel,
                     &mut self.world,
                     &mut self.renderer,
                     &mut self.voxel_simulator,
                 );
-                if !has_replaced {
-                    return;
+                if let Some(replaced_voxel) = maybe_replaced {
+                    self.player_info.inventory.reduce_selected_at(index);
+                    self.player_info.inventory.add_item(Item {
+                        voxel: replaced_voxel,
+                        count: 1,
+                    });
+                    self.sound_manager
+                        .play_sound(SoundId::Destroy, &self.user_settings);
                 }
-
-                self.sound_manager
-                    .play_sound(SoundId::Destroy, &self.user_settings);
             }
         }
     }

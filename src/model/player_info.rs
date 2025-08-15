@@ -2,8 +2,7 @@ use bincode::{Decode, Encode};
 use macroquad::math::{Vec3, vec3};
 
 use crate::{
-    graphics::ui_display::{VOXEL_SELECTION_SIZE, VoxelSelector},
-    model::voxel::Voxel,
+    graphics::ui_display::VoxelSelector, model::inventory::Inventory,
     service::camera_controller::CameraController,
 };
 
@@ -14,6 +13,7 @@ const JUMP_VELOCITY: f32 = -15.0;
 
 #[derive(Debug)]
 pub struct PlayerInfo {
+    pub inventory: Inventory,
     pub camera_controller: CameraController,
     pub voxel_selector: VoxelSelector,
     pub move_speed: f32,
@@ -32,6 +32,7 @@ impl PlayerInfo {
             jump_velocity: JUMP_VELOCITY,
             size: PLAYER_SIZE,
             voxel_selector: VoxelSelector::new(),
+            inventory: Inventory::default(),
         }
     }
 
@@ -42,8 +43,9 @@ impl PlayerInfo {
             position: [position.x, position.y, position.z],
             yaw: self.camera_controller.yaw,
             pitch: self.camera_controller.pitch,
-            voxel_selection: self.voxel_selector.get_voxels(),
+            voxel_selector: self.voxel_selector.clone(),
             current_selection: self.voxel_selector.get_selected_index(),
+            inventory: self.inventory.clone(),
         }
     }
 }
@@ -61,19 +63,18 @@ impl From<PlayerInfoDTO> for PlayerInfo {
             velocity: value.velocity,
             jump_velocity: JUMP_VELOCITY,
             size: PLAYER_SIZE,
-            voxel_selector: VoxelSelector::from_saved(
-                value.voxel_selection,
-                value.current_selection,
-            ),
+            voxel_selector: value.voxel_selector,
+            inventory: value.inventory,
         }
     }
 }
 
 #[derive(Debug, Clone, Encode, Decode)]
 pub struct PlayerInfoDTO {
+    inventory: Inventory,
     velocity: f32,
     position: [f32; 3],
-    voxel_selection: [Option<Voxel>; VOXEL_SELECTION_SIZE],
+    voxel_selector: VoxelSelector,
     current_selection: usize,
     yaw: f32,
     pitch: f32,

@@ -41,21 +41,21 @@ pub fn replace_voxel(
     world: &mut World,
     renderer: &mut Renderer,
     voxel_simulator: &mut VoxelSimulator,
-) -> bool {
+) -> Option<Voxel> {
     debug_assert!(voxel != Voxel::None);
     let to_be_replaced = world.get(location);
     if to_be_replaced == Voxel::None
         || location.z == AREA_HEIGHT as i32 - 1
         || to_be_replaced == voxel
     {
-        return false;
+        return None;
     }
 
     world.set(location, voxel);
     renderer.update_location(world, location);
     voxel_simulator.update_voxels(world, renderer, location);
 
-    true
+    Some(to_be_replaced)
 }
 
 pub fn destroy_voxel(
@@ -63,16 +63,17 @@ pub fn destroy_voxel(
     world: &mut World,
     renderer: &mut Renderer,
     voxel_simulator: &mut VoxelSimulator,
-) -> bool {
-    if world.get(location) == Voxel::None || location.z == AREA_HEIGHT as i32 - 1 {
-        return false;
+) -> Option<Voxel> {
+    let voxel = world.get(location);
+    if voxel == Voxel::None || location.z == AREA_HEIGHT as i32 - 1 {
+        return None;
     }
 
     world.set(location, Voxel::None);
     renderer.update_location(world, location);
     voxel_simulator.update_voxels(world, renderer, location);
 
-    true
+    Some(voxel)
 }
 
 pub fn put_player_on_ground(player_info: &mut PlayerInfo, world: &mut World) {
