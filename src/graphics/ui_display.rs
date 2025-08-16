@@ -5,19 +5,19 @@ use macroquad::{
     math::{vec2, vec3},
     miniquad::window::screen_size,
     models::draw_cube_wires,
-    prelude::error,
     shapes::{draw_circle, draw_rectangle},
     text::draw_text,
     texture::{DrawTextureParams, Texture2D, draw_texture_ex},
 };
+use std::fmt::Write;
 
 use crate::{
     interface::style::TEXT_COLOR,
     model::{
-        inventory::{Inventory, SELECTED_SIZE},
+        inventory::{Inventory, Item},
         location::Location,
-        voxel::Voxel,
     },
+    utils::use_str_buffer,
 };
 
 use super::texture_manager::TextureManager;
@@ -37,14 +37,12 @@ pub fn draw_selected_voxel(location: Location, camera: &Camera3D) {
     draw_cube_wires(position, vec3(1.0, 1.0, 1.0), WHITE);
 }
 
-pub const VOXEL_SELECTION_SIZE: usize = SELECTED_SIZE;
-
 #[derive(Debug, Clone, Encode, Decode)]
-pub struct VoxelSelector {
+pub struct ItemHotbar {
     selected: usize,
     ui_size: f32,
 }
-impl VoxelSelector {
+impl ItemHotbar {
     pub fn new() -> Self {
         Self {
             selected: 0,
@@ -57,7 +55,7 @@ impl VoxelSelector {
     }
 
     pub fn select_next(&mut self) {
-        if self.selected + 1 < VOXEL_SELECTION_SIZE {
+        if self.selected + 1 < Inventory::SELECTED_SIZE {
             self.selected += 1;
         }
     }
@@ -69,15 +67,19 @@ impl VoxelSelector {
     }
 
     /// draws the voxel selection ui
-    pub fn draw(&self, invetory: &Inventory, texture_manager: &TextureManager) {
+    pub fn draw(
+        &self,
+        items_on_hotbar: &[Option<Item>; Inventory::SELECTED_SIZE],
+        texture_manager: &TextureManager,
+    ) {
         let (screen_width, screen_height) = screen_size();
         let border_size = screen_width * self.ui_size;
         let picture_size = border_size * 0.8;
-        let total_width = border_size * invetory.selected.len() as f32;
+        let total_width = border_size * items_on_hotbar.len() as f32;
         let x_start = (screen_width - total_width) / 2.0;
         let y = screen_height - border_size;
 
-        for (index, item) in invetory.selected.iter().enumerate() {
+        for (index, item) in items_on_hotbar.iter().enumerate() {
             let texture_with_count = item
                 .as_ref()
                 .map(|non_empty| (texture_manager.get_icon(non_empty.voxel), non_empty.count));
@@ -98,7 +100,7 @@ impl VoxelSelector {
     fn draw_voxel(
         border_size: f32,
         picture_size: f32,
-        texture_with_count: Option<(Texture2D, u32)>,
+        texture_with_count: Option<(Texture2D, u8)>,
         x: f32,
         y: f32,
         is_selected: bool,
@@ -124,13 +126,16 @@ impl VoxelSelector {
             );
 
             let font_size = BASE_COUNT_FONT_SIZE * border_size;
-            draw_text(
-                &format!("{count}"),
-                x + offset,
-                y + font_size * 1.7,
-                font_size,
-                TEXT_COLOR,
-            );
+            use_str_buffer(|buffer| {
+                write!(buffer, "{count}").expect("error writing to text buffer");
+                draw_text(
+                    buffer,
+                    x + offset,
+                    y + font_size * 1.7,
+                    font_size,
+                    TEXT_COLOR,
+                );
+            });
         } else {
             draw_rectangle(
                 x + offset,

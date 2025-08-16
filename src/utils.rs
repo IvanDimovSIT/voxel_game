@@ -1,4 +1,5 @@
 use std::{
+    cell::RefCell,
     mem::MaybeUninit,
     ops::Deref,
     sync::{Condvar, Mutex},
@@ -127,3 +128,14 @@ where
     }
 }
 impl<T, const MAX: usize> ExactSizeIterator for StackVecIterator<T, MAX> where T: Copy {}
+
+thread_local! {
+    static STRING_BUFFER: RefCell<String> = RefCell::new(String::with_capacity(64));
+}
+pub fn use_str_buffer(f: impl Fn(&mut String)) {
+    STRING_BUFFER.with(|buffer| {
+        let mut empty_buffer = buffer.borrow_mut();
+        empty_buffer.clear();
+        f(&mut empty_buffer);
+    });
+}

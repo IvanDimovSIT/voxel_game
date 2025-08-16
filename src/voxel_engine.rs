@@ -24,10 +24,7 @@ use crate::{
         },
         interface_context::InterfaceContext,
     },
-    model::{
-        inventory::Item, player_info::PlayerInfo, user_settings::UserSettings, voxel::Voxel,
-        world::World,
-    },
+    model::{inventory::Item, player_info::PlayerInfo, user_settings::UserSettings, world::World},
     service::{
         input::{self, *},
         persistence::{
@@ -275,7 +272,7 @@ impl VoxelEngine {
         set_default_camera();
         draw_crosshair(width, height);
         self.player_info.voxel_selector.draw(
-            &self.player_info.inventory,
+            &self.player_info.inventory.selected,
             self.renderer.get_texture_manager(),
         );
         self.debug_display
@@ -421,10 +418,7 @@ impl VoxelEngine {
                     &mut self.voxel_simulator,
                 );
                 if let Some(destroyed) = maybe_destroyed {
-                    self.player_info.inventory.add_item(Item {
-                        voxel: destroyed,
-                        count: 1,
-                    });
+                    self.player_info.inventory.add_item(Item::new(destroyed, 1));
                     self.sound_manager
                         .play_sound(SoundId::Destroy, &self.user_settings);
                 }
@@ -454,10 +448,9 @@ impl VoxelEngine {
                 );
                 if let Some(replaced_voxel) = maybe_replaced {
                     self.player_info.inventory.reduce_selected_at(index);
-                    self.player_info.inventory.add_item(Item {
-                        voxel: replaced_voxel,
-                        count: 1,
-                    });
+                    self.player_info
+                        .inventory
+                        .add_item(Item::new(replaced_voxel, 1));
                     self.sound_manager
                         .play_sound(SoundId::Destroy, &self.user_settings);
                 }

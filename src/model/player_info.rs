@@ -2,7 +2,7 @@ use bincode::{Decode, Encode};
 use macroquad::math::{Vec3, vec3};
 
 use crate::{
-    graphics::ui_display::VoxelSelector, model::inventory::Inventory,
+    graphics::ui_display::ItemHotbar, model::inventory::Inventory,
     service::camera_controller::CameraController,
 };
 
@@ -15,7 +15,7 @@ const JUMP_VELOCITY: f32 = -15.0;
 pub struct PlayerInfo {
     pub inventory: Inventory,
     pub camera_controller: CameraController,
-    pub voxel_selector: VoxelSelector,
+    pub voxel_selector: ItemHotbar,
     pub move_speed: f32,
     pub voxel_reach: f32,
     pub size: f32,
@@ -31,7 +31,7 @@ impl PlayerInfo {
             velocity: 0.0,
             jump_velocity: JUMP_VELOCITY,
             size: PLAYER_SIZE,
-            voxel_selector: VoxelSelector::new(),
+            voxel_selector: ItemHotbar::new(),
             inventory: Inventory::default(),
         }
     }
@@ -74,7 +74,7 @@ pub struct PlayerInfoDTO {
     inventory: Inventory,
     velocity: f32,
     position: [f32; 3],
-    voxel_selector: VoxelSelector,
+    voxel_selector: ItemHotbar,
     current_selection: usize,
     yaw: f32,
     pitch: f32,

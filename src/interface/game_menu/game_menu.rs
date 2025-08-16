@@ -13,7 +13,7 @@ use crate::{
         style::{BACKGROUND_COLOR, BUTTON_COLOR},
         util::darken_background,
     },
-    model::{inventory::Item, user_settings::UserSettings, voxel::Voxel},
+    model::{inventory::Item, user_settings::UserSettings},
     service::sound_manager::SoundManager,
 };
 
