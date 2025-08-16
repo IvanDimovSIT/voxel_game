@@ -13,7 +13,7 @@ use crate::{
         style::{BACKGROUND_COLOR, BUTTON_COLOR},
         util::darken_background,
     },
-    model::{user_settings::UserSettings, voxel::Voxel},
+    model::{inventory::Item, user_settings::UserSettings},
     service::sound_manager::SoundManager,
 };
 
@@ -38,7 +38,9 @@ pub enum MenuState {
     Hidden,
     Main,
     Options,
-    VoxelSelection(Option<Voxel>),
+    ItemSelection {
+        currently_selected_item: Option<Item>,
+    },
 }
 impl MenuState {
     /// returns true if a menu is being displayed

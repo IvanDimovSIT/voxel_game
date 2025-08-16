@@ -1,6 +1,8 @@
+use std::fmt::Write;
+
 use macroquad::{
     color::WHITE,
-    input::{MouseButton, is_mouse_button_pressed, is_mouse_button_released, mouse_position},
+    input::{MouseButton, is_mouse_button_released, mouse_position},
     math::vec2,
     miniquad::window::screen_size,
     shapes::draw_rectangle,
@@ -9,45 +11,64 @@ use macroquad::{
 };
 
 use crate::{
-    graphics::{texture_manager::TextureManager, ui_display::VOXEL_SELECTION_SIZE},
+    graphics::texture_manager::TextureManager,
     interface::{
         game_menu::game_menu::MenuSelection,
         style::{BACKGROUND_COLOR, SHADOW_COLOR, TEXT_COLOR},
         util::{darken_background, draw_rect_with_shadow, get_text_width},
     },
-    model::{player_info::PlayerInfo, voxel::Voxel},
+    model::{
+        inventory::{Inventory, Item, MAX_ITEMS_PER_SLOT},
+        player_info::PlayerInfo,
+        voxel::Voxel,
+    },
     service::input::exit_focus,
+    utils::use_str_buffer,
 };
-
-const VOXELS_IN_SELECTION_MENU: [Option<Voxel>; 14] = [
-    Some(Voxel::Stone),
-    Some(Voxel::Sand),
-    Some(Voxel::Grass),
-    Some(Voxel::Wood),
-    Some(Voxel::Leaves),
-    Some(Voxel::Brick),
-    Some(Voxel::Dirt),
-    Some(Voxel::Boards),
-    Some(Voxel::Cobblestone),
-    Some(Voxel::Clay),
-    Some(Voxel::Lamp),
-    Some(Voxel::Trampoline),
-    Some(Voxel::Glass),
-    Some(Voxel::Cactus),
-];
 
 const VOXEL_SIZE: f32 = 0.08;
 const INNER_VOXELS_MULTIPLIER: f32 = 0.8;
 const BORDER_VOXELS_MULTIPLIER: f32 = (1.0 - INNER_VOXELS_MULTIPLIER) / 2.0;
-const VOXELS_IN_ROW: usize = VOXEL_SELECTION_SIZE;
-const VOXELS_IN_COLUMN: usize = 5;
+const VOXELS_IN_ROW: usize = Inventory::SELECTED_SIZE;
+const VOXELS_IN_COLUMN: usize = Inventory::INVENTORY_SIZE / VOXELS_IN_ROW;
 const SELECTED_VOXELS_OFFSET: f32 = 0.6;
+const BASE_COUNT_FONT_SIZE: f32 = 0.5;
 
-fn get_voxel_at_index(index: usize) -> Option<Voxel> {
-    if index < VOXELS_IN_SELECTION_MENU.len() {
-        VOXELS_IN_SELECTION_MENU[index]
-    } else {
-        None
+enum ItemSource {
+    Inventory,
+    Selection,
+}
+struct HoveredItem {
+    index: usize,
+    source: ItemSource,
+}
+impl HoveredItem {
+    fn inventory(index: usize) -> Self {
+        Self {
+            index,
+            source: ItemSource::Inventory,
+        }
+    }
+
+    fn selection(index: usize) -> Self {
+        Self {
+            index,
+            source: ItemSource::Selection,
+        }
+    }
+
+    fn set(&self, inventory: &mut Inventory, item: Option<Item>) {
+        match self.source {
+            ItemSource::Inventory => inventory.items[self.index] = item,
+            ItemSource::Selection => inventory.selected[self.index] = item,
+        }
+    }
+
+    fn get(&self, inventory: &Inventory) -> Option<Item> {
+        match self.source {
+            ItemSource::Inventory => inventory.items[self.index],
+            ItemSource::Selection => inventory.selected[self.index],
+        }
     }
 }
 
@@ -55,9 +76,9 @@ fn get_voxel_at_index(index: usize) -> Option<Voxel> {
 pub fn draw_voxel_selection_menu(
     texture_manager: &TextureManager,
     player_info: &mut PlayerInfo,
-    mut selected: Option<Voxel>,
-) -> (Option<Voxel>, MenuSelection) {
-    debug_assert_ne!(selected, Some(Voxel::None));
+    mut selected: Option<Item>,
+) -> (Option<Item>, MenuSelection) {
+    debug_assert!(selected.is_none() || selected.unwrap().voxel != Voxel::None);
     let (width, height) = screen_size();
     darken_background(width, height);
 
@@ -69,22 +90,19 @@ pub fn draw_voxel_selection_menu(
     let menu_y = (height - menu_height) * 0.5;
     draw_rect_with_shadow(menu_x, menu_y, menu_width, menu_height, BACKGROUND_COLOR);
 
-    draw_inventory_voxels(texture_manager, voxel_size, menu_x, menu_y);
+    draw_inventory_voxels(texture_manager, player_info, voxel_size, menu_x, menu_y);
     draw_selected_voxels(texture_manager, player_info, voxel_size, menu_x, menu_y);
-    draw_hovered_voxel_name(player_info, voxel_size, menu_x, menu_y);
+    draw_hovered_item_name(player_info, voxel_size, menu_x, menu_y);
 
-    if let Some(selected_voxel) = selected {
-        draw_held_voxel(texture_manager, voxel_size, selected_voxel);
+    if let Some(selected_item) = selected {
+        draw_held_item(texture_manager, voxel_size, selected_item);
     }
 
-    if is_mouse_button_pressed(MouseButton::Left)
-        || (is_mouse_button_released(MouseButton::Left) && selected.is_some())
-    {
-        if let Some(some_voxel) = selected {
-            selected = None;
-            set_voxel_in_selection(menu_x, menu_y, voxel_size, player_info, some_voxel);
+    if is_mouse_button_released(MouseButton::Left) {
+        if let Some(some_item) = selected {
+            selected = set_voxel_in_selection(menu_x, menu_y, voxel_size, player_info, some_item);
         } else {
-            selected = get_voxel_from_menu(menu_x, menu_y, voxel_size, player_info);
+            selected = get_item_from_menu(menu_x, menu_y, voxel_size, player_info);
         }
     }
 
@@ -95,67 +113,59 @@ pub fn draw_voxel_selection_menu(
     }
 }
 
-fn draw_hovered_voxel_name(player_info: &PlayerInfo, voxel_size: f32, menu_x: f32, menu_y: f32) {
+fn draw_hovered_item_name(player_info: &PlayerInfo, voxel_size: f32, menu_x: f32, menu_y: f32) {
     const TEXT_BOX_X_OFFSET: f32 = 3.0;
     const TEXT_BOX_Y_OFFSET: f32 = -5.0;
-    if let Some(hovered) = get_hovered_voxel(menu_x, menu_y, voxel_size, player_info) {
-        let voxel_name = match hovered {
-            HoveredVoxel::Inventory(voxel) => voxel,
-            HoveredVoxel::Selection(index) => {
-                if let Some(voxel) = player_info.voxel_selector.get_at(index) {
-                    voxel
-                } else {
-                    return;
-                }
-            }
-        }
-        .display_name();
+    if let Some(hovered) = get_hovered_item(menu_x, menu_y, voxel_size, player_info) {
+        let (voxel_name, count) = if let Some(item) = hovered.get(&player_info.inventory) {
+            (item.voxel.display_name(), item.count)
+        } else {
+            return;
+        };
 
         let (x, y) = mouse_position();
         let font_size = voxel_size * 0.5;
-        draw_rectangle(
-            x,
-            y - font_size,
-            get_text_width(voxel_name, font_size) + TEXT_BOX_X_OFFSET,
-            font_size,
-            SHADOW_COLOR,
-        );
-        draw_text(
-            voxel_name,
-            x + TEXT_BOX_X_OFFSET,
-            y + TEXT_BOX_Y_OFFSET,
-            font_size,
-            TEXT_COLOR,
-        );
+        use_str_buffer(|buffer| {
+            write!(buffer, "{voxel_name} ({count})").expect("error writing to text buffer");
+            draw_rectangle(
+                x,
+                y - font_size,
+                get_text_width(buffer, font_size) + TEXT_BOX_X_OFFSET,
+                font_size,
+                SHADOW_COLOR,
+            );
+            draw_text(
+                buffer,
+                x + TEXT_BOX_X_OFFSET,
+                y + TEXT_BOX_Y_OFFSET,
+                font_size,
+                TEXT_COLOR,
+            );
+        });
     }
 }
 
-fn get_voxel_from_menu(
+/// returns the currently hovered over item in the slot and sets it to empty
+fn get_item_from_menu(
     menu_x: f32,
     menu_y: f32,
     voxel_size: f32,
     player_info: &mut PlayerInfo,
-) -> Option<Voxel> {
-    get_hovered_voxel(menu_x, menu_y, voxel_size, player_info).and_then(|hovered| match hovered {
-        HoveredVoxel::Inventory(voxel) => Some(voxel),
-        HoveredVoxel::Selection(index) => {
-            let selected_voxel = player_info.voxel_selector.get_at(index);
-            player_info.voxel_selector.set_at(index, None);
-            selected_voxel
-        }
+) -> Option<Item> {
+    get_hovered_item(menu_x, menu_y, voxel_size, player_info).and_then(|hovered| {
+        let item = hovered.get(&player_info.inventory);
+        hovered.set(&mut player_info.inventory, None);
+        item
     })
 }
 
-enum HoveredVoxel {
-    Inventory(Voxel),
-    Selection(usize),
-}
-fn get_hovered_voxel(
+/// returns the currently hovered over item in the slot
+fn get_hovered_item(
     menu_x: f32,
     menu_y: f32,
     voxel_size: f32,
     player_info: &PlayerInfo,
-) -> Option<HoveredVoxel> {
+) -> Option<HoveredItem> {
     let (mouse_x, mouse_y) = mouse_position();
     let x = ((mouse_x - menu_x) / voxel_size).floor() as i32;
     if x < 0 || x >= VOXELS_IN_ROW as i32 {
@@ -165,8 +175,8 @@ fn get_hovered_voxel(
     let inventory_y = ((mouse_y - menu_y) / voxel_size).floor() as i32;
     if inventory_y >= 0 && inventory_y < VOXELS_IN_COLUMN as i32 {
         let index = x as usize + inventory_y as usize * VOXELS_IN_ROW;
-        if (0..VOXELS_IN_SELECTION_MENU.len()).contains(&index) {
-            return VOXELS_IN_SELECTION_MENU[index].map(HoveredVoxel::Inventory);
+        if (0..player_info.inventory.items.len()).contains(&index) {
+            return Some(HoveredItem::inventory(index));
         } else {
             return None;
         }
@@ -175,45 +185,63 @@ fn get_hovered_voxel(
     let selection_y = mouse_y
         - (menu_y + SELECTED_VOXELS_OFFSET * voxel_size + VOXELS_IN_COLUMN as f32 * voxel_size);
     if selection_y >= 0.0 && selection_y < voxel_size {
-        let found_voxel = player_info.voxel_selector.get_at(x as usize);
-        return found_voxel.map(|_| HoveredVoxel::Selection(x as usize));
+        let index = x as usize;
+        return Some(HoveredItem::selection(index));
     }
 
     None
 }
 
+/// puts the held voxel into the hovered slot and returns the replaced item
 fn set_voxel_in_selection(
     menu_x: f32,
     menu_y: f32,
     voxel_size: f32,
     player_info: &mut PlayerInfo,
-    selected_voxel: Voxel,
-) {
-    debug_assert_ne!(selected_voxel, Voxel::None);
-    let (mouse_x, mouse_y) = mouse_position();
-    let x = ((mouse_x - menu_x) / voxel_size).floor() as i32;
-    if x < 0 || x >= VOXELS_IN_ROW as i32 {
-        return;
-    }
+    mut selected_item: Item,
+) -> Option<Item> {
+    debug_assert_ne!(selected_item.voxel, Voxel::None);
+    let hovered = get_hovered_item(menu_x, menu_y, voxel_size, player_info);
+    match hovered {
+        Some(some_hovered) => {
+            let previous = some_hovered
+                .get(&player_info.inventory)
+                .and_then(|item_in_slot| {
+                    if item_in_slot.voxel == selected_item.voxel {
+                        let amount_to_transfer =
+                            (MAX_ITEMS_PER_SLOT - selected_item.count).min(item_in_slot.count);
+                        selected_item.count += amount_to_transfer;
+                        if item_in_slot.count == amount_to_transfer {
+                            None
+                        } else {
+                            Some(Item::new(
+                                item_in_slot.voxel,
+                                item_in_slot.count - amount_to_transfer,
+                            ))
+                        }
+                    } else {
+                        Some(item_in_slot)
+                    }
+                });
 
-    let y = mouse_y
-        - (menu_y + SELECTED_VOXELS_OFFSET * voxel_size + VOXELS_IN_COLUMN as f32 * voxel_size);
-    if y < 0.0 || y >= voxel_size {
-        return;
+            some_hovered.set(&mut player_info.inventory, Some(selected_item));
+            previous
+        }
+        None => {
+            player_info.inventory.add_item(selected_item);
+            None
+        }
     }
-    player_info
-        .voxel_selector
-        .set_at(x as usize, Some(selected_voxel));
 }
 
-fn draw_held_voxel(texture_manager: &TextureManager, voxel_size: f32, selected_voxel: Voxel) {
-    debug_assert_ne!(selected_voxel, Voxel::None);
+fn draw_held_item(texture_manager: &TextureManager, voxel_size: f32, selected_item: Item) {
+    debug_assert_ne!(selected_item.voxel, Voxel::None);
     let (mouse_x, mouse_y) = mouse_position();
-    let texture = texture_manager.get_icon(selected_voxel);
-    draw_voxel_texture(&texture, voxel_size, mouse_x, mouse_y);
+    let texture = texture_manager.get_icon(selected_item.voxel);
+    draw_item(&texture, selected_item.count, voxel_size, mouse_x, mouse_y);
 }
 
-fn draw_voxel_texture(texture: &Texture2D, voxel_size: f32, x: f32, y: f32) {
+fn draw_item(texture: &Texture2D, count: u8, voxel_size: f32, x: f32, y: f32) {
     draw_texture_ex(
         texture,
         x,
@@ -227,6 +255,11 @@ fn draw_voxel_texture(texture: &Texture2D, voxel_size: f32, x: f32, y: f32) {
             ..Default::default()
         },
     );
+    let font_size = voxel_size * BASE_COUNT_FONT_SIZE;
+    use_str_buffer(|buffer| {
+        write!(buffer, "{count}").expect("error writing to text buffer");
+        draw_text(buffer, x, y + font_size * 1.5, font_size, TEXT_COLOR);
+    });
 }
 
 fn draw_selected_voxels(
@@ -241,11 +274,12 @@ fn draw_selected_voxels(
     draw_text("Selected:", menu_x, y, text_size, TEXT_COLOR);
 
     for x in 0..VOXELS_IN_ROW {
-        let option_voxel = player_info.voxel_selector.get_at(x);
-        if let Some(voxel) = option_voxel {
-            let texture = texture_manager.get_icon(voxel);
-            draw_voxel_texture(
+        let option_item = player_info.inventory.selected[x];
+        if let Some(item) = option_item {
+            let texture = texture_manager.get_icon(item.voxel);
+            draw_item(
                 &texture,
+                item.count,
                 voxel_size,
                 x as f32 * voxel_size + menu_x + voxel_size * BORDER_VOXELS_MULTIPLIER,
                 y + voxel_size * BORDER_VOXELS_MULTIPLIER,
@@ -264,6 +298,7 @@ fn draw_selected_voxels(
 
 fn draw_inventory_voxels(
     texture_manager: &TextureManager,
+    player_info: &mut PlayerInfo,
     voxel_size: f32,
     menu_x: f32,
     menu_y: f32,
@@ -273,11 +308,14 @@ fn draw_inventory_voxels(
             let index = y * VOXELS_IN_ROW + x;
             let x_pos = menu_x + x as f32 * voxel_size + voxel_size * BORDER_VOXELS_MULTIPLIER;
             let y_pos = menu_y + y as f32 * voxel_size + voxel_size * BORDER_VOXELS_MULTIPLIER;
+            if index >= player_info.inventory.items.len() {
+                return;
+            }
 
-            if let Some(voxel) = get_voxel_at_index(index) {
-                let texture = texture_manager.get_icon(voxel);
-                draw_voxel_texture(&texture, voxel_size, x_pos, y_pos);
-                if Voxel::TRANSPARENT.contains(&voxel) {
+            if let Some(item) = player_info.inventory.items[index] {
+                let texture = texture_manager.get_icon(item.voxel);
+                draw_item(&texture, item.count, voxel_size, x_pos, y_pos);
+                if Voxel::TRANSPARENT.contains(&item.voxel) {
                     draw_empty_slot(voxel_size, x_pos, y_pos);
                 }
             } else {

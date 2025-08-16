@@ -1,20 +1,28 @@
+use bincode::{Decode, Encode};
 use macroquad::{
     camera::Camera3D,
     color::{Color, WHITE},
     math::{vec2, vec3},
     miniquad::window::screen_size,
     models::draw_cube_wires,
-    prelude::error,
     shapes::{draw_circle, draw_rectangle},
+    text::draw_text,
     texture::{DrawTextureParams, Texture2D, draw_texture_ex},
 };
+use std::fmt::Write;
 
 use crate::{
     interface::style::TEXT_COLOR,
-    model::{location::Location, voxel::Voxel},
+    model::{
+        inventory::{Inventory, Item},
+        location::Location,
+    },
+    utils::use_str_buffer,
 };
 
 use super::texture_manager::TextureManager;
+
+const BASE_COUNT_FONT_SIZE: f32 = 0.5;
 
 pub fn draw_crosshair(width: f32, height: f32) {
     draw_circle(width / 2.0, height / 2.0, 2.0, WHITE);
@@ -29,51 +37,17 @@ pub fn draw_selected_voxel(location: Location, camera: &Camera3D) {
     draw_cube_wires(position, vec3(1.0, 1.0, 1.0), WHITE);
 }
 
-pub const VOXEL_SELECTION_SIZE: usize = 8;
-
-#[derive(Debug)]
-pub struct VoxelSelector {
-    voxels: [Option<Voxel>; VOXEL_SELECTION_SIZE],
+#[derive(Debug, Clone, Encode, Decode)]
+pub struct ItemHotbar {
     selected: usize,
     ui_size: f32,
 }
-impl VoxelSelector {
+impl ItemHotbar {
     pub fn new() -> Self {
         Self {
-            voxels: [
-                Some(Voxel::Brick),
-                Some(Voxel::Boards),
-                Some(Voxel::Stone),
-                Some(Voxel::Sand),
-                Some(Voxel::Dirt),
-                Some(Voxel::Grass),
-                Some(Voxel::Wood),
-                Some(Voxel::Leaves),
-            ],
             selected: 0,
             ui_size: 0.05,
         }
-    }
-
-    pub fn from_saved(voxels: [Option<Voxel>; VOXEL_SELECTION_SIZE], selected: usize) -> Self {
-        for voxel in &voxels {
-            assert_ne!(*voxel, Some(Voxel::None));
-        }
-
-        if selected >= voxels.len() {
-            error!("Invalid selected index for voxel selector: {}", selected);
-            Self::new()
-        } else {
-            Self {
-                voxels,
-                selected,
-                ui_size: 0.05,
-            }
-        }
-    }
-
-    pub fn get_voxels(&self) -> [Option<Voxel>; VOXEL_SELECTION_SIZE] {
-        self.voxels
     }
 
     pub fn get_selected_index(&self) -> usize {
@@ -81,7 +55,7 @@ impl VoxelSelector {
     }
 
     pub fn select_next(&mut self) {
-        if self.selected + 1 < self.voxels.len() {
+        if self.selected + 1 < Inventory::SELECTED_SIZE {
             self.selected += 1;
         }
     }
@@ -92,53 +66,41 @@ impl VoxelSelector {
         }
     }
 
-    pub fn get_selected(&self) -> Option<Voxel> {
-        self.voxels[self.selected]
-    }
-
-    pub fn get_at(&self, index: usize) -> Option<Voxel> {
-        if index < self.voxels.len() {
-            debug_assert_ne!(self.voxels[index], Some(Voxel::None));
-            self.voxels[index]
-        } else {
-            error!("Entered invalid voxel selection index: {}", index);
-            None
-        }
-    }
-
-    pub fn set_at(&mut self, index: usize, voxel: Option<Voxel>) {
-        if index < self.voxels.len() {
-            debug_assert_ne!(self.voxels[index], Some(Voxel::None));
-            self.voxels[index] = voxel;
-        } else {
-            error!("Entered invalid voxel selection index: {}", index);
-        }
-    }
-
     /// draws the voxel selection ui
-    pub fn draw(&self, texture_manager: &TextureManager) {
+    pub fn draw(
+        &self,
+        items_on_hotbar: &[Option<Item>; Inventory::SELECTED_SIZE],
+        texture_manager: &TextureManager,
+    ) {
         let (screen_width, screen_height) = screen_size();
         let border_size = screen_width * self.ui_size;
         let picture_size = border_size * 0.8;
-        let total_width = border_size * self.voxels.len() as f32;
+        let total_width = border_size * items_on_hotbar.len() as f32;
         let x_start = (screen_width - total_width) / 2.0;
         let y = screen_height - border_size;
 
-        for (index, voxel) in self.voxels.iter().enumerate() {
-            let texture = voxel
+        for (index, item) in items_on_hotbar.iter().enumerate() {
+            let texture_with_count = item
                 .as_ref()
-                .map(|non_empty| texture_manager.get_icon(*non_empty));
+                .map(|non_empty| (texture_manager.get_icon(non_empty.voxel), non_empty.count));
             let is_selected = self.selected == index;
             let x = x_start + index as f32 * border_size;
 
-            Self::draw_voxel(border_size, picture_size, texture, x, y, is_selected);
+            Self::draw_voxel(
+                border_size,
+                picture_size,
+                texture_with_count,
+                x,
+                y,
+                is_selected,
+            );
         }
     }
 
     fn draw_voxel(
         border_size: f32,
         picture_size: f32,
-        texture: Option<Texture2D>,
+        texture_with_count: Option<(Texture2D, u8)>,
         x: f32,
         y: f32,
         is_selected: bool,
@@ -151,9 +113,9 @@ impl VoxelSelector {
         let offset = (border_size - picture_size) / 2.0;
 
         draw_rectangle(x, y, border_size, border_size, border_color);
-        if let Some(some_texture) = texture {
+        if let Some((texture, count)) = texture_with_count {
             draw_texture_ex(
-                &some_texture,
+                &texture,
                 x + offset,
                 y + offset,
                 WHITE,
@@ -162,6 +124,18 @@ impl VoxelSelector {
                     ..Default::default()
                 },
             );
+
+            let font_size = BASE_COUNT_FONT_SIZE * border_size;
+            use_str_buffer(|buffer| {
+                write!(buffer, "{count}").expect("error writing to text buffer");
+                draw_text(
+                    buffer,
+                    x + offset,
+                    y + font_size * 1.7,
+                    font_size,
+                    TEXT_COLOR,
+                );
+            });
         } else {
             draw_rectangle(
                 x + offset,
