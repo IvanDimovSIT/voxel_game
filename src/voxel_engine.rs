@@ -1,4 +1,4 @@
-use std::{f32::consts::PI, rc::Rc};
+use std::{cell::RefCell, f32::consts::PI, rc::Rc};
 
 use macroquad::{
     camera::set_default_camera,
@@ -19,6 +19,7 @@ use crate::{
     },
     interface::{
         game_menu::{
+            crafting_menu::CraftingMenuContext,
             game_menu::{MenuSelection, MenuState, draw_main_menu, draw_options_menu},
             voxel_selection_menu::draw_voxel_selection_menu,
         },
@@ -133,7 +134,7 @@ impl VoxelEngine {
         }
     }
 
-    /// processes and player inputs and returns the looked at voxel from the camera
+    /// processes the player inputs and returns the looked at voxel from the camera
     pub fn process_input(&mut self, delta: f32) -> RaycastResult {
         self.manage_menu_state();
         self.check_change_render_distance();
@@ -148,6 +149,11 @@ impl VoxelEngine {
             self.menu_state = MenuState::ItemSelection {
                 currently_selected_item: None,
             };
+        } else if is_enter_crafting() {
+            self.player_info.camera_controller.set_focus(false);
+            self.menu_state = MenuState::Crafting {
+                context: CraftingMenuContext::new(&self.player_info.inventory),
+            }
         }
         if is_place_voxel(&self.player_info.camera_controller) {
             self.try_place_voxel(raycast_result);
@@ -285,14 +291,29 @@ impl VoxelEngine {
 
     /// returns the new game context only if changed
     fn process_menu(&mut self) -> Option<GameState> {
-        match self.menu_state {
+        match self.menu_state.clone() {
             MenuState::Hidden => None,
             MenuState::Main => self.process_main_menu(),
             MenuState::Options => self.process_options_menu(),
             MenuState::ItemSelection {
                 currently_selected_item,
             } => self.process_voxel_selection_menu(currently_selected_item),
+            MenuState::Crafting { context } => self.process_crafting_menu(&context),
         }
+    }
+
+    fn process_crafting_menu(
+        &mut self,
+        context: &RefCell<CraftingMenuContext>,
+    ) -> Option<GameState> {
+        let menu_selection = context.borrow_mut().draw_menu(
+            &mut self.player_info.inventory,
+            self.renderer.get_texture_manager(),
+            &self.sound_manager,
+            &self.user_settings,
+        );
+
+        self.handle_menu_selection(menu_selection)
     }
 
     fn process_voxel_selection_menu(

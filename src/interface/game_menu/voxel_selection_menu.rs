@@ -15,7 +15,7 @@ use crate::{
     interface::{
         game_menu::game_menu::MenuSelection,
         style::{BACKGROUND_COLOR, SHADOW_COLOR, TEXT_COLOR},
-        util::{darken_background, draw_rect_with_shadow, get_text_width},
+        util::{darken_background, draw_item_name, draw_rect_with_shadow, get_text_width},
     },
     model::{
         inventory::{Inventory, Item, MAX_ITEMS_PER_SLOT},
@@ -114,8 +114,6 @@ pub fn draw_voxel_selection_menu(
 }
 
 fn draw_hovered_item_name(player_info: &PlayerInfo, voxel_size: f32, menu_x: f32, menu_y: f32) {
-    const TEXT_BOX_X_OFFSET: f32 = 3.0;
-    const TEXT_BOX_Y_OFFSET: f32 = -5.0;
     if let Some(hovered) = get_hovered_item(menu_x, menu_y, voxel_size, player_info) {
         let (voxel_name, count) = if let Some(item) = hovered.get(&player_info.inventory) {
             (item.voxel.display_name(), item.count)
@@ -125,23 +123,7 @@ fn draw_hovered_item_name(player_info: &PlayerInfo, voxel_size: f32, menu_x: f32
 
         let (x, y) = mouse_position();
         let font_size = voxel_size * 0.5;
-        use_str_buffer(|buffer| {
-            write!(buffer, "{voxel_name} ({count})").expect("error writing to text buffer");
-            draw_rectangle(
-                x,
-                y - font_size,
-                get_text_width(buffer, font_size) + TEXT_BOX_X_OFFSET,
-                font_size,
-                SHADOW_COLOR,
-            );
-            draw_text(
-                buffer,
-                x + TEXT_BOX_X_OFFSET,
-                y + TEXT_BOX_Y_OFFSET,
-                font_size,
-                TEXT_COLOR,
-            );
-        });
+        draw_item_name(x, y, voxel_name, count, font_size);
     }
 }
 

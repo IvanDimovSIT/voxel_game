@@ -1,10 +1,15 @@
+use std::fmt::Write;
+
 use macroquad::{
     color::Color,
     shapes::{draw_rectangle, draw_rectangle_lines},
     text::draw_text,
 };
 
-use crate::interface::style::CLEAR_SCREEN_COLOR;
+use crate::{
+    interface::style::{CLEAR_SCREEN_COLOR, TEXT_COLOR},
+    utils::use_str_buffer,
+};
 
 use super::style::{BORDER_COLOR, SHADOW_COLOR, SHADOW_OFFSET};
 
@@ -39,4 +44,26 @@ pub fn draw_centered_multiline_text(
         let line_y = y + i as f32 * font_size;
         draw_text(line, line_x, line_y, font_size, color);
     }
+}
+
+pub fn draw_item_name(x: f32, y: f32, voxel_name: &str, count: u8, font_size: f32) {
+    const TEXT_BOX_X_OFFSET: f32 = 3.0;
+    const TEXT_BOX_Y_OFFSET: f32 = -5.0;
+    use_str_buffer(|buffer| {
+        write!(buffer, "{voxel_name} ({count})").expect("error writing to text buffer");
+        draw_rectangle(
+            x,
+            y - font_size,
+            get_text_width(buffer, font_size) + TEXT_BOX_X_OFFSET,
+            font_size,
+            SHADOW_COLOR,
+        );
+        draw_text(
+            buffer,
+            x + TEXT_BOX_X_OFFSET,
+            y + TEXT_BOX_Y_OFFSET,
+            font_size,
+            TEXT_COLOR,
+        );
+    });
 }

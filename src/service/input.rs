@@ -56,6 +56,10 @@ pub fn is_enter_inventory() -> bool {
     is_key_released(macroquad::input::KeyCode::E)
 }
 
+pub fn is_enter_crafting() -> bool {
+    is_key_released(macroquad::input::KeyCode::C)
+}
+
 #[derive(Debug, Clone, Copy)]
 pub enum ScrollDirection {
     Up,

@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use bincode::{Decode, Encode};
 
 use crate::model::voxel::Voxel;
@@ -58,6 +60,44 @@ impl Inventory {
         }
     }
 
+    pub fn create_all_items_map(&self) -> HashMap<Voxel, u32> {
+        let mut map = HashMap::new();
+        for item in self.selected.iter().chain(self.items.iter()).flatten() {
+            let existing_option = map.get_mut(&item.voxel);
+            if let Some(existing) = existing_option {
+                *existing += item.count as u32;
+            } else {
+                map.insert(item.voxel, item.count as u32);
+            }
+        }
+
+        map
+    }
+
+    /// unchecked operation, may not remove desired amount
+    pub fn remove_item(&mut self, mut item: Item) {
+        let iterator = self
+            .items
+            .iter_mut()
+            .chain(self.selected.iter_mut())
+            .filter(|i| i.is_some() && i.unwrap().voxel == item.voxel);
+
+        for slot in iterator {
+            let amount_to_remove = slot.unwrap().count.min(item.count);
+            *slot = slot.map(|inner| Item {
+                count: inner.count - amount_to_remove,
+                ..inner
+            });
+            item.count -= amount_to_remove;
+            if slot.unwrap().count == 0 {
+                *slot = None;
+            }
+            if item.count == 0 {
+                return;
+            }
+        }
+    }
+
     pub fn reduce_selected_at(&mut self, index: usize) {
         debug_assert!(self.selected[index].is_some());
         debug_assert!(self.selected[index].unwrap().count > 0);
@@ -79,5 +119,103 @@ impl Default for Inventory {
             items: [None; Self::INVENTORY_SIZE],
             selected,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const EMPTY_INVENTORY: Inventory = Inventory {
+        items: [None; Inventory::INVENTORY_SIZE],
+        selected: [None; Inventory::SELECTED_SIZE],
+    };
+
+    #[test]
+    pub fn test_add_item_into_empty() {
+        let mut inventory = EMPTY_INVENTORY;
+        inventory.add_item(Item::new(Voxel::Brick, 10));
+
+        assert!(inventory.selected[0].is_some());
+        assert!(inventory.selected[0].unwrap().count == 10);
+        assert!(inventory.selected[0].unwrap().voxel == Voxel::Brick);
+    }
+
+    #[test]
+    pub fn test_add_item_into_same_stack() {
+        let mut inventory = EMPTY_INVENTORY;
+        inventory.selected[1] = Item::some(Voxel::Brick, 20);
+        inventory.add_item(Item::new(Voxel::Brick, 10));
+
+        assert!(inventory.selected[1].is_some());
+        assert!(inventory.selected[1].unwrap().count == 30);
+        assert!(inventory.selected[1].unwrap().voxel == Voxel::Brick);
+    }
+
+    #[test]
+    pub fn test_add_item_into_prexisting() {
+        let mut inventory = EMPTY_INVENTORY;
+        inventory.selected[0] = Item::some(Voxel::Grass, 20);
+        inventory.add_item(Item::new(Voxel::Brick, 10));
+
+        assert!(inventory.selected[1].is_some());
+        assert!(inventory.selected[1].unwrap().count == 10);
+        assert!(inventory.selected[1].unwrap().voxel == Voxel::Brick);
+    }
+
+    #[test]
+    pub fn test_add_item_into_inventory() {
+        let mut inventory = EMPTY_INVENTORY;
+        inventory
+            .selected
+            .iter_mut()
+            .for_each(|slot| *slot = Item::some(Voxel::Grass, 100));
+        inventory.add_item(Item::new(Voxel::Brick, 10));
+
+        assert!(inventory.items[0].is_some());
+        assert!(inventory.items[0].unwrap().count == 10);
+        assert!(inventory.items[0].unwrap().voxel == Voxel::Brick);
+    }
+
+    #[test]
+    pub fn test_add_item_partial_join() {
+        let mut inventory = EMPTY_INVENTORY;
+        inventory.selected[0] = Item::some(Voxel::Brick, 80);
+        inventory.add_item(Item::new(Voxel::Brick, 30));
+
+        assert!(inventory.selected[0].is_some());
+        assert!(inventory.selected[0].unwrap().count == 100);
+        assert!(inventory.selected[0].unwrap().voxel == Voxel::Brick);
+        assert!(inventory.selected[1].is_some());
+        assert!(inventory.selected[1].unwrap().count == 10);
+        assert!(inventory.selected[1].unwrap().voxel == Voxel::Brick);
+    }
+
+    #[test]
+    pub fn test_create_all_items_map() {
+        let mut inventory = EMPTY_INVENTORY;
+        inventory.selected[0] = Item::some(Voxel::Brick, 80);
+        inventory.selected[1] = Item::some(Voxel::Brick, 40);
+        inventory.items[0] = Item::some(Voxel::Sand, 80);
+        inventory.items[3] = Item::some(Voxel::Stone, 100);
+        inventory.items[4] = Item::some(Voxel::Brick, 10);
+        let map = inventory.create_all_items_map();
+
+        assert_eq!(map.len(), 3);
+        assert_eq!(map[&Voxel::Brick], 130);
+        assert_eq!(map[&Voxel::Sand], 80);
+        assert_eq!(map[&Voxel::Stone], 100);
+    }
+
+    #[test]
+    pub fn test_remove_item() {
+        let mut inventory = EMPTY_INVENTORY;
+        inventory.selected[0] = Item::some(Voxel::Brick, 60);
+        inventory.selected[1] = Item::some(Voxel::Brick, 40);
+        inventory.remove_item(Item::new(Voxel::Brick, 70));
+
+        assert!(inventory.selected[0].is_none());
+        assert!(inventory.selected[1].is_some());
+        assert_eq!(inventory.selected[1].unwrap().count, 30);
     }
 }

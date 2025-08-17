@@ -4,6 +4,7 @@ pub const CLEAR_SCREEN_COLOR: Color = Color::from_rgba(0, 0, 0, 100);
 pub const BACKGROUND_COLOR: Color = ORANGE;
 pub const BUTTON_COLOR: Color = WHITE;
 pub const TEXT_COLOR: Color = WHITE;
+pub const SECONDARY_TEXT_COLOR: Color = BLACK;
 pub const BUTTON_HOVER_COLOR: Color = LIGHTGRAY;
 pub const BORDER_COLOR: Color = BLACK;
 pub const SELECTED_COLOR: Color = BLUE;

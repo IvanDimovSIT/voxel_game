@@ -1,3 +1,5 @@
+use std::{cell::RefCell, rc::Rc};
+
 use macroquad::{
     camera::set_default_camera,
     color::{BLACK, Color},
@@ -10,6 +12,7 @@ use macroquad::{
 use crate::{
     interface::{
         button::draw_button,
+        game_menu::crafting_menu::CraftingMenuContext,
         style::{BACKGROUND_COLOR, BUTTON_COLOR},
         util::darken_background,
     },
@@ -33,13 +36,16 @@ pub enum MenuSelection {
     Exit,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub enum MenuState {
     Hidden,
     Main,
     Options,
     ItemSelection {
         currently_selected_item: Option<Item>,
+    },
+    Crafting {
+        context: Rc<RefCell<CraftingMenuContext>>,
     },
 }
 impl MenuState {

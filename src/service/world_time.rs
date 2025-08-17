@@ -38,3 +38,37 @@ impl WorldTime {
 fn sigmoid(x: f32, coef: f32) -> f32 {
     1.0 / (1.0 + (coef * (x - 0.5)).exp())
 }
+
+#[cfg(test)]
+mod tests {
+    use macroquad::rand::rand;
+
+    use super::*;
+
+    #[test]
+    pub fn test_world_time() {
+        let mut world_time = WorldTime::new(0.0);
+        world_time.update(0.1);
+        assert_in_range(&world_time);
+        assert!(world_time.get_delta() > 0.0);
+
+        world_time.update(100_000_000.0);
+        assert_in_range(&world_time);
+
+        for _ in 0..100 {
+            let delta = (rand() % 10_000) as f32 / 1000.0;
+            world_time.update(delta);
+            assert_in_range(&world_time);
+        }
+    }
+
+    fn assert_in_range(world_time: &WorldTime) {
+        let delta = world_time.get_delta();
+        let light = world_time.get_ligth_level();
+
+        assert!(delta >= 0.0);
+        assert!(delta <= PI);
+        assert!(light >= 0.0);
+        assert!(light <= 1.0);
+    }
+}
