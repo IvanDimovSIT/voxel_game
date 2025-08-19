@@ -16,7 +16,7 @@ use crate::{
         title_screen::TitleScreenContext,
         util::{draw_centered_multiline_text, get_text_width, is_point_in_rect},
     },
-    model::user_settings::UserSettings,
+    model::user_settings::{ShadowType, UserSettings},
     service::{
         persistence::user_settings_persistence::write_user_settings, sound_manager::SoundManager,
     },
@@ -24,7 +24,7 @@ use crate::{
 
 const BACK_BUTTON_SIZE: f32 = 60.0;
 const BACK_BUTTON_FONT_SIZE: u16 = 45;
-const BUTTON_WIDTH: f32 = 280.0;
+const BUTTON_WIDTH: f32 = 380.0;
 const BUTTON_HEIGHT: f32 = 70.0;
 const BUTTON_HEIGHT_OFFSET: f32 = BUTTON_HEIGHT * 1.2;
 const BUTTON_TEXT_SIZE: f32 = 30.0;
@@ -41,7 +41,7 @@ const TOGGLE_SOUNDS_DESCRIPTION: [&str; 1] = ["Toggles game sounds"];
 const TOGGLE_FULLSCREEN_DESCRIPTION: [&str; 1] = ["Toggles fullscreen mode"];
 const TOGGLE_LIGHTS_DESCRIPTION: [&str; 2] = [
     "Enables dynamic lights placed by the player",
-    "and cave darkness, lowers performance",
+    "and dynamic shadows, lowers performance",
 ];
 
 pub struct SettingsContext;
@@ -246,17 +246,25 @@ impl SettingsContext {
             y,
             BUTTON_WIDTH,
             BUTTON_HEIGHT,
-            if user_settings.dynamic_lighting {
-                "Dynamic lights"
-            } else {
-                "Static lights"
+            match user_settings.shadow_type {
+                ShadowType::Soft => "Dynamic lights, soft shadows",
+                ShadowType::Hard => "Dynamic lights, hard shadows",
+                ShadowType::None => "Static lights and shadows",
             },
             BUTTON_TEXT_SIZE as u16,
             sound_manager,
             user_settings,
         );
         if should_change {
-            user_settings.dynamic_lighting = !user_settings.dynamic_lighting;
+            Self::change_lighting_type(user_settings);
+        }
+    }
+
+    fn change_lighting_type(user_settings: &mut UserSettings) {
+        match user_settings.shadow_type {
+            ShadowType::None => user_settings.shadow_type = ShadowType::Soft,
+            ShadowType::Soft => user_settings.shadow_type = ShadowType::Hard,
+            ShadowType::Hard => user_settings.shadow_type = ShadowType::None,
         }
     }
 

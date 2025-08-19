@@ -6,6 +6,7 @@ use macroquad::{
         Comparison, Material, MaterialParams, PipelineParams, ShaderSource, UniformDesc,
         UniformType, gl_use_material, load_material,
     },
+    texture::Texture2D,
 };
 
 use crate::{
@@ -17,11 +18,14 @@ use crate::{
     service::world_time::WorldTime,
 };
 
-const SHADOW_CHANGE_STEEPNESS: f32 = 10.0;
 const MAX_LIGHTS: usize = 64;
+const TRUE: i32 = 1;
+const FALSE: i32 = 0;
 
 const VOXEL_VERTEX_SHADER: &str = include_str!("../../resources/shaders/voxel_vertex.glsl");
 const VOXEL_FRAGMENT_SHADER: &str = include_str!("../../resources/shaders/voxel_fragment.glsl");
+
+const HEIGHT_MAP_TESXTURE_NAME: &str = "heightMap";
 
 const CAMERA_POSITION_UNIFORM: &str = "cameraPos";
 const CAMERA_TARGET_UNIFORM: &str = "cameraTarget";
@@ -30,9 +34,9 @@ const FOG_FAR_UNIFORM: &str = "fogFar";
 const LIGHT_LEVEL_UNIFORM: &str = "lightLevel";
 const FOG_BASE_COLOR_LIGHT_UNIFORM: &str = "fogBaseColorLight";
 const FOG_BASE_COLOR_DARK_UNIFORM: &str = "fogBaseColorDark";
-const SHADOW_AMOUNT_UNIFORM: &str = "shadowAmount";
 const LIGHTS_COUNT_UNIFORM: &str = "lightsCount";
 const LIGHTS_UNIFORM: &str = "lights";
+const HAS_DYNAMIC_SHADOWS_UNIFORM: &str = "hasDynamicShadows";
 
 /// default 3D material shader for voxels
 pub struct VoxelShader {
@@ -61,11 +65,11 @@ impl VoxelShader {
             UniformDesc::new(FOG_BASE_COLOR_LIGHT_UNIFORM, UniformType::Float3);
         let fog_dark_color_uniform =
             UniformDesc::new(FOG_BASE_COLOR_DARK_UNIFORM, UniformType::Float3);
-        let average_max_height_uniform =
-            UniformDesc::new(SHADOW_AMOUNT_UNIFORM, UniformType::Float1);
         let lights_count_uniform = UniformDesc::new(LIGHTS_COUNT_UNIFORM, UniformType::Int1);
         let lights_uniform =
             UniformDesc::new(LIGHTS_UNIFORM, UniformType::Float3).array(MAX_LIGHTS);
+        let has_dynamic_shadows_uniform =
+            UniformDesc::new(HAS_DYNAMIC_SHADOWS_UNIFORM, UniformType::Int1);
 
         let voxel_material = load_material(
             ShaderSource::Glsl {
@@ -82,11 +86,11 @@ impl VoxelShader {
                     light_level_uniform,
                     fog_light_color_uniform,
                     fog_dark_color_uniform,
-                    average_max_height_uniform,
                     lights_count_uniform,
                     lights_uniform,
+                    has_dynamic_shadows_uniform,
                 ],
-                ..Default::default()
+                textures: vec![HEIGHT_MAP_TESXTURE_NAME.to_owned()],
             },
         )
         .expect("Error initialising voxel shaders");
@@ -100,9 +104,11 @@ impl VoxelShader {
         camera: &Camera3D,
         render_size: u32,
         world_time: &WorldTime,
-        average_max_height: Option<f32>,
         lights: &[InternalLocation],
+        height_map: Texture2D,
+        has_dynamic_lighting: bool,
     ) {
+        self.voxel_material.set_texture(HEIGHT_MAP_TESXTURE_NAME, height_map);
         self.voxel_material.set_uniform(
             CAMERA_POSITION_UNIFORM,
             [camera.position.x, camera.position.y, camera.position.z],
@@ -122,11 +128,10 @@ impl VoxelShader {
         );
         self.voxel_material
             .set_uniform(FOG_BASE_COLOR_DARK_UNIFORM, SKY_DARK_COLOR.to_vec().xyz());
-        let shadow_amount = average_max_height
-            .map(|max_z| Self::calculate_shadow_amount(max_z, camera))
-            .unwrap_or(0.0);
+
+        let has_dynamic_shadows = if has_dynamic_lighting { TRUE } else { FALSE };
         self.voxel_material
-            .set_uniform(SHADOW_AMOUNT_UNIFORM, shadow_amount);
+            .set_uniform(HAS_DYNAMIC_SHADOWS_UNIFORM, has_dynamic_shadows);
         self.set_lights(lights, camera);
 
         gl_use_material(&self.voxel_material);
@@ -156,15 +161,6 @@ impl VoxelShader {
             .set_uniform_array(LIGHTS_UNIFORM, &lights_array);
         self.voxel_material
             .set_uniform(LIGHTS_COUNT_UNIFORM, lights_count as i32);
-    }
-
-    fn calculate_shadow_amount(average_max_height: f32, camera: &Camera3D) -> f32 {
-        let player_z = camera.position.z - 1.0;
-        if average_max_height >= player_z {
-            0.0
-        } else {
-            ((player_z - average_max_height) / SHADOW_CHANGE_STEEPNESS).clamp(0.0, 0.7)
-        }
     }
 
     fn calulate_fog_distances(render_size: u32) -> (f32, f32) {

@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use macroquad::{
     prelude::{error, info},
-    texture::{FilterMode, Texture2D, build_textures_atlas, load_texture},
+    texture::{FilterMode, Texture2D, load_texture},
 };
 
 use crate::model::voxel::{MAX_VOXEL_VARIANTS, Voxel};
@@ -90,7 +90,6 @@ impl TextureManager {
                 texture_type, texture_path
             );
         }
-        build_textures_atlas();
 
         textures
     }

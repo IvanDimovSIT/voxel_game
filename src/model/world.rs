@@ -19,6 +19,7 @@ pub struct World {
     world_name: String,
     areas: HashMap<AreaLocation, Area>,
     area_loader: AreaLoader,
+    empty_area: Area,
 }
 impl World {
     pub fn new(world_name: impl Into<String>) -> Self {
@@ -26,6 +27,7 @@ impl World {
             world_name: world_name.into(),
             areas: HashMap::new(),
             area_loader: AreaLoader::new(),
+            empty_area: Area::new(AreaLocation::new(0, 0)),
         }
     }
 
@@ -73,23 +75,12 @@ impl World {
         )
     }
 
-    /// finds the maximum height of a opaque voxel column at the given location
-    pub fn find_max_height_of_opaque_voxels_for_column(
-        &mut self,
-        location: impl Into<InternalLocation>,
-    ) -> u32 {
-        let internal_location = location.into();
-        let (area_location, local) =
-            Self::convert_global_to_area_and_local_location(internal_location);
-        self.load_area(area_location);
-        let area = &self.areas[&area_location];
-
-        (0..AREA_HEIGHT)
-            .find(|z| {
-                let current_location = InternalLocation { z: *z, ..local };
-                !Voxel::TRANSPARENT.contains(&area.get(current_location))
-            })
-            .unwrap_or(AREA_HEIGHT - 1)
+    /// may return an empty area if not loaded
+    pub fn get_area_without_loading(&self, area_location: AreaLocation) -> &Area {
+        self.areas.get(&area_location).unwrap_or_else(|| {
+            error!("Trying to read an unloaded area. Returning empty area.");
+            &self.empty_area
+        })
     }
 
     pub fn get_renderable_voxels_for_area(

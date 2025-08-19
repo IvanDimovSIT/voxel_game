@@ -12,6 +12,7 @@ use macroquad::{
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 
 use crate::{
+    graphics::height_map::HeightMap,
     model::{
         area::{AREA_HEIGHT, AREA_SIZE, AreaLocation},
         location::{InternalLocation, LOCATION_OFFSET, Location},
@@ -320,25 +321,33 @@ impl Renderer {
 
     /// Returns the number of rendered areas and faces
     pub fn render_voxels(
-        &self,
+        &mut self,
         camera: &Camera3D,
         render_size: u32,
         world_time: &WorldTime,
-        average_max_height: Option<f32>,
         user_settings: &UserSettings,
+        world: &World,
+        height_map: &mut HeightMap,
     ) -> (usize, usize) {
         let normalised_camera = CameraController::normalize_camera_3d(camera);
         set_camera(&normalised_camera);
         let look = (camera.target - camera.position).normalize_or_zero();
 
         let visible_areas = self.prepare_visible_areas(camera, look, render_size);
+        let height_map = if user_settings.has_dynamic_lighting() {
+            let visible_areas_iter = visible_areas.iter().map(|(l, _)| **l);
+            height_map.generate_height_map(world, visible_areas_iter, camera, user_settings)
+        } else {
+            height_map.get_empty_height_map()
+        };
         let lights = Self::prepare_lights(&visible_areas, user_settings);
         self.shader.set_voxel_material(
             camera,
             render_size,
             world_time,
-            average_max_height,
             &lights,
+            height_map,
+            user_settings.has_dynamic_lighting(),
         );
 
         let visible_voxels =
@@ -408,7 +417,7 @@ impl Renderer {
         render_areas: &[(&AreaLocation, &RenderArea)],
         user_settings: &UserSettings,
     ) -> Vec<InternalLocation> {
-        if !user_settings.dynamic_lighting {
+        if !user_settings.has_dynamic_lighting() {
             return vec![];
         }
 

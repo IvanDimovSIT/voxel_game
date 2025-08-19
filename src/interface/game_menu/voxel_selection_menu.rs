@@ -15,7 +15,7 @@ use crate::{
     interface::{
         game_menu::game_menu::MenuSelection,
         style::{BACKGROUND_COLOR, SHADOW_COLOR, TEXT_COLOR},
-        util::{darken_background, draw_item_name, draw_rect_with_shadow, get_text_width},
+        util::{darken_background, draw_item_name, draw_rect_with_shadow},
     },
     model::{
         inventory::{Inventory, Item, MAX_ITEMS_PER_SLOT},

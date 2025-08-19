@@ -3,12 +3,19 @@ use bincode::{Decode, Encode};
 const MIN_RENDER_DISTANCE: u32 = 3;
 const MAX_RENDER_DISTANCE: u32 = 16;
 
+#[derive(Debug, Clone, Copy, Encode, Decode)]
+pub enum ShadowType {
+    None,
+    Soft,
+    Hard,
+}
+
 #[derive(Debug, Clone, Encode, Decode)]
 pub struct UserSettings {
     render_distance: u32,
     pub has_sound: bool,
     pub is_fullscreen: bool,
-    pub dynamic_lighting: bool,
+    pub shadow_type: ShadowType,
 }
 impl UserSettings {
     pub fn get_render_distance(&self) -> u32 {
@@ -32,6 +39,10 @@ impl UserSettings {
             false
         }
     }
+
+    pub fn has_dynamic_lighting(&self) -> bool {
+        !matches!(self.shadow_type, ShadowType::None)
+    }
 }
 impl Default for UserSettings {
     fn default() -> Self {
@@ -39,7 +50,7 @@ impl Default for UserSettings {
             render_distance: 7,
             has_sound: true,
             is_fullscreen: false,
-            dynamic_lighting: true,
+            shadow_type: ShadowType::Soft,
         }
     }
 }
