@@ -33,12 +33,12 @@ impl From<Location> for AreaLocation {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Area {
     pub has_changed: bool,
     area_location: AreaLocation,
     voxels: Box<[Voxel]>,
-    max_height: Box<[u8]>
+    max_height: Box<[u8]>,
 }
 impl Area {
     pub fn new(area_location: AreaLocation) -> Self {
@@ -46,7 +46,7 @@ impl Area {
             has_changed: true,
             area_location,
             voxels: vec![Voxel::None; VOXELS_IN_AREA].into_boxed_slice(),
-            max_height: vec![255; (AREA_SIZE * AREA_SIZE) as usize].into_boxed_slice()
+            max_height: vec![255; (AREA_SIZE * AREA_SIZE) as usize].into_boxed_slice(),
         };
         area.update_all_column_height();
 
@@ -58,25 +58,29 @@ impl Area {
     }
 
     pub fn sample_height(max_height: &[u8], local_x: u32, local_y: u32) -> u8 {
-        max_height[(local_x+AREA_SIZE*local_y) as usize]
+        max_height[(local_x + AREA_SIZE * local_y) as usize]
     }
 
     fn update_all_column_height(&mut self) {
         for y in 0..AREA_SIZE {
             for x in 0..AREA_SIZE {
                 self.set_column_height(InternalLocation::new(x, y, 0));
-            }    
+            }
         }
     }
 
     fn set_column_height(&mut self, local_location: InternalLocation) {
-        self.max_height[(local_location.x + local_location.y * AREA_SIZE) as usize] = self.calculate_column_height(local_location);
+        self.max_height[(local_location.x + local_location.y * AREA_SIZE) as usize] =
+            self.calculate_column_height(local_location);
     }
 
     fn calculate_column_height(&self, local_location: InternalLocation) -> u8 {
         (0..AREA_HEIGHT)
             .find(|z| {
-                !Voxel::TRANSPARENT.contains(&self.get(InternalLocation {  z: *z, ..local_location }))
+                !Voxel::TRANSPARENT.contains(&self.get(InternalLocation {
+                    z: *z,
+                    ..local_location
+                }))
             })
             .unwrap_or(AREA_HEIGHT - 1) as u8
     }

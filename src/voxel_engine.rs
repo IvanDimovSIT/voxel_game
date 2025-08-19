@@ -11,6 +11,7 @@ use crate::{
     GameState,
     graphics::{
         debug_display::DebugDisplay,
+        height_map::HeightMap,
         renderer::Renderer,
         sky::Sky,
         texture_manager::TextureManager,
@@ -57,6 +58,7 @@ pub struct VoxelEngine {
     menu_state: MenuState,
     world_time: WorldTime,
     sky: Sky,
+    height_map: HeightMap,
 }
 impl VoxelEngine {
     pub fn new(
@@ -96,6 +98,7 @@ impl VoxelEngine {
             menu_state: MenuState::Hidden,
             world_time,
             sky,
+            height_map: HeightMap::new(),
         };
 
         if !successful_load {
@@ -257,7 +260,8 @@ impl VoxelEngine {
             self.user_settings.get_render_distance(),
             &self.world_time,
             &self.user_settings,
-            &self.world
+            &self.world,
+            &mut self.height_map,
         );
         self.voxel_simulator.draw(&camera);
         gl_use_default_material();

@@ -4,18 +4,26 @@ use std::{
 };
 
 use macroquad::{
-    camera::{set_camera, Camera3D}, color::WHITE, math::{vec2, vec3, Vec3}, models::{draw_mesh, Mesh}, prelude::debug, texture::{draw_texture_ex, DrawTextureParams}
+    camera::{Camera3D, set_camera},
+    color::WHITE,
+    math::{Vec3, vec2, vec3},
+    models::{Mesh, draw_mesh},
+    prelude::debug,
+    texture::{DrawTextureParams, draw_texture_ex},
 };
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 
 use crate::{
-    graphics::max_height::generate_height_map, model::{
-        area::{AreaLocation, AREA_HEIGHT, AREA_SIZE},
-        location::{InternalLocation, Location, LOCATION_OFFSET},
+    graphics::height_map::HeightMap,
+    model::{
+        area::{AREA_HEIGHT, AREA_SIZE, AreaLocation},
+        location::{InternalLocation, LOCATION_OFFSET, Location},
         user_settings::UserSettings,
-        voxel::{Voxel, MAX_VOXEL_VARIANTS},
+        voxel::{MAX_VOXEL_VARIANTS, Voxel},
         world::World,
-    }, service::{camera_controller::CameraController, world_time::WorldTime}, utils::StackVec
+    },
+    service::{camera_controller::CameraController, world_time::WorldTime},
+    utils::StackVec,
 };
 
 use super::{
@@ -315,31 +323,28 @@ impl Renderer {
 
     /// Returns the number of rendered areas and faces
     pub fn render_voxels(
-        &self,
+        &mut self,
         camera: &Camera3D,
         render_size: u32,
         world_time: &WorldTime,
         user_settings: &UserSettings,
         world: &World,
+        height_map: &mut HeightMap,
     ) -> (usize, usize) {
         let normalised_camera = CameraController::normalize_camera_3d(camera);
         set_camera(&normalised_camera);
         let look = (camera.target - camera.position).normalize_or_zero();
 
         let visible_areas = self.prepare_visible_areas(camera, look, render_size);
-        let height_map = if user_settings.dynamic_lighting { 
-            generate_height_map(world, visible_areas.iter().map(|(l,_)| **l).collect(), camera)
+        let height_map = if user_settings.has_dynamic_lighting() {
+            let visible_areas_iter = visible_areas.iter().map(|(l, _)| **l);
+            height_map.generate_height_map(world, visible_areas_iter, camera, user_settings)
         } else {
-            self.mesh_generator.get_texture_manager().get_empty_height_map()
+            height_map.get_empty_height_map()
         };
         let lights = Self::prepare_lights(&visible_areas, user_settings);
-        self.shader.set_voxel_material(
-            camera,
-            render_size,
-            world_time,
-            &lights,
-            height_map
-        );
+        self.shader
+            .set_voxel_material(camera, render_size, world_time, &lights, height_map);
 
         let visible_voxels =
             Self::filter_visible_voxels(camera.position, look, &visible_areas, render_size);
@@ -408,7 +413,7 @@ impl Renderer {
         render_areas: &[(&AreaLocation, &RenderArea)],
         user_settings: &UserSettings,
     ) -> Vec<InternalLocation> {
-        if !user_settings.dynamic_lighting {
+        if !user_settings.has_dynamic_lighting() {
             return vec![];
         }
 

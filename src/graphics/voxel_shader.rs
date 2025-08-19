@@ -1,10 +1,12 @@
 use macroquad::{
     camera::Camera3D,
-    math::{vec3, Vec3, Vec4Swizzles},
+    math::{Vec3, Vec4Swizzles, vec3},
     miniquad::{BlendFactor, BlendState, BlendValue, Equation},
     prelude::{
-        gl_use_material, load_material, Comparison, Material, MaterialParams, PipelineParams, ShaderSource, UniformDesc, UniformType
-    }, texture::Texture2D,
+        Comparison, Material, MaterialParams, PipelineParams, ShaderSource, UniformDesc,
+        UniformType, gl_use_material, load_material,
+    },
+    texture::Texture2D,
 };
 
 use crate::{

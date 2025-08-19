@@ -19,6 +19,7 @@ pub struct World {
     world_name: String,
     areas: HashMap<AreaLocation, Area>,
     area_loader: AreaLoader,
+    empty_area: Area,
 }
 impl World {
     pub fn new(world_name: impl Into<String>) -> Self {
@@ -26,6 +27,7 @@ impl World {
             world_name: world_name.into(),
             areas: HashMap::new(),
             area_loader: AreaLoader::new(),
+            empty_area: Area::new(AreaLocation::new(0, 0)),
         }
     }
 
@@ -73,11 +75,13 @@ impl World {
         )
     }
 
-    /// can panic
-    pub fn get_area(&self, area_location: AreaLocation) -> &Area {
-        self.areas.get(&area_location)
-            .expect("Area failed to load")
-    } 
+    /// may return an empty area if not loaded
+    pub fn get_area_without_loading(&self, area_location: AreaLocation) -> &Area {
+        self.areas.get(&area_location).unwrap_or_else(|| {
+            error!("Trying to read an unloaded area. Returning empty area.");
+            &self.empty_area
+        })
+    }
 
     pub fn get_renderable_voxels_for_area(
         &mut self,

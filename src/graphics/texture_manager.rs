@@ -5,7 +5,7 @@ use macroquad::{
     texture::{FilterMode, Texture2D, load_texture},
 };
 
-use crate::{graphics::max_height::generate_empty_height_map, model::voxel::{Voxel, MAX_VOXEL_VARIANTS}};
+use crate::model::voxel::{MAX_VOXEL_VARIANTS, Voxel};
 
 const BASE_TEXTURES_PATH: &str = "resources/images/";
 const TITLE_SCREEN_BACKGROUND_PATH: &str = "resources/images/title.png";
@@ -40,7 +40,6 @@ pub struct TextureManager {
     sun_texture: Texture2D,
     moon_texture: Texture2D,
     voxel_icons: HashMap<Voxel, Texture2D>,
-    empty_height_map: Texture2D
 }
 impl TextureManager {
     pub const VOXELS_WITH_DIFFERENT_FACES: [Voxel; 3] =
@@ -60,7 +59,6 @@ impl TextureManager {
             voxel_icons,
             sun_texture,
             moon_texture,
-            empty_height_map: generate_empty_height_map(),
         }
     }
 
@@ -138,9 +136,5 @@ impl TextureManager {
 
     pub fn get_moon_texture(&self) -> Texture2D {
         self.moon_texture.weak_clone()
-    }
-
-    pub fn get_empty_height_map(&self) -> Texture2D {
-        self.empty_height_map.weak_clone()
     }
 }
