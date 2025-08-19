@@ -19,9 +19,13 @@ use crate::{
 };
 
 const MAX_LIGHTS: usize = 64;
+const TRUE: i32 = 1;
+const FALSE: i32 = 0;
 
 const VOXEL_VERTEX_SHADER: &str = include_str!("../../resources/shaders/voxel_vertex.glsl");
 const VOXEL_FRAGMENT_SHADER: &str = include_str!("../../resources/shaders/voxel_fragment.glsl");
+
+const HEIGHT_MAP_TESXTURE_NAME: &str = "heightMap";
 
 const CAMERA_POSITION_UNIFORM: &str = "cameraPos";
 const CAMERA_TARGET_UNIFORM: &str = "cameraTarget";
@@ -32,6 +36,7 @@ const FOG_BASE_COLOR_LIGHT_UNIFORM: &str = "fogBaseColorLight";
 const FOG_BASE_COLOR_DARK_UNIFORM: &str = "fogBaseColorDark";
 const LIGHTS_COUNT_UNIFORM: &str = "lightsCount";
 const LIGHTS_UNIFORM: &str = "lights";
+const HAS_DYNAMIC_SHADOWS_UNIFORM: &str = "hasDynamicShadows";
 
 /// default 3D material shader for voxels
 pub struct VoxelShader {
@@ -63,6 +68,8 @@ impl VoxelShader {
         let lights_count_uniform = UniformDesc::new(LIGHTS_COUNT_UNIFORM, UniformType::Int1);
         let lights_uniform =
             UniformDesc::new(LIGHTS_UNIFORM, UniformType::Float3).array(MAX_LIGHTS);
+        let has_dynamic_shadows_uniform =
+            UniformDesc::new(HAS_DYNAMIC_SHADOWS_UNIFORM, UniformType::Int1);
 
         let voxel_material = load_material(
             ShaderSource::Glsl {
@@ -81,9 +88,9 @@ impl VoxelShader {
                     fog_dark_color_uniform,
                     lights_count_uniform,
                     lights_uniform,
+                    has_dynamic_shadows_uniform,
                 ],
-                textures: vec!["heightMap".to_owned()],
-                ..Default::default()
+                textures: vec![HEIGHT_MAP_TESXTURE_NAME.to_owned()],
             },
         )
         .expect("Error initialising voxel shaders");
@@ -99,8 +106,9 @@ impl VoxelShader {
         world_time: &WorldTime,
         lights: &[InternalLocation],
         height_map: Texture2D,
+        has_dynamic_lighting: bool,
     ) {
-        self.voxel_material.set_texture("heightMap", height_map);
+        self.voxel_material.set_texture(HEIGHT_MAP_TESXTURE_NAME, height_map);
         self.voxel_material.set_uniform(
             CAMERA_POSITION_UNIFORM,
             [camera.position.x, camera.position.y, camera.position.z],
@@ -120,6 +128,10 @@ impl VoxelShader {
         );
         self.voxel_material
             .set_uniform(FOG_BASE_COLOR_DARK_UNIFORM, SKY_DARK_COLOR.to_vec().xyz());
+
+        let has_dynamic_shadows = if has_dynamic_lighting { TRUE } else { FALSE };
+        self.voxel_material
+            .set_uniform(HAS_DYNAMIC_SHADOWS_UNIFORM, has_dynamic_shadows);
         self.set_lights(lights, camera);
 
         gl_use_material(&self.voxel_material);

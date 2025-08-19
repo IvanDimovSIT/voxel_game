@@ -5,11 +5,9 @@ use std::{
 
 use macroquad::{
     camera::{Camera3D, set_camera},
-    color::WHITE,
-    math::{Vec3, vec2, vec3},
+    math::{Vec3, vec3},
     models::{Mesh, draw_mesh},
     prelude::debug,
-    texture::{DrawTextureParams, draw_texture_ex},
 };
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 
@@ -343,8 +341,14 @@ impl Renderer {
             height_map.get_empty_height_map()
         };
         let lights = Self::prepare_lights(&visible_areas, user_settings);
-        self.shader
-            .set_voxel_material(camera, render_size, world_time, &lights, height_map);
+        self.shader.set_voxel_material(
+            camera,
+            render_size,
+            world_time,
+            &lights,
+            height_map,
+            user_settings.has_dynamic_lighting(),
+        );
 
         let visible_voxels =
             Self::filter_visible_voxels(camera.position, look, &visible_areas, render_size);

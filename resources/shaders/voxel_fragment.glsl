@@ -17,6 +17,7 @@ uniform vec3 fogBaseColorLight;
 uniform vec3 fogBaseColorDark;
 uniform int lightsCount;
 uniform vec3 lights[64];
+uniform int hasDynamicShadows;
 
 const vec3 lightDir = normalize(vec3(0.2, 0.8, -1.0));
 const float reflectionIntensity = 0.05;
@@ -66,6 +67,10 @@ float addLampLighting(float lighting) {
 }
 
 float calculateAmountInShadow() {
+    if (hasDynamicShadows == 0) {
+        return 0.0;
+    }
+
     const float fadeAmount = 0.005;
 
     vec2 samplePos = (facePosition.xy + fragNormal.xy + mod(cameraPos.xy + vec2(0.5), areaSize)) / (areaSize * maxLoadedAreasPerAxis) + vec2(0.5, 0.5);
