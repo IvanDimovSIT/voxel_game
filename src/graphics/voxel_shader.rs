@@ -25,7 +25,7 @@ const FALSE: i32 = 0;
 const VOXEL_VERTEX_SHADER: &str = include_str!("../../resources/shaders/voxel_vertex.glsl");
 const VOXEL_FRAGMENT_SHADER: &str = include_str!("../../resources/shaders/voxel_fragment.glsl");
 
-const HEIGHT_MAP_TESXTURE_NAME: &str = "heightMap";
+const HEIGHT_MAP_TEXTURE_NAME: &str = "heightMap";
 
 const CAMERA_POSITION_UNIFORM: &str = "cameraPos";
 const CAMERA_TARGET_UNIFORM: &str = "cameraTarget";
@@ -90,7 +90,7 @@ impl VoxelShader {
                     lights_uniform,
                     has_dynamic_shadows_uniform,
                 ],
-                textures: vec![HEIGHT_MAP_TESXTURE_NAME.to_owned()],
+                textures: vec![HEIGHT_MAP_TEXTURE_NAME.to_owned()],
             },
         )
         .expect("Error initialising voxel shaders");
@@ -108,7 +108,8 @@ impl VoxelShader {
         height_map: Texture2D,
         has_dynamic_lighting: bool,
     ) {
-        self.voxel_material.set_texture(HEIGHT_MAP_TESXTURE_NAME, height_map);
+        self.voxel_material
+            .set_texture(HEIGHT_MAP_TEXTURE_NAME, height_map);
         self.voxel_material.set_uniform(
             CAMERA_POSITION_UNIFORM,
             [camera.position.x, camera.position.y, camera.position.z],

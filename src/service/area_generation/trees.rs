@@ -153,7 +153,7 @@ fn generate_tree(area: &mut Area, local: InternalLocation, tree_type: TreeType) 
         let offset_z = wood.z + local.z as i32;
         let offset_location =
             InternalLocation::new(offset_x as u32, offset_y as u32, offset_z as u32);
-        area.set(offset_location, wood_voxel);
+        area.set_without_updating_max_height(offset_location, wood_voxel);
     }
 
     for leaves in leaves_location.iter() {
@@ -162,6 +162,6 @@ fn generate_tree(area: &mut Area, local: InternalLocation, tree_type: TreeType) 
         let offset_z = leaves.z + local.z as i32;
         let offset_location =
             InternalLocation::new(offset_x as u32, offset_y as u32, offset_z as u32);
-        area.set(offset_location, Voxel::Leaves);
+        area.set_without_updating_max_height(offset_location, Voxel::Leaves);
     }
 }

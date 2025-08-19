@@ -51,7 +51,9 @@ impl DebugDisplay {
         let camera_location = vector_to_location(camera.position);
         let look_target = camera.target;
         let loaded_areas = world.get_loaded_areas_count();
-        let areas_memory_kb = loaded_areas * size_of::<Voxel>() * VOXELS_IN_AREA / KILOBYTE;
+        let areas_max_height_bytes = loaded_areas * VOXELS_IN_AREA;
+        let areas_voxels_bytes = loaded_areas * size_of::<Voxel>() * VOXELS_IN_AREA;
+        let areas_memory_kb = (areas_max_height_bytes + areas_voxels_bytes) / KILOBYTE;
         let waiting_to_be_rendered = renderer.get_areas_waiting_to_be_rendered();
 
         Self::draw_background();

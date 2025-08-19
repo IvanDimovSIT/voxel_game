@@ -47,6 +47,7 @@ impl AreaGenerator {
         }
         generate_trees(&mut area, &generator.tree_locations);
 
+        area.update_all_column_heights();
         debug_assert!(area.has_changed);
         area
     }
@@ -71,7 +72,7 @@ impl AreaGenerator {
                 height,
                 biome_type,
             );
-            area.set(
+            area.set_without_updating_max_height(
                 InternalLocation::new(x, y, AREA_HEIGHT - z_inverted),
                 current_voxel,
             );
@@ -95,5 +96,79 @@ impl AreaGenerator {
             voxel_type_generator: VoxelTypeGenerator::new(seed),
             tree_locations: StackVec::new(),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::model::voxel::Voxel;
+
+    use super::*;
+
+    #[test]
+    fn test_generate_area() {
+        let area = AreaGenerator::generate_area(AreaLocation::new(123, 456), "test");
+        assert!(area.has_changed);
+        assert_eq!(area.get_x(), 123);
+        assert_eq!(area.get_y(), 456);
+        for x in 0..AREA_SIZE {
+            for y in 0..AREA_SIZE {
+                let mut max_height = None;
+                let mut contains_stone = false;
+                for z in 0..AREA_HEIGHT {
+                    let voxel = area.get(InternalLocation::new(x, y, z));
+                    if !Voxel::TRANSPARENT.contains(&voxel) && max_height.is_none() {
+                        max_height = Some(z as u8);
+                    }
+                    if voxel == Voxel::Stone {
+                        contains_stone = true;
+                    }
+                }
+                assert!(max_height.is_some());
+                assert!(contains_stone);
+                assert_eq!(
+                    max_height.unwrap(),
+                    Area::sample_height(area.get_max_height(), x, y)
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn test_generate_area_different_locations() {
+        let area1 = AreaGenerator::generate_area(AreaLocation::new(123, 456), "test");
+        let area2 = AreaGenerator::generate_area(AreaLocation::new(999, 400), "test");
+        assert!(check_if_areas_are_different(&area1, &area2));
+    }
+
+    #[test]
+    fn test_generate_area_different_seeds() {
+        let area1 = AreaGenerator::generate_area(AreaLocation::new(123, 456), "test1");
+        let area2 = AreaGenerator::generate_area(AreaLocation::new(123, 456), "test2");
+        assert!(check_if_areas_are_different(&area1, &area2));
+    }
+
+    #[test]
+    fn test_generate_same_area() {
+        let area1 = AreaGenerator::generate_area(AreaLocation::new(123, 456), "test");
+        let area2 = AreaGenerator::generate_area(AreaLocation::new(123, 456), "test");
+        assert!(!check_if_areas_are_different(&area1, &area2));
+    }
+
+    fn check_if_areas_are_different(area1: &Area, area2: &Area) -> bool {
+        for x in 0..AREA_SIZE {
+            for y in 0..AREA_SIZE {
+                for z in 0..AREA_HEIGHT {
+                    let loc = InternalLocation::new(x, y, z);
+                    let voxel1 = area1.get(loc);
+                    let voxel2 = area2.get(loc);
+                    if voxel1 != voxel2 {
+                        return true;
+                    }
+                }
+            }
+        }
+
+        return false;
     }
 }

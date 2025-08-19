@@ -42,15 +42,13 @@ pub struct Area {
 }
 impl Area {
     pub fn new(area_location: AreaLocation) -> Self {
-        let mut area = Self {
+        Self {
             has_changed: true,
             area_location,
             voxels: vec![Voxel::None; VOXELS_IN_AREA].into_boxed_slice(),
-            max_height: vec![255; (AREA_SIZE * AREA_SIZE) as usize].into_boxed_slice(),
-        };
-        area.update_all_column_height();
-
-        area
+            max_height: vec![(AREA_HEIGHT - 1) as u8; (AREA_SIZE * AREA_SIZE) as usize]
+                .into_boxed_slice(),
+        }
     }
 
     pub fn get_max_height(&self) -> &[u8] {
@@ -61,7 +59,8 @@ impl Area {
         max_height[(local_x + AREA_SIZE * local_y) as usize]
     }
 
-    fn update_all_column_height(&mut self) {
+    /// updates the max height for all columns
+    pub fn update_all_column_heights(&mut self) {
         for y in 0..AREA_SIZE {
             for x in 0..AREA_SIZE {
                 self.set_column_height(InternalLocation::new(x, y, 0));
@@ -92,6 +91,16 @@ impl Area {
 
     pub fn get(&self, local_location: InternalLocation) -> Voxel {
         self.voxels[Self::convert_to_index(local_location)]
+    }
+
+    /// Used for batch modifications, doesn't update column heights.
+    /// Should call `update_all_column_heights` at the end of the modifications.
+    pub fn set_without_updating_max_height(
+        &mut self,
+        local_location: InternalLocation,
+        voxel: Voxel,
+    ) {
+        self.voxels[Self::convert_to_index(local_location)] = voxel;
     }
 
     pub fn set(&mut self, local_location: InternalLocation, voxel: Voxel) {
@@ -201,7 +210,7 @@ impl AreaDTO {
             voxels: self.voxels,
             max_height: vec![255; (AREA_SIZE * AREA_SIZE) as usize].into_boxed_slice(),
         };
-        area.update_all_column_height();
+        area.update_all_column_heights();
 
         area
     }
@@ -211,5 +220,51 @@ impl From<Area> for AreaDTO {
         Self {
             voxels: value.voxels,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_calculate_max_height() {
+        let mut area = Area::new(AreaLocation::new(0, 0));
+        area.set(InternalLocation::new(0, 0, 10), Voxel::Brick);
+        assert_eq!(area.get_max_height()[0], 10);
+        area.set(InternalLocation::new(0, 0, 5), Voxel::Brick);
+        assert_eq!(area.get_max_height()[0], 5);
+        area.set(InternalLocation::new(0, 0, 20), Voxel::Brick);
+        assert_eq!(area.get_max_height()[0], 5);
+        area.set(InternalLocation::new(1, 0, 1), Voxel::Brick);
+        assert_eq!(area.get_max_height()[0], 5);
+        assert_eq!(area.get_max_height()[1], 1);
+    }
+
+    #[test]
+    fn test_calculate_max_height_transparent() {
+        let mut area = Area::new(AreaLocation::new(0, 0));
+        area.set(InternalLocation::new(0, 0, 10), Voxel::Brick);
+        assert_eq!(area.get_max_height()[0], 10);
+        area.set(InternalLocation::new(0, 0, 5), Voxel::Glass);
+        assert_eq!(area.get_max_height()[0], 10);
+        area.set(InternalLocation::new(0, 0, 8), Voxel::Brick);
+        assert_eq!(area.get_max_height()[0], 8);
+        area.set(InternalLocation::new(1, 0, 1), Voxel::Glass);
+        assert_eq!(area.get_max_height()[1], AREA_HEIGHT as u8 - 1);
+    }
+
+    #[test]
+    fn test_set_without_calculating_max_height() {
+        let mut area = Area::new(AreaLocation::new(0, 0));
+        area.set_without_updating_max_height(InternalLocation::new(0, 0, 10), Voxel::Brick);
+        assert_eq!(area.get_max_height()[0], AREA_HEIGHT as u8 - 1);
+        area.set_without_updating_max_height(InternalLocation::new(0, 0, 5), Voxel::Brick);
+        assert_eq!(area.get_max_height()[0], AREA_HEIGHT as u8 - 1);
+        area.set(InternalLocation::new(0, 0, 20), Voxel::Brick);
+        assert_eq!(area.get_max_height()[0], 5);
+        area.set(InternalLocation::new(1, 0, 1), Voxel::Brick);
+        assert_eq!(area.get_max_height()[0], 5);
+        assert_eq!(area.get_max_height()[1], 1);
     }
 }
