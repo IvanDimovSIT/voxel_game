@@ -4,23 +4,18 @@ use std::{
 };
 
 use macroquad::{
-    camera::{Camera3D, set_camera},
-    math::{Vec3, vec3},
-    models::{Mesh, draw_mesh},
-    prelude::debug,
+    camera::{set_camera, Camera3D}, color::WHITE, math::{vec2, vec3, Vec3}, models::{draw_mesh, Mesh}, prelude::debug, texture::{draw_texture_ex, DrawTextureParams}
 };
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 
 use crate::{
-    model::{
-        area::{AREA_HEIGHT, AREA_SIZE, AreaLocation},
-        location::{InternalLocation, LOCATION_OFFSET, Location},
+    graphics::max_height::generate_height_map, model::{
+        area::{AreaLocation, AREA_HEIGHT, AREA_SIZE},
+        location::{InternalLocation, Location, LOCATION_OFFSET},
         user_settings::UserSettings,
-        voxel::{MAX_VOXEL_VARIANTS, Voxel},
+        voxel::{Voxel, MAX_VOXEL_VARIANTS},
         world::World,
-    },
-    service::{camera_controller::CameraController, world_time::WorldTime},
-    utils::StackVec,
+    }, service::{camera_controller::CameraController, world_time::WorldTime}, utils::StackVec
 };
 
 use super::{
@@ -324,21 +319,26 @@ impl Renderer {
         camera: &Camera3D,
         render_size: u32,
         world_time: &WorldTime,
-        average_max_height: Option<f32>,
         user_settings: &UserSettings,
+        world: &World,
     ) -> (usize, usize) {
         let normalised_camera = CameraController::normalize_camera_3d(camera);
         set_camera(&normalised_camera);
         let look = (camera.target - camera.position).normalize_or_zero();
 
         let visible_areas = self.prepare_visible_areas(camera, look, render_size);
+        let height_map = if user_settings.dynamic_lighting { 
+            generate_height_map(world, visible_areas.iter().map(|(l,_)| **l).collect(), camera)
+        } else {
+            self.mesh_generator.get_texture_manager().get_empty_height_map()
+        };
         let lights = Self::prepare_lights(&visible_areas, user_settings);
         self.shader.set_voxel_material(
             camera,
             render_size,
             world_time,
-            average_max_height,
             &lights,
+            height_map
         );
 
         let visible_voxels =

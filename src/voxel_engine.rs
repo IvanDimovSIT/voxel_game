@@ -11,7 +11,6 @@ use crate::{
     GameState,
     graphics::{
         debug_display::DebugDisplay,
-        max_height::calculate_max_height_around_location,
         renderer::Renderer,
         sky::Sky,
         texture_manager::TextureManager,
@@ -257,14 +256,8 @@ impl VoxelEngine {
             &camera,
             self.user_settings.get_render_distance(),
             &self.world_time,
-            calculate_max_height_around_location(
-                &mut self.world,
-                self.player_info
-                    .camera_controller
-                    .get_camera_voxel_location(),
-                &self.user_settings,
-            ),
             &self.user_settings,
+            &self.world
         );
         self.voxel_simulator.draw(&camera);
         gl_use_default_material();
