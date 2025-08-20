@@ -10,29 +10,40 @@ uniform sampler2D Texture;
 uniform sampler2D heightMap;
 uniform vec3 cameraPos;
 uniform vec3 cameraTarget;
+uniform float lightLevel;
+
 uniform float fogFar;
 uniform float fogNear;
-uniform float lightLevel;
 uniform vec3 fogBaseColorLight;
 uniform vec3 fogBaseColorDark;
+
 uniform int lightsCount;
 uniform vec3 lights[64];
+
 uniform int hasDynamicShadows;
 
+// static world lighting
 const vec3 lightDir = normalize(vec3(0.2, 0.8, -1.0));
 const float reflectionIntensity = 0.05;
 const float ambient = 0.4;
 const float specularStrength = 0.25;
+
+// player light and shadow
 const float dropShadowRadius = 0.4;
 const float dropShadowLight = 0.2;
 const float playerLightStrength = 15.0;
+
+// placed lamps
 const float lampStrength = 6.0;
+
+// dynamic shadows
 const float dynamicShadowStrength = 0.6;
 const float halfVoxelSize = 0.5;
 const float areaSize = 16.0;
 const float valuesInByte = 256.0;
 const float maxLoadedAreasPerAxis = 37.0;
 
+// calculates static lighting and drop shadow based on the time of day
 float calculateDiffuseLight(vec3 normal, float shadowedLightLevel) {
     float diffuse = max(dot(normal, lightDir), 0.0);
 
@@ -44,6 +55,7 @@ float calculateDiffuseLight(vec3 normal, float shadowedLightLevel) {
     return diffuse;
 }
 
+// draws the fog based on the fog uniforms and the time of day
 vec3 addFog(vec3 preFogColor, float distanceToFace, float darkLevel) {
     vec3 fogBaseColor = fogBaseColorLight * lightLevel + fogBaseColorDark * darkLevel;
     float fogFactor = clamp((fogFar - distanceToFace) / (fogFar - fogNear), 0.0, 1.0);
@@ -51,12 +63,14 @@ vec3 addFog(vec3 preFogColor, float distanceToFace, float darkLevel) {
     return fogBaseColor * (1.0 - fogFactor) + preFogColor * fogFactor;
 }
 
+// draws the player light at night
 float addPlayerLight(float baseLight, float distanceToFace, float darkLevel) {
     float playerLightProximity = 1.0 - min(distanceToFace, playerLightStrength)/playerLightStrength;
     
     return min(baseLight + darkLevel * playerLightProximity * playerLightProximity, 1.0);
 }
 
+// draws placed lamps
 float addLampLighting(float lighting) {
     for (int i = 0; i < lightsCount; i++) {
         float distanceToLight = length(facePosition - lights[i]);
@@ -66,6 +80,7 @@ float addLampLighting(float lighting) {
     return min(lighting, 1.0);
 }
 
+// calculates dynamic shadows from the height map
 float calculateAmountInShadow() {
     if (hasDynamicShadows == 0) {
         return 0.0;
@@ -73,8 +88,9 @@ float calculateAmountInShadow() {
 
     const float fadeAmount = 0.005;
 
-    vec2 samplePos = (facePosition.xy + fragNormal.xy + mod(cameraPos.xy + vec2(halfVoxelSize), areaSize)) / 
-        (areaSize * maxLoadedAreasPerAxis) + vec2(halfVoxelSize);
+    vec2 faceOffset = facePosition.xy + fragNormal.xy;
+    vec2 cameraOffset = mod(cameraPos.xy + vec2(halfVoxelSize), areaSize);
+    vec2 samplePos = (faceOffset + cameraOffset) / (areaSize * maxLoadedAreasPerAxis) + vec2(halfVoxelSize);
     float sampledHeight = texture2D(heightMap, samplePos).r;
     
     float worldHeight = (cameraPos.z + facePosition.z) / valuesInByte;
@@ -100,7 +116,7 @@ void main() {
 
     vec3 viewDir = normalize(-facePosition);
     vec3 reflectDir = reflect(-lightDir, normal);
-    float specular = pow(max(dot(reflectDir, viewDir), 0.0), 32.0) * specularStrength * lightLevel;
+    float specular = pow(max(dot(reflectDir, viewDir), 0.0), 32.0) * specularStrength * lightLevel * (1.0 - amountInShadow);
     
     float fresnel = pow(1.0 - max(dot(normal, viewDir), 0.0), 3.0);
     float rim = fresnel * reflectionIntensity;
