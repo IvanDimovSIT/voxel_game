@@ -126,10 +126,7 @@ mod tests {
                 }
                 assert!(max_height.is_some());
                 assert!(contains_stone);
-                assert_eq!(
-                    max_height.unwrap(),
-                    Area::sample_height(area.get_max_height(), x, y)
-                );
+                assert_eq!(max_height.unwrap(), area.sample_height(x, y));
             }
         }
     }

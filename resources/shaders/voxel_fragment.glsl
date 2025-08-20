@@ -28,7 +28,7 @@ const float dropShadowLight = 0.2;
 const float playerLightStrength = 15.0;
 const float lampStrength = 6.0;
 const float dynamicShadowStrength = 0.6;
-
+const float halfVoxelSize = 0.5;
 const float areaSize = 16.0;
 const float valuesInByte = 256.0;
 const float maxLoadedAreasPerAxis = 37.0;
@@ -73,7 +73,8 @@ float calculateAmountInShadow() {
 
     const float fadeAmount = 0.005;
 
-    vec2 samplePos = (facePosition.xy + fragNormal.xy + mod(cameraPos.xy + vec2(0.5), areaSize)) / (areaSize * maxLoadedAreasPerAxis) + vec2(0.5, 0.5);
+    vec2 samplePos = (facePosition.xy + fragNormal.xy + mod(cameraPos.xy + vec2(halfVoxelSize), areaSize)) / 
+        (areaSize * maxLoadedAreasPerAxis) + vec2(halfVoxelSize);
     float sampledHeight = texture2D(heightMap, samplePos).r;
     
     float worldHeight = (cameraPos.z + facePosition.z) / valuesInByte;

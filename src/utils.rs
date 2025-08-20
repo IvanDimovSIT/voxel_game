@@ -139,3 +139,47 @@ pub fn use_str_buffer(f: impl Fn(&mut String)) {
         f(&mut empty_buffer);
     });
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_stack_vec_work_correctly() {
+        let mut v: StackVec<i32, 10> = StackVec::new();
+        assert_eq!(v.len(), 0);
+        v.push(0);
+        v.push(1);
+        v.push(2);
+        assert_eq!(v.len(), 3);
+
+        let elements: Vec<_> = v.into_iter().collect();
+        assert_eq!(elements.len(), 3);
+        assert_eq!(elements[0], 0);
+        assert_eq!(elements[1], 1);
+        assert_eq!(elements[2], 2);
+    }
+
+    
+    #[test]
+    #[should_panic]
+    fn test_stack_vec_overflow() {
+        let mut v: StackVec<i32, 3> = StackVec::new();
+        v.push(0);
+        v.push(1);
+        v.push(2);
+        v.push(3);
+    }
+
+    #[test]
+    fn test_use_str_buffer() {
+        use_str_buffer(|buff| {
+            assert!(buff.is_empty());
+            buff.insert(0, 'a');
+            assert_eq!(buff, "a");
+        });
+        use_str_buffer(|buff| {
+            assert!(buff.is_empty());
+        });
+    }
+}
