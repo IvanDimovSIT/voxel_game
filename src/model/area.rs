@@ -9,7 +9,7 @@ use super::{
 };
 
 pub const AREA_SIZE: u32 = 16;
-pub const AREA_HEIGHT: u32 = 64;
+pub const AREA_HEIGHT: u32 = 128;
 pub const VOXELS_IN_AREA: usize = (AREA_SIZE * AREA_SIZE * AREA_HEIGHT) as usize;
 
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]

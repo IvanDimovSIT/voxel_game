@@ -41,7 +41,7 @@ const float dynamicShadowStrength = 0.6;
 const float halfVoxelSize = 0.5;
 const float areaSize = 16.0;
 const float valuesInByte = 256.0;
-const float maxLoadedAreasPerAxis = 37.0;
+const float maxAreasInShadowPerAxis = 32.0;
 
 // calculates static lighting and drop shadow based on the time of day
 float calculateDiffuseLight(vec3 normal, float shadowedLightLevel) {
@@ -90,7 +90,7 @@ float calculateAmountInShadow() {
 
     vec2 faceOffset = facePosition.xy + fragNormal.xy;
     vec2 cameraOffset = mod(cameraPos.xy + vec2(halfVoxelSize), areaSize);
-    vec2 samplePos = (faceOffset + cameraOffset) / (areaSize * maxLoadedAreasPerAxis) + vec2(halfVoxelSize);
+    vec2 samplePos = (faceOffset + cameraOffset) / (areaSize * maxAreasInShadowPerAxis) + vec2(halfVoxelSize);
     float sampledHeight = texture2D(heightMap, samplePos).r;
     
     float worldHeight = (cameraPos.z + facePosition.z) / valuesInByte;

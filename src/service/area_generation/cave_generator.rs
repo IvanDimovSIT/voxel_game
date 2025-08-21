@@ -11,10 +11,10 @@ const MIN_CAVES_THRESHOLD: i32 = 70;
 const MAX_CAVES_THRESHOLD: i32 = 90;
 
 /// min height to NOT generate caves
-const MIN_HEIGHT: u32 = AREA_HEIGHT - 48;
+const MIN_HEIGHT: u32 = (AREA_HEIGHT as f32 * 0.2) as u32;
 
 /// max height to NOT generate caves
-const MAX_HEIGHT: u32 = AREA_HEIGHT - 2;
+const MAX_HEIGHT: u32 = (AREA_HEIGHT as f32 * 0.9) as u32;
 
 const SHOULD_CHECK_FOR_CAVES_THRESHOLD: i32 = 80;
 

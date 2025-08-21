@@ -34,7 +34,10 @@ const AREA_RENDER_THRESHOLD: f32 = 0.35;
 const LOOK_DOWN_RENDER_MULTIPLIER: f32 = 0.5;
 const VOXEL_RENDER_THRESHOLD: f32 = 0.71;
 const VOXEL_PROXIMITY_THRESHOLD: f32 = 5.5;
+
+const BACKLOG_THRESHOLD: usize = 100;
 const AREAS_TO_LOAD_PER_FRAME: usize = 2;
+const INCREASED_AREAS_TO_LOAD_PER_FRAME: usize = 5;
 
 /// stores the face count, voxel type and mesh data
 type MeshInfo = (u8, Voxel, Mesh);
@@ -254,11 +257,17 @@ impl Renderer {
 
     /// loads the next areas in the load queue
     pub fn load_areas_in_queue(&mut self, world: &mut World) {
+        let number_of_areas_to_load = if self.render_set.len() >= BACKLOG_THRESHOLD {
+            INCREASED_AREAS_TO_LOAD_PER_FRAME
+        } else {
+            AREAS_TO_LOAD_PER_FRAME
+        };
+
         let to_load: Vec<_> = self
             .render_set
             .iter()
             .copied()
-            .take(AREAS_TO_LOAD_PER_FRAME)
+            .take(number_of_areas_to_load)
             .collect();
 
         for area_location in to_load {

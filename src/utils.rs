@@ -160,7 +160,6 @@ mod tests {
         assert_eq!(elements[2], 2);
     }
 
-    
     #[test]
     #[should_panic]
     fn test_stack_vec_overflow() {

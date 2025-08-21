@@ -40,7 +40,7 @@ use crate::{
             voxel_physics::VoxelSimulator,
         },
         raycast::{RaycastResult, cast_ray},
-        render_zone::{get_load_zone, get_render_zone},
+        render_zone::{get_load_zone, get_render_zone, get_render_zone_on_world_load},
         sound_manager::{SoundId, SoundManager},
         world_actions::{destroy_voxel, place_voxel, put_player_on_ground, replace_voxel},
         world_time::WorldTime,
@@ -119,7 +119,7 @@ impl VoxelEngine {
             camera_location.into(),
             self.user_settings.get_render_distance(),
         );
-        let render_zone = get_render_zone(
+        let render_zone = get_render_zone_on_world_load(
             camera_location.into(),
             self.user_settings.get_render_distance(),
         );
