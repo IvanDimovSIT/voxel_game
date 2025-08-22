@@ -87,8 +87,9 @@ float calculateAmountInShadow() {
     }
 
     const float fadeAmount = 0.005;
+    const float offsetByNormal = 0.9;
 
-    vec2 faceOffset = facePosition.xy + fragNormal.xy;
+    vec2 faceOffset = facePosition.xy + fragNormal.xy*offsetByNormal;
     vec2 cameraOffset = mod(cameraPos.xy + vec2(halfVoxelSize), areaSize);
     vec2 samplePos = (faceOffset + cameraOffset) / (areaSize * maxAreasInShadowPerAxis) + vec2(halfVoxelSize);
     float sampledHeight = texture2D(heightMap, samplePos).r;
