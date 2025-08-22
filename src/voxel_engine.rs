@@ -1,10 +1,8 @@
-use std::{cell::RefCell, f32::consts::PI, rc::Rc};
+use std::{f32::consts::PI, rc::Rc};
 
 use macroquad::{
-    camera::set_default_camera,
-    math::vec3,
-    prelude::gl_use_default_material,
-    window::{next_frame, screen_height, screen_width},
+    camera::set_default_camera, math::vec3, miniquad::window::screen_size,
+    prelude::gl_use_default_material, window::next_frame,
 };
 
 use crate::{
@@ -19,14 +17,15 @@ use crate::{
     },
     interface::{
         game_menu::{
-            crafting_menu::CraftingMenuContext,
-            game_menu::{MenuSelection, MenuState, draw_main_menu, draw_options_menu},
+            crafting_menu::{CraftingMenuContext, CraftingMenuHandle},
+            game_menu_context::{MenuSelection, MenuState, draw_main_menu, draw_options_menu},
             voxel_selection_menu::draw_voxel_selection_menu,
         },
         interface_context::InterfaceContext,
     },
     model::{inventory::Item, player_info::PlayerInfo, user_settings::UserSettings, world::World},
     service::{
+        active_zone::{get_load_zone, get_render_zone, get_render_zone_on_world_load},
         input::{self, *},
         persistence::{
             player_persistence::{load_player_info, save_player_info},
@@ -40,7 +39,6 @@ use crate::{
             voxel_physics::VoxelSimulator,
         },
         raycast::{RaycastResult, cast_ray},
-        render_zone::{get_load_zone, get_render_zone, get_render_zone_on_world_load},
         sound_manager::{SoundId, SoundManager},
         world_actions::{destroy_voxel, place_voxel, put_player_on_ground, replace_voxel},
         world_time::WorldTime,
@@ -153,9 +151,8 @@ impl VoxelEngine {
             };
         } else if is_enter_crafting() {
             self.player_info.camera_controller.set_focus(false);
-            self.menu_state = MenuState::Crafting {
-                context: CraftingMenuContext::new(&self.player_info.inventory),
-            }
+            self.menu_state =
+                MenuState::Crafting(CraftingMenuContext::new(&self.player_info.inventory));
         }
         if is_place_voxel(&self.player_info.camera_controller) {
             self.try_place_voxel(raycast_result);
@@ -251,8 +248,7 @@ impl VoxelEngine {
 
     /// draws the current frame, return the new context if changed
     pub async fn draw_scene(&mut self, raycast_result: RaycastResult) -> Option<GameState> {
-        let width = screen_width();
-        let height = screen_height();
+        let (width, height) = screen_size();
         let camera = self.player_info.camera_controller.create_camera();
         self.sky.draw_sky(&self.world_time, &camera);
         let rendered = self.renderer.render_voxels(
@@ -295,15 +291,15 @@ impl VoxelEngine {
             MenuState::ItemSelection {
                 currently_selected_item,
             } => self.process_voxel_selection_menu(currently_selected_item),
-            MenuState::Crafting { context } => self.process_crafting_menu(&context),
+            MenuState::Crafting(handle) => self.process_crafting_menu(handle),
         }
     }
 
     fn process_crafting_menu(
         &mut self,
-        context: &RefCell<CraftingMenuContext>,
+        crafting_menu_handle: CraftingMenuHandle,
     ) -> Option<GameState> {
-        let menu_selection = context.borrow_mut().draw_menu(
+        let menu_selection = crafting_menu_handle.borrow_mut().draw_menu(
             &mut self.player_info.inventory,
             self.renderer.get_texture_manager(),
             &self.sound_manager,

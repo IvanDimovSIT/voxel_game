@@ -1,3 +1,4 @@
+pub mod active_zone;
 pub mod area_generation;
 pub mod camera_controller;
 pub mod crafting;
@@ -5,7 +6,6 @@ pub mod input;
 pub mod persistence;
 pub mod physics;
 pub mod raycast;
-pub mod render_zone;
 pub mod sound_manager;
 pub mod world_actions;
 pub mod world_time;

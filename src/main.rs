@@ -82,8 +82,8 @@ async fn main() {
 async fn handle_running_state(voxel_engine: &mut Box<VoxelEngine>) -> Option<GameState> {
     let delta = get_frame_time().min(0.2);
     let raycast_result = voxel_engine.process_input(delta);
-    voxel_engine.update_processes(delta);
     voxel_engine.update_loaded_areas();
+    voxel_engine.update_processes(delta);
     voxel_engine.draw_scene(raycast_result).await
 }
 

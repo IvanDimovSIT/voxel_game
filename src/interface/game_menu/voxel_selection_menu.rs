@@ -13,7 +13,7 @@ use macroquad::{
 use crate::{
     graphics::texture_manager::TextureManager,
     interface::{
-        game_menu::game_menu::MenuSelection,
+        game_menu::game_menu_context::MenuSelection,
         style::{BACKGROUND_COLOR, SHADOW_COLOR, TEXT_COLOR},
         util::{darken_background, draw_item_name, draw_rect_with_shadow},
     },

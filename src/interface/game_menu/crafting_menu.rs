@@ -13,7 +13,7 @@ use macroquad::{
 use crate::{
     graphics::texture_manager::TextureManager,
     interface::{
-        game_menu::game_menu::MenuSelection,
+        game_menu::game_menu_context::MenuSelection,
         style::{BACKGROUND_COLOR, BUTTON_HOVER_COLOR, SECONDARY_TEXT_COLOR, TEXT_COLOR},
         util::{
             darken_background, draw_centered_multiline_text, draw_item_name, draw_rect_with_shadow,
@@ -60,6 +60,8 @@ const PAGES_COUNTER_OFFSET_X: f32 = 3.0;
 const PAGES_COUNTER_FONT_SIZE: f32 = 0.07;
 const PAGES_COUNTER_OFFSET_Y: f32 = 8.0;
 
+pub type CraftingMenuHandle = Rc<RefCell<CraftingMenuContext>>;
+
 #[derive(Debug, Clone)]
 pub struct CraftingMenuContext {
     available_recipes: Vec<CraftingRecipe>,
@@ -67,7 +69,7 @@ pub struct CraftingMenuContext {
     current_page: usize,
 }
 impl CraftingMenuContext {
-    pub fn new(inventory: &Inventory) -> Rc<RefCell<Self>> {
+    pub fn new(inventory: &Inventory) -> CraftingMenuHandle {
         let all_items = inventory.create_all_items_map();
         Rc::new(RefCell::new(Self {
             available_recipes: find_craftable(&all_items),

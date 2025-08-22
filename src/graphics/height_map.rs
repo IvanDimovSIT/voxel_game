@@ -102,7 +102,7 @@ impl HeightMap {
 
 #[cfg(test)]
 mod tests {
-    use crate::service::render_zone::get_render_zone;
+    use crate::service::active_zone::get_render_zone;
 
     use super::*;
 
