@@ -45,7 +45,10 @@ const CARD_Y_COEF: f32 = 0.2;
 const ROW_PADDING: f32 = 4.0;
 
 const INPUT_ITEM_START_OFFSET_X: f32 = 4.0;
-const INPUT_ITEM_START_OFFSET_Y: f32 = 3.0;
+const CARD_ITEM_START_OFFSET_Y: f32 = 3.0;
+const CARD_FONT_SIZE_COEF: f32 = 0.9;
+const OUTPUT_ITEM_OFFSET_X_COEF: f32 = 1.5;
+const MAX_CARD_WIDTH_RELATIVE_TO_HEIGHT: f32 = 4.0;
 
 const MENU_WIDTH_OF_CARD_WIDTH: f32 = 1.1;
 const MENU_HEIGHT_OF_CARD_HEIGHT: f32 = 1.1;
@@ -60,11 +63,13 @@ const PAGES_COUNTER_OFFSET_X: f32 = 3.0;
 const PAGES_COUNTER_FONT_SIZE: f32 = 0.07;
 const PAGES_COUNTER_OFFSET_Y: f32 = 8.0;
 
+const BULK_CRAFT_COUNT: u32 = 5;
+
 pub type CraftingMenuHandle = Rc<RefCell<CraftingMenuContext>>;
 
 #[derive(Debug, Clone)]
 pub struct CraftingMenuContext {
-    available_recipes: Vec<CraftingRecipe>,
+    available_recipes: Vec<(CraftingRecipe, u32)>,
     all_items: HashMap<Voxel, u32>,
     current_page: usize,
 }
@@ -89,9 +94,7 @@ impl CraftingMenuContext {
         let (width, height) = screen_size();
         darken_background(width, height);
 
-        let menu_width = width * CARD_WIDTH * MENU_WIDTH_OF_CARD_WIDTH;
-        let menu_height = CARDS_PER_PAGE as f32
-            * (CARD_OFFSET_PX + height * CARD_HEIGHT * MENU_HEIGHT_OF_CARD_HEIGHT);
+        let (menu_width, menu_height) = Self::calculate_menu_size(width, height);
         let menu_x = (width - menu_width) / 2.0;
         let menu_y = height * CARD_Y_COEF - TOP_MENU_Y_MARGIN_PX;
         draw_rect_with_shadow(menu_x, menu_y, menu_width, menu_height, BACKGROUND_COLOR);
@@ -107,24 +110,26 @@ impl CraftingMenuContext {
             menu_y,
         );
 
-        if let Some(recipe) = to_craft {
-            self.craft_item(recipe, inventory);
+        if let Some((recipe, count)) = to_craft {
+            self.craft_item(recipe, inventory, count);
         }
 
         MenuSelection::None
     }
 
-    fn craft_item(&mut self, recipe: CraftingRecipe, inventory: &mut Inventory) {
+    fn craft_item(&mut self, recipe: CraftingRecipe, inventory: &mut Inventory, count: u32) {
+        debug_assert!(count <= BULK_CRAFT_COUNT);
         for input in recipe.get_inputs() {
-            inventory.remove_item(*input);
+            inventory.remove_item(Item::new(input.voxel, input.count * count as u8));
         }
-        inventory.add_item(recipe.output);
+        let output = Item::new(recipe.output.voxel, recipe.output.count * count as u8);
+        inventory.add_item(output);
         self.all_items = inventory.create_all_items_map();
         self.available_recipes = find_craftable(&self.all_items);
         self.current_page = self.current_page.min(self.calculate_max_page());
     }
 
-    /// draws the crafting cards and returns the map of crafted items
+    /// draws the crafting cards and returns the number of crafted items
     fn handle_crafting_cards(
         &mut self,
         texture_manager: &TextureManager,
@@ -134,14 +139,14 @@ impl CraftingMenuContext {
         menu_width: f32,
         menu_height: f32,
         menu_y: f32,
-    ) -> Option<CraftingRecipe> {
+    ) -> Option<(CraftingRecipe, u32)> {
         let crafted: Vec<_> = self
             .available_recipes
             .iter()
             .skip(self.current_page * CARDS_PER_PAGE)
             .take(CARDS_PER_PAGE)
             .enumerate()
-            .map(|(index, recipe)| {
+            .map(|(index, (recipe, count))| {
                 (
                     *recipe,
                     self.draw_crafting_card(
@@ -149,10 +154,12 @@ impl CraftingMenuContext {
                         sound_manager,
                         user_settings,
                         recipe,
+                        *count,
                         index,
                     ),
                 )
             })
+            .filter(|(_, count)| *count > 0)
             .collect();
 
         if self.available_recipes.is_empty() {
@@ -167,10 +174,7 @@ impl CraftingMenuContext {
             );
         }
 
-        crafted
-            .iter()
-            .find(|(_, should_craft)| *should_craft)
-            .map(|(recipe, _)| *recipe)
+        crafted.first().cloned()
     }
 
     fn calculate_max_page(&self) -> usize {
@@ -182,20 +186,20 @@ impl CraftingMenuContext {
         ((self.available_recipes.len() / CARDS_PER_PAGE) + partially_full).max(1) - 1
     }
 
-    /// returns true if should craft
+    /// returns the number of times to craft
     fn draw_crafting_card(
         &self,
         texture_manager: &TextureManager,
         sound_manager: &SoundManager,
         user_settings: &UserSettings,
         crafting_recipe: &CraftingRecipe,
+        max_craftable_count: u32,
         index: usize,
-    ) -> bool {
+    ) -> u32 {
         let (width, height) = screen_size();
         let (mouse_x, mouse_y) = mouse_position();
 
-        let card_width = width * CARD_WIDTH;
-        let card_height = height * CARD_HEIGHT;
+        let (card_width, card_height) = Self::calculate_card_size(width, height);
         let card_x = (width - card_width) / 2.0;
         let card_y = height * CARD_Y_COEF + (index as f32) * (CARD_OFFSET_PX + card_height);
 
@@ -209,44 +213,49 @@ impl CraftingMenuContext {
 
         draw_rect_with_shadow(card_x, card_y, card_width, card_height, background_color);
         let item_x_start = card_x + INPUT_ITEM_START_OFFSET_X;
-        let item_y_start = card_y + INPUT_ITEM_START_OFFSET_Y;
-        let input_item_size = card_height / 4.0;
+        let item_y_start = card_y + CARD_ITEM_START_OFFSET_Y;
+        let item_size = card_height / 4.0;
 
         for (index, input) in crafting_recipe.get_inputs().enumerate() {
-            let item_y = item_y_start + index as f32 * (input_item_size + ROW_PADDING);
+            let item_y = item_y_start + index as f32 * (item_size + ROW_PADDING);
             let available = self.all_items.get(&input.voxel).copied().unwrap_or(0);
             Self::draw_item_input(
                 item_x_start,
                 item_y,
-                input_item_size,
+                item_size,
                 input,
                 available,
                 texture_manager.get_icon(input.voxel),
             );
         }
 
-        const OUTPUT_ITEM_SIZE_RELATIVE_TO_INPUT: f32 = 1.4;
-        const OUTPUT_ITEM_Y_OFFSET: f32 = 4.0;
-        let output_item_size = input_item_size * OUTPUT_ITEM_SIZE_RELATIVE_TO_INPUT;
         let already_have = self
             .all_items
             .get(&crafting_recipe.output.voxel)
             .copied()
             .unwrap_or(0);
         Self::draw_output_item(
-            card_x + card_width - output_item_size * 1.5,
-            item_y_start + OUTPUT_ITEM_Y_OFFSET,
-            output_item_size,
+            card_x + card_width - item_size * OUTPUT_ITEM_OFFSET_X_COEF,
+            item_y_start,
+            item_size,
             &crafting_recipe.output,
+            max_craftable_count,
             already_have,
             texture_manager.get_icon(crafting_recipe.output.voxel),
         );
 
-        if is_hovered && is_mouse_button_released(MouseButton::Left) {
+        if !is_hovered {
+            return 0;
+        }
+
+        if is_mouse_button_released(MouseButton::Left) {
             sound_manager.play_sound(SoundId::Click, user_settings);
-            true
+            1
+        } else if is_mouse_button_released(MouseButton::Right) {
+            sound_manager.play_sound(SoundId::Click, user_settings);
+            BULK_CRAFT_COUNT.min(max_craftable_count)
         } else {
-            false
+            0
         }
     }
 
@@ -256,14 +265,14 @@ impl CraftingMenuContext {
         y: f32,
         size: f32,
         item: &Item,
+        count: u32,
         already_have: u32,
         texture: Texture2D,
     ) {
-        const FONT_SIZE_COEF: f32 = 0.8;
         const TEXT_X_OFFSET: f32 = 5.0;
         let (mouse_x, mouse_y) = mouse_position();
-        let font_size = size * FONT_SIZE_COEF;
-        let buffer = format!("makes {}X", item.count);
+        let font_size = size * CARD_FONT_SIZE_COEF;
+        let buffer = format!("Makes {}X", item.count);
         let text_width = get_text_width(&buffer, font_size);
         let text_x = x - text_width - size - TEXT_X_OFFSET;
         draw_text(
@@ -294,15 +303,29 @@ impl CraftingMenuContext {
             );
         }
 
-        let next_line_y = y + size;
+        let second_line_y = y + size;
         use_str_buffer(|buffer| {
-            write!(buffer, "(have {already_have})").expect(BUFFER_ERROR);
+            let can_craft_count = count as u8 * item.count;
+            write!(buffer, "Can craft {can_craft_count}").expect(BUFFER_ERROR);
 
-            let next_line_text_y = next_line_y + font_size;
+            let second_line_text_y = second_line_y + font_size;
             draw_text(
                 buffer,
                 text_x,
-                next_line_text_y,
+                second_line_text_y,
+                font_size,
+                SECONDARY_TEXT_COLOR,
+            );
+        });
+
+        let third_line_y = second_line_y + size;
+        use_str_buffer(|buffer| {
+            write!(buffer, "(have {already_have})").expect(BUFFER_ERROR);
+            let third_line_text_y = third_line_y + font_size;
+            draw_text(
+                buffer,
+                text_x,
+                third_line_text_y,
                 font_size,
                 SECONDARY_TEXT_COLOR,
             );
@@ -311,7 +334,6 @@ impl CraftingMenuContext {
 
     /// draws the input items for a recipe
     fn draw_item_input(x: f32, y: f32, size: f32, item: &Item, available: u32, texture: Texture2D) {
-        const INPUT_ITEM_FONT_SIZE: f32 = 0.9;
         const TEXT_OFFSET_X: f32 = 3.0;
         let (mouse_x, mouse_y) = mouse_position();
         draw_texture_ex(
@@ -324,7 +346,7 @@ impl CraftingMenuContext {
                 ..Default::default()
             },
         );
-        let font_size = size * INPUT_ITEM_FONT_SIZE;
+        let font_size = size * CARD_FONT_SIZE_COEF;
         let text_start_x = x + size + TEXT_OFFSET_X;
         let text_start_y = y + font_size;
         if is_point_in_rect(x, y, size, size, mouse_x, mouse_y) {
@@ -375,5 +397,21 @@ impl CraftingMenuContext {
             write!(buffer, "Page {}/{}", self.current_page + 1, max_page + 1).expect(BUFFER_ERROR);
             draw_text(buffer, x, y, font_size, TEXT_COLOR);
         });
+    }
+
+    fn calculate_card_size(width: f32, height: f32) -> (f32, f32) {
+        let card_height = height * CARD_HEIGHT;
+        let card_width = (width * CARD_WIDTH).min(MAX_CARD_WIDTH_RELATIVE_TO_HEIGHT * card_height);
+
+        (card_width, card_height)
+    }
+
+    fn calculate_menu_size(width: f32, height: f32) -> (f32, f32) {
+        let (card_width, card_height) = Self::calculate_card_size(width, height);
+        let menu_width = card_width * MENU_WIDTH_OF_CARD_WIDTH;
+        let menu_height =
+            CARDS_PER_PAGE as f32 * (card_height * MENU_HEIGHT_OF_CARD_HEIGHT + CARD_OFFSET_PX);
+
+        (menu_width, menu_height)
     }
 }

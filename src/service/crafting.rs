@@ -50,21 +50,21 @@ impl CraftingRecipe {
     }
 }
 
-pub fn find_craftable(available_items: &HashMap<Voxel, u32>) -> Vec<CraftingRecipe> {
+/// returns the craftable recipies and the number of times they can be crafted
+pub fn find_craftable(available_items: &HashMap<Voxel, u32>) -> Vec<(CraftingRecipe, u32)> {
     RECEPES
         .into_iter()
-        .filter(|recipe| can_craft_recipe(recipe, available_items))
+        .map(|recipe| (recipe, find_max_times_craftable(&recipe, available_items)))
+        .filter(|(_, count)| *count > 0)
         .collect()
 }
 
-fn can_craft_recipe(recipe: &CraftingRecipe, available_items: &HashMap<Voxel, u32>) -> bool {
-    recipe.inputs.into_iter().flatten().all(|input| {
-        if let Some(available) = available_items.get(&input.voxel) {
-            *available >= input.count as u32
-        } else {
-            false
-        }
-    })
+fn find_max_times_craftable(recipe: &CraftingRecipe, available_items: &HashMap<Voxel, u32>) -> u32 {
+    recipe
+        .get_inputs()
+        .map(|item| available_items.get(&item.voxel).cloned().unwrap_or(0) / item.count as u32)
+        .min()
+        .unwrap_or(0)
 }
 
 #[cfg(test)]
@@ -80,9 +80,12 @@ mod tests {
 
         let craftable = find_craftable(&available);
         assert_eq!(craftable.len(), 3);
-        assert_eq!(craftable[0].output.voxel, Voxel::Boards);
-        assert_eq!(craftable[1].output.voxel, Voxel::Cobblestone);
-        assert_eq!(craftable[2].output.voxel, Voxel::Brick);
+        assert_eq!(craftable[0].0.output.voxel, Voxel::Boards);
+        assert_eq!(craftable[0].1, 10);
+        assert_eq!(craftable[1].0.output.voxel, Voxel::Cobblestone);
+        assert_eq!(craftable[1].1, 10);
+        assert_eq!(craftable[2].0.output.voxel, Voxel::Brick);
+        assert_eq!(craftable[2].1, 3);
     }
 
     #[test]
