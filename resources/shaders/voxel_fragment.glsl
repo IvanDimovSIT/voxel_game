@@ -73,8 +73,13 @@ float addPlayerLight(float baseLight, float distanceToFace, float darkLevel) {
 // draws placed lamps
 float addLampLighting(float lighting) {
     for (int i = 0; i < lightsCount; i++) {
-        float distanceToLight = length(facePosition - lights[i]);
-        lighting += max(1.0 - distanceToLight/lampStrength, 0.0);
+        vec3 directionToLight = lights[i] - facePosition;
+        float distanceToLight = length(directionToLight);
+        float brightness = clamp(1.0 - distanceToLight/lampStrength, 0.0, 1.0); 
+        float facingLightCoef = (1.0 + dot(normalize(directionToLight), fragNormal))/2.0;    
+        float blend = smoothstep(0.5, 1.5, distanceToLight);
+        brightness *= mix(1.0, facingLightCoef, blend);
+        lighting += brightness;
     }
 
     return min(lighting, 1.0);

@@ -14,7 +14,9 @@ use crate::{
     graphics::texture_manager::TextureManager,
     interface::{
         game_menu::game_menu_context::MenuSelection,
-        style::{BACKGROUND_COLOR, BUTTON_HOVER_COLOR, SECONDARY_TEXT_COLOR, TEXT_COLOR},
+        style::{
+            BACKGROUND_COLOR, BUTTON_HOVER_COLOR, SECONDARY_TEXT_COLOR, SELECTED_COLOR, TEXT_COLOR,
+        },
         util::{
             darken_background, draw_centered_multiline_text, draw_item_name, draw_rect_with_shadow,
             get_text_width, is_point_in_rect,
@@ -275,13 +277,7 @@ impl CraftingMenuContext {
         let buffer = format!("Makes {}X", item.count);
         let text_width = get_text_width(&buffer, font_size);
         let text_x = x - text_width - size - TEXT_X_OFFSET;
-        draw_text(
-            &buffer,
-            text_x,
-            y + font_size,
-            font_size,
-            SECONDARY_TEXT_COLOR,
-        );
+        draw_text(&buffer, text_x, y + font_size, font_size, SELECTED_COLOR);
         let texture_x = x - size;
         draw_texture_ex(
             &texture,
@@ -359,10 +355,21 @@ impl CraftingMenuContext {
             );
         }
         use_str_buffer(|buffer| {
-            write!(buffer, "X{} (have {})", item.count, available).expect(BUFFER_ERROR);
+            write!(buffer, "X{}", item.count).expect(BUFFER_ERROR);
+            let count_offset = get_text_width(buffer, font_size);
             draw_text(
                 buffer,
                 text_start_x,
+                text_start_y,
+                font_size,
+                SELECTED_COLOR,
+            );
+
+            buffer.clear();
+            write!(buffer, " (have {})", available).expect(BUFFER_ERROR);
+            draw_text(
+                buffer,
+                text_start_x + count_offset,
                 text_start_y,
                 font_size,
                 SECONDARY_TEXT_COLOR,
