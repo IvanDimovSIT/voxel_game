@@ -58,6 +58,8 @@ impl RenderArea {
     pub fn insert(&mut self, location: InternalLocation, mesh_info: MeshInfo) {
         if mesh_info.1 == Voxel::Lamp {
             self.lights.insert(location);
+        } else {
+            self.lights.remove(&location);
         }
         self.mesh_map.insert(location, mesh_info);
     }
