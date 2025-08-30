@@ -1,4 +1,4 @@
-use std::{cell::RefCell, collections::HashMap, fmt::Write, rc::Rc};
+use std::{cell::RefCell, fmt::Write, rc::Rc};
 
 use macroquad::{
     camera::set_default_camera,
@@ -23,9 +23,8 @@ use crate::{
         },
     },
     model::{
-        inventory::{Inventory, Item},
+        inventory::{AvailableItems, Inventory, Item},
         user_settings::UserSettings,
-        voxel::Voxel,
     },
     service::{
         crafting::{CraftingRecipe, find_craftable},
@@ -72,7 +71,7 @@ pub type CraftingMenuHandle = Rc<RefCell<CraftingMenuContext>>;
 #[derive(Debug, Clone)]
 pub struct CraftingMenuContext {
     available_recipes: Vec<(CraftingRecipe, u32)>,
-    all_items: HashMap<Voxel, u32>,
+    all_items: AvailableItems,
     current_page: usize,
 }
 impl CraftingMenuContext {
@@ -220,7 +219,7 @@ impl CraftingMenuContext {
 
         for (index, input) in crafting_recipe.get_inputs().enumerate() {
             let item_y = item_y_start + index as f32 * (item_size + ROW_PADDING);
-            let available = self.all_items.get(&input.voxel).copied().unwrap_or(0);
+            let available = self.all_items.get(input.voxel);
             Self::draw_item_input(
                 item_x_start,
                 item_y,
@@ -231,11 +230,7 @@ impl CraftingMenuContext {
             );
         }
 
-        let already_have = self
-            .all_items
-            .get(&crafting_recipe.output.voxel)
-            .copied()
-            .unwrap_or(0);
+        let already_have = self.all_items.get(crafting_recipe.output.voxel);
         Self::draw_output_item(
             card_x + card_width - item_size * OUTPUT_ITEM_OFFSET_X_COEF,
             item_y_start,

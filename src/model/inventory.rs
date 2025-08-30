@@ -1,10 +1,29 @@
-use std::collections::HashMap;
-
 use bincode::{Decode, Encode};
 
-use crate::model::voxel::Voxel;
+use crate::model::voxel::{MAX_VOXEL_VARIANTS, Voxel};
 
 pub const MAX_ITEMS_PER_SLOT: u8 = 100;
+
+/// stores the quantity of all inventory items
+#[derive(Debug, Clone)]
+pub struct AvailableItems {
+    counts: Box<[u32; MAX_VOXEL_VARIANTS]>,
+}
+impl AvailableItems {
+    pub fn new_empty() -> Self {
+        Self {
+            counts: Box::new([0; MAX_VOXEL_VARIANTS]),
+        }
+    }
+
+    pub fn add(&mut self, voxel: Voxel, count: impl Into<u32>) {
+        self.counts[voxel.index()] += count.into();
+    }
+
+    pub fn get(&self, voxel: Voxel) -> u32 {
+        self.counts[voxel.index()]
+    }
+}
 
 #[derive(Debug, Clone, Copy, Encode, Decode)]
 pub struct Item {
@@ -60,15 +79,11 @@ impl Inventory {
         }
     }
 
-    pub fn create_all_items_map(&self) -> HashMap<Voxel, u32> {
-        let mut map = HashMap::new();
+    /// creates a table of all the voxels in the inventory and their count
+    pub fn create_all_items_map(&self) -> AvailableItems {
+        let mut map = AvailableItems::new_empty();
         for item in self.selected.iter().chain(self.items.iter()).flatten() {
-            let existing_option = map.get_mut(&item.voxel);
-            if let Some(existing) = existing_option {
-                *existing += item.count as u32;
-            } else {
-                map.insert(item.voxel, item.count as u32);
-            }
+            map.add(item.voxel, item.count);
         }
 
         map
@@ -201,10 +216,24 @@ mod tests {
         inventory.items[4] = Item::some(Voxel::Brick, 10);
         let map = inventory.create_all_items_map();
 
-        assert_eq!(map.len(), 3);
-        assert_eq!(map[&Voxel::Brick], 130);
-        assert_eq!(map[&Voxel::Sand], 80);
-        assert_eq!(map[&Voxel::Stone], 100);
+        assert_eq!(map.get(Voxel::Brick), 130);
+        assert_eq!(map.get(Voxel::Sand), 80);
+        assert_eq!(map.get(Voxel::Stone), 100);
+        let other_items_count: u32 = map
+            .counts
+            .iter()
+            .enumerate()
+            .filter(|(voxel_index, _)| {
+                ![
+                    Voxel::Brick.index(),
+                    Voxel::Sand.index(),
+                    Voxel::Stone.index(),
+                ]
+                .contains(voxel_index)
+            })
+            .map(|(_, count)| *count)
+            .sum();
+        assert_eq!(other_items_count, 0);
     }
 
     #[test]

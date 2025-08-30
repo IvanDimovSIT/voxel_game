@@ -2,7 +2,7 @@ use bincode::{Decode, Encode};
 
 /// the maximum number of variants the voxel enum can have,
 /// used for performance optimisations
-pub const MAX_VOXEL_VARIANTS: usize = 100;
+pub const MAX_VOXEL_VARIANTS: usize = 32;
 
 #[derive(Debug, Clone, Copy, Encode, Decode, PartialEq, Eq, Hash)]
 pub enum Voxel {

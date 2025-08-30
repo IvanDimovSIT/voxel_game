@@ -1,6 +1,7 @@
-use std::collections::HashMap;
-
-use crate::model::{inventory::Item, voxel::Voxel};
+use crate::model::{
+    inventory::{AvailableItems, Item},
+    voxel::Voxel,
+};
 
 impl Item {
     /// const constructor
@@ -51,7 +52,7 @@ impl CraftingRecipe {
 }
 
 /// returns the craftable recipies and the number of times they can be crafted
-pub fn find_craftable(available_items: &HashMap<Voxel, u32>) -> Vec<(CraftingRecipe, u32)> {
+pub fn find_craftable(available_items: &AvailableItems) -> Vec<(CraftingRecipe, u32)> {
     RECEPES
         .into_iter()
         .map(|recipe| (recipe, find_max_times_craftable(&recipe, available_items)))
@@ -59,10 +60,10 @@ pub fn find_craftable(available_items: &HashMap<Voxel, u32>) -> Vec<(CraftingRec
         .collect()
 }
 
-fn find_max_times_craftable(recipe: &CraftingRecipe, available_items: &HashMap<Voxel, u32>) -> u32 {
+fn find_max_times_craftable(recipe: &CraftingRecipe, available_items: &AvailableItems) -> u32 {
     recipe
         .get_inputs()
-        .map(|item| available_items.get(&item.voxel).cloned().unwrap_or(0) / item.count as u32)
+        .map(|item| available_items.get(item.voxel) / item.count as u32)
         .min()
         .unwrap_or(0)
 }
@@ -73,10 +74,10 @@ mod tests {
 
     #[test]
     pub fn test_find_craftable_some() {
-        let mut available = HashMap::new();
-        available.insert(Voxel::Wood, 10);
-        available.insert(Voxel::Stone, 10);
-        available.insert(Voxel::Clay, 10);
+        let mut available = AvailableItems::new_empty();
+        available.add(Voxel::Wood, 10u32);
+        available.add(Voxel::Stone, 10u32);
+        available.add(Voxel::Clay, 10u32);
 
         let craftable = find_craftable(&available);
         assert_eq!(craftable.len(), 3);
@@ -90,11 +91,11 @@ mod tests {
 
     #[test]
     pub fn test_find_craftable_none() {
-        let mut available = HashMap::new();
-        available.insert(Voxel::Boards, 10);
-        available.insert(Voxel::Glass, 220);
-        available.insert(Voxel::Clay, 10);
-        available.insert(Voxel::Grass, 50);
+        let mut available = AvailableItems::new_empty();
+        available.add(Voxel::Boards, 10u32);
+        available.add(Voxel::Glass, 220u32);
+        available.add(Voxel::Clay, 10u32);
+        available.add(Voxel::Grass, 50u32);
         let craftable = find_craftable(&available);
         assert_eq!(craftable.len(), 0);
     }
