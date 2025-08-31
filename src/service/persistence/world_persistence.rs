@@ -15,12 +15,9 @@ use crate::{
             create_directory, read_binary_object, remove_directory, write_binary_object,
         },
     },
-    utils::Semaphore,
 };
 
-use super::config::{BASE_SAVE_PATH, CONCURRENT_FILE_IO_COUNT};
-
-static STORE_SEMAPHORE: Semaphore = Semaphore::new(CONCURRENT_FILE_IO_COUNT);
+use super::config::BASE_SAVE_PATH;
 
 fn get_filepath(area_x: u32, area_y: u32, world_name: &str) -> String {
     format!("{world_name}/area{area_x}_{area_y}.dat")
@@ -43,18 +40,14 @@ pub fn store_blocking(area: Area, world_name: &str) {
 pub fn store(area: Area, world_name: String) {
     debug_assert!(area.has_changed);
     rayon::spawn(move || {
-        STORE_SEMAPHORE.acquire();
         store_blocking(area, &world_name);
-        STORE_SEMAPHORE.release();
     });
 }
 
 /// stores all areas and blocks the main thread
 pub fn store_all_blocking(areas: Vec<Area>, world_name: String) {
     areas.into_par_iter().for_each(|area| {
-        STORE_SEMAPHORE.acquire();
         store_blocking(area, &world_name);
-        STORE_SEMAPHORE.release();
     });
 }
 
@@ -70,14 +63,12 @@ pub fn load_blocking(area_location: AreaLocation, world_name: &str) -> Area {
 
 /// struct to load areas asynchronously
 pub struct AreaLoader {
-    semaphore: Arc<Semaphore>,
     to_load: Arc<Mutex<HashSet<AreaLocation>>>,
     loaded: Arc<Mutex<Vec<Area>>>,
 }
 impl AreaLoader {
     pub fn new() -> Self {
         Self {
-            semaphore: Arc::new(Semaphore::new(CONCURRENT_FILE_IO_COUNT)),
             to_load: Arc::new(Mutex::new(HashSet::new())),
             loaded: Arc::new(Mutex::new(vec![])),
         }
@@ -91,12 +82,7 @@ impl AreaLoader {
     ) -> Vec<Area> {
         areas_to_load
             .par_iter()
-            .map(|area_location| {
-                self.semaphore.acquire();
-                let loaded_area = load_blocking(*area_location, world_name);
-                self.semaphore.release();
-                loaded_area
-            })
+            .map(|area_location| load_blocking(*area_location, world_name))
             .collect()
     }
 
@@ -111,14 +97,11 @@ impl AreaLoader {
         drop(to_load_lock);
 
         for area_to_load in areas_to_load {
-            let semaphore = self.semaphore.clone();
             let to_load = self.to_load.clone();
             let loaded = self.loaded.clone();
             let world_name_owned = world_name.to_owned();
             rayon::spawn(move || {
-                semaphore.acquire();
                 let area = load_blocking(area_to_load, &world_name_owned);
-                semaphore.release();
                 let mut to_load_lock = to_load.lock().unwrap();
                 let mut loaded_lock = loaded.lock().unwrap();
                 to_load_lock.remove(&area.get_area_location());

@@ -2,6 +2,7 @@
 name = "voxel_game"
 version = "1.3.0"
 edition = "2024"
+build = "build.rs"
 
 [dependencies]
 bincode = "2.0.1"
@@ -15,3 +16,6 @@ path = "src/main.rs"
 
 [build-dependencies]
 png = "0.18"
+
+[target.'cfg(windows)'.build-dependencies]
+winres = "0.1"

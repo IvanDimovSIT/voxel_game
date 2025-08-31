@@ -7,7 +7,8 @@ use macroquad::{
 
 use crate::model::voxel::{MAX_VOXEL_VARIANTS, Voxel};
 
-const BASE_TEXTURES_PATH: &str = "assets/images/";
+const BASE_VOXEL_TEXTURES_PATH: &str = "assets/images/voxels/";
+const BASE_ICON_TEXTURES_PATH: &str = "assets/images/icons/";
 const TITLE_SCREEN_BACKGROUND_PATH: &str = "assets/images/title.png";
 const SUN_PATH: &str = "assets/images/sun.png";
 const MOON_PATH: &str = "assets/images/moon.png";
@@ -66,7 +67,7 @@ impl TextureManager {
         let mut textures = HashMap::with_capacity(Self::VOXELS_WITH_DIFFERENT_FACES.len());
         for (texture_type, texture_path) in ICON_TEXTURES {
             assert!(Self::VOXELS_WITH_DIFFERENT_FACES.contains(&texture_type));
-            let full_path = format!("{BASE_TEXTURES_PATH}{texture_path}");
+            let full_path = format!("{BASE_ICON_TEXTURES_PATH}{texture_path}");
             let texture = Self::load_image(&full_path).await;
             textures.insert(texture_type, texture);
             info!(
@@ -81,7 +82,7 @@ impl TextureManager {
     async fn load_voxel_textures() -> Vec<Option<Texture2D>> {
         let mut textures = vec![None; MAX_TEXTURE_COUNT];
         for (texture_type, texture_path) in TEXTURES {
-            let full_path = format!("{BASE_TEXTURES_PATH}{texture_path}");
+            let full_path = format!("{BASE_VOXEL_TEXTURES_PATH}{texture_path}");
             let texture = Self::load_image(&full_path).await;
             texture.set_filter(FilterMode::Nearest);
             textures[texture_type.index()] = Some(texture);

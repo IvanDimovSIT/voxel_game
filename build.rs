@@ -5,10 +5,12 @@ use std::{
 };
 
 use png::Decoder;
+use winres::WindowsResource;
 
 const SMALL_ICON_PATH: &str = "resources/icons/icon16.png";
 const MEDIUM_ICON_PATH: &str = "resources/icons/icon32.png";
 const LARGE_ICON_PATH: &str = "resources/icons/icon64.png";
+const WINDOWS_ICON_PATH: &str = "resources/icons/windows_icon.ico";
 
 fn read_icon(path: &str, size: usize) -> Vec<u8> {
     let file = File::open(path).expect("icon file not found");
@@ -21,6 +23,12 @@ fn read_icon(path: &str, size: usize) -> Vec<u8> {
     assert_eq!(info.width as usize, size);
 
     buf
+}
+
+fn set_windows_icon() {
+    let mut res = WindowsResource::new();
+    res.set_icon(WINDOWS_ICON_PATH);
+    res.compile().unwrap()
 }
 
 fn main() {
@@ -41,4 +49,7 @@ fn main() {
     let out_dir = PathBuf::from(std::env::var("OUT_DIR").unwrap());
     let dest_path = out_dir.join("icons.rs");
     fs::write(&dest_path, generated_code).unwrap();
+
+    #[cfg(windows)]
+    set_windows_icon();
 }
