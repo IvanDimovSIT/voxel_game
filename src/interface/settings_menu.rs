@@ -14,7 +14,9 @@ use crate::{
         interface_context::InterfaceScreen,
         style::TEXT_COLOR,
         title_screen::TitleScreenContext,
-        util::{draw_centered_multiline_text, get_text_width, is_point_in_rect},
+        util::{
+            draw_centered_multiline_text, draw_version_number, get_text_width, is_point_in_rect,
+        },
     },
     model::user_settings::{ShadowType, UserSettings},
     service::{
@@ -65,6 +67,7 @@ impl SettingsContext {
         Self::handle_toggle_sound_button(sound_manager, user_settings, x_start, y_start);
         Self::handle_toggle_fullscreen_button(sound_manager, user_settings, x_start, y_start);
         Self::handle_toggle_dynamic_light(sound_manager, user_settings, x_start, y_start);
+        draw_version_number(height);
 
         let should_exit = Self::draw_back_button(sound_manager, user_settings);
         next_frame().await;

@@ -13,8 +13,11 @@ use macroquad::{
 use crate::{
     graphics::texture_manager::TextureManager,
     interface::{
-        background::draw_background, interface_context::InterfaceScreen, style::TEXT_COLOR,
-        title_screen::TitleScreenContext, util::draw_centered_multiline_text,
+        background::draw_background,
+        interface_context::InterfaceScreen,
+        style::TEXT_COLOR,
+        title_screen::TitleScreenContext,
+        util::{draw_centered_multiline_text, draw_version_number},
     },
     model::user_settings::UserSettings,
     service::{
@@ -103,6 +106,7 @@ impl WorldSelectionContext {
         self.handle_delete_button(sound_manager, user_settings, width, height);
 
         self.draw_notification_text(width, height);
+        draw_version_number(height);
 
         next_frame().await;
 

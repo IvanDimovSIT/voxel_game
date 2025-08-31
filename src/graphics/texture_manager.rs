@@ -7,10 +7,10 @@ use macroquad::{
 
 use crate::model::voxel::{MAX_VOXEL_VARIANTS, Voxel};
 
-const BASE_TEXTURES_PATH: &str = "resources/images/";
-const TITLE_SCREEN_BACKGROUND_PATH: &str = "resources/images/title.png";
-const SUN_PATH: &str = "resources/images/sun.png";
-const MOON_PATH: &str = "resources/images/moon.png";
+const BASE_TEXTURES_PATH: &str = "assets/images/";
+const TITLE_SCREEN_BACKGROUND_PATH: &str = "assets/images/title.png";
+const SUN_PATH: &str = "assets/images/sun.png";
+const MOON_PATH: &str = "assets/images/moon.png";
 const TEXTURES: [(Voxel, &str); 14] = [
     (Voxel::Stone, "stone.png"),
     (Voxel::Sand, "sand.png"),

@@ -16,7 +16,7 @@ pub enum SoundId {
     Bounce,
 }
 
-const BASE_SOUNDS_PATH: &str = "resources/sounds/";
+const BASE_SOUNDS_PATH: &str = "assets/sounds/";
 const SOUNDS: [(SoundId, &str); 5] = [
     (SoundId::Fall, "fall.wav"),
     (SoundId::Destroy, "destroy.wav"),

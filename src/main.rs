@@ -3,7 +3,11 @@
 use std::{rc::Rc, thread::sleep, time::Duration};
 
 use graphics::texture_manager::TextureManager;
-use macroquad::{miniquad::window::set_fullscreen, time::get_frame_time};
+use macroquad::{
+    miniquad::{conf::Icon, window::set_fullscreen},
+    time::get_frame_time,
+    window::Conf,
+};
 use model::user_settings::UserSettings;
 use service::sound_manager::SoundManager;
 use voxel_engine::VoxelEngine;
@@ -22,6 +26,20 @@ mod model;
 mod service;
 mod utils;
 mod voxel_engine;
+
+include!(concat!(env!("OUT_DIR"), "/icons.rs"));
+
+fn config() -> Conf {
+    Conf {
+        window_title: "Voxel World".to_owned(),
+        icon: Some(Icon {
+            small: SMALL_ICON,
+            medium: MEDIUM_ICON,
+            big: LARGE_ICON,
+        }),
+        ..Default::default()
+    }
+}
 
 enum GameState {
     Running { voxel_engine: Box<VoxelEngine> },
@@ -44,7 +62,7 @@ impl GameState {
     }
 }
 
-#[macroquad::main("Voxel World")]
+#[macroquad::main(config)]
 async fn main() {
     initialise_save_directory();
     let texture_manager = Rc::new(TextureManager::new().await);
@@ -79,7 +97,7 @@ async fn main() {
     }
 }
 
-async fn handle_running_state(voxel_engine: &mut Box<VoxelEngine>) -> Option<GameState> {
+async fn handle_running_state(voxel_engine: &mut VoxelEngine) -> Option<GameState> {
     let delta = get_frame_time().min(0.2);
     let raycast_result = voxel_engine.process_input(delta);
     voxel_engine.update_loaded_areas();
@@ -87,7 +105,7 @@ async fn handle_running_state(voxel_engine: &mut Box<VoxelEngine>) -> Option<Gam
     voxel_engine.draw_scene(raycast_result).await
 }
 
-async fn handle_menu_state(context: &mut Box<InterfaceContext>) -> Option<GameState> {
+async fn handle_menu_state(context: &mut InterfaceContext) -> Option<GameState> {
     if let Some(mut voxel_engine) = context.enter_game() {
         voxel_engine.load_world();
         Some(GameState::Running { voxel_engine })

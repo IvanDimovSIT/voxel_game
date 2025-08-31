@@ -6,8 +6,12 @@ use macroquad::{
 use crate::{
     graphics::texture_manager::TextureManager,
     interface::{
-        background::draw_background, button::draw_button, interface_context::InterfaceScreen,
-        settings_menu::SettingsContext, style::TEXT_COLOR, util::get_text_width,
+        background::draw_background,
+        button::draw_button,
+        interface_context::InterfaceScreen,
+        settings_menu::SettingsContext,
+        style::TEXT_COLOR,
+        util::{draw_version_number, get_text_width},
         world_selection::WorldSelectionContext,
     },
     model::user_settings::UserSettings,
@@ -29,6 +33,36 @@ impl TitleScreenContext {
     pub fn new() -> Self {
         clear_input_queue();
         Self { should_exit: false }
+    }
+
+    pub async fn draw(
+        &mut self,
+        texture_manager: &TextureManager,
+        sound_manager: &SoundManager,
+        user_settings: &UserSettings,
+    ) -> InterfaceScreen {
+        set_default_camera();
+        let (width, height) = screen_size();
+        draw_background(width, height, texture_manager);
+        Self::draw_title(width, height);
+        let should_play = Self::draw_play_button(width, height, sound_manager, user_settings);
+        let should_enter_settings =
+            Self::draw_settings_button(width, height, sound_manager, user_settings);
+        self.should_exit = Self::draw_exit_button(width, height, sound_manager, user_settings);
+        draw_version_number(height);
+        next_frame().await;
+
+        if should_enter_settings {
+            InterfaceScreen::Settings(SettingsContext)
+        } else if should_play {
+            InterfaceScreen::WorldSelection(WorldSelectionContext::new())
+        } else {
+            InterfaceScreen::TitleScreen(self.clone())
+        }
+    }
+
+    pub fn should_exit(&self) -> bool {
+        self.should_exit
     }
 
     fn draw_title(width: f32, height: f32) {
@@ -92,34 +126,5 @@ impl TitleScreenContext {
         user_settings: &UserSettings,
     ) -> bool {
         Self::draw_title_screen_button(width, height, sound_manager, user_settings, "   Exit", 2)
-    }
-
-    pub async fn draw(
-        &mut self,
-        texture_manager: &TextureManager,
-        sound_manager: &SoundManager,
-        user_settings: &UserSettings,
-    ) -> InterfaceScreen {
-        set_default_camera();
-        let (width, height) = screen_size();
-        draw_background(width, height, texture_manager);
-        Self::draw_title(width, height);
-        let should_play = Self::draw_play_button(width, height, sound_manager, user_settings);
-        let should_enter_settings =
-            Self::draw_settings_button(width, height, sound_manager, user_settings);
-        self.should_exit = Self::draw_exit_button(width, height, sound_manager, user_settings);
-        next_frame().await;
-
-        if should_enter_settings {
-            InterfaceScreen::Settings(SettingsContext)
-        } else if should_play {
-            InterfaceScreen::WorldSelection(WorldSelectionContext::new())
-        } else {
-            InterfaceScreen::TitleScreen(self.clone())
-        }
-    }
-
-    pub fn should_exit(&self) -> bool {
-        self.should_exit
     }
 }

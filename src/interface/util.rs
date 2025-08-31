@@ -67,3 +67,13 @@ pub fn draw_item_name(x: f32, y: f32, voxel_name: &str, count: u8, font_size: f3
         );
     });
 }
+
+pub fn draw_version_number(height: f32) {
+    const VERSION_NUMBER: &str = env!("CARGO_PKG_VERSION");
+    const VERSION_NUMBER_TEXT_SIZE: f32 = 0.04;
+    const OFFSET: f32 = 4.0;
+    let font_size = VERSION_NUMBER_TEXT_SIZE * height;
+    let y = height - OFFSET;
+
+    draw_text(VERSION_NUMBER, OFFSET, y, font_size, TEXT_COLOR);
+}
