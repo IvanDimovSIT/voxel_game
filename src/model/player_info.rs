@@ -32,7 +32,7 @@ impl PlayerInfo {
             jump_velocity: JUMP_VELOCITY,
             size: PLAYER_SIZE,
             voxel_selector: ItemHotbar::new(),
-            inventory: Inventory::default(),
+            inventory: Inventory::new(),
         }
     }
 

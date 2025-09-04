@@ -70,7 +70,6 @@ pub fn draw_item_name(x: f32, y: f32, voxel_name: &str, count: u8, font_size: f3
     });
 }
 
-
 /// draws the version number in the left corner
 pub fn draw_version_number(height: f32, font: &Font) {
     const VERSION_NUMBER: &str = env!("CARGO_PKG_VERSION");

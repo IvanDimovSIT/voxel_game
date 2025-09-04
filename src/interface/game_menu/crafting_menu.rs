@@ -27,7 +27,7 @@ use crate::{
     },
     service::{
         asset_manager::AssetManager,
-        crafting::{CraftingRecipe, find_craftable},
+        crafting::{CraftingRecipe, craft_recipe, find_craftable},
         input::{ScrollDirection, get_scroll_direction},
         sound_manager::SoundId,
     },
@@ -118,11 +118,8 @@ impl CraftingMenuContext {
 
     fn craft_item(&mut self, recipe: CraftingRecipe, inventory: &mut Inventory, count: u32) {
         debug_assert!(count <= BULK_CRAFT_COUNT);
-        for input in recipe.get_inputs() {
-            inventory.remove_item(Item::new(input.voxel, input.count * count as u8));
-        }
-        let output = Item::new(recipe.output.voxel, recipe.output.count * count as u8);
-        inventory.add_item(output);
+        craft_recipe(&recipe, inventory, count as u8);
+
         self.all_items = inventory.create_all_items_map();
         self.available_recipes = find_craftable(&self.all_items);
         self.current_page = self.current_page.min(self.calculate_max_page());
@@ -232,6 +229,21 @@ impl CraftingMenuContext {
             asset_manager,
         );
 
+        Self::handle_card_click(
+            is_hovered,
+            max_craftable_count,
+            asset_manager,
+            user_settings,
+        )
+    }
+
+    /// returns the number of times to craft
+    fn handle_card_click(
+        is_hovered: bool,
+        max_craftable_count: u32,
+        asset_manager: &AssetManager,
+        user_settings: &UserSettings,
+    ) -> u32 {
         if !is_hovered {
             return 0;
         }

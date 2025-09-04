@@ -1,17 +1,12 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use std::{rc::Rc, thread::sleep, time::Duration};
-
 use macroquad::{
     miniquad::{conf::Icon, window::set_fullscreen},
-    time::get_frame_time,
     window::Conf,
 };
-use model::user_settings::UserSettings;
-use voxel_engine::VoxelEngine;
 
 use crate::{
-    interface::interface_context::InterfaceContext,
+    game_state::GameState,
     service::{
         asset_manager::AssetManager,
         persistence::{
@@ -21,6 +16,7 @@ use crate::{
     },
 };
 
+mod game_state;
 mod graphics;
 mod interface;
 mod model;
@@ -42,22 +38,6 @@ fn config() -> Conf {
     }
 }
 
-enum GameState {
-    Running { voxel_engine: Box<VoxelEngine> },
-    Menu { context: Box<InterfaceContext> },
-    Exit,
-}
-impl GameState {
-    fn new(asset_manager: Rc<AssetManager>, user_settings: UserSettings) -> Self {
-        Self::Menu {
-            context: Box::new(InterfaceContext::new_title_screen(
-                asset_manager,
-                user_settings,
-            )),
-        }
-    }
-}
-
 #[macroquad::main(config)]
 async fn main() {
     initialise_save_directory();
@@ -66,44 +46,12 @@ async fn main() {
     if user_settings.is_fullscreen {
         set_fullscreen(true);
     }
+
     let mut state = GameState::new(asset_manager.clone(), user_settings);
 
     loop {
-        match &mut state {
-            GameState::Running { voxel_engine } => {
-                if let Some(new_state) = handle_running_state(voxel_engine).await {
-                    state = new_state;
-                }
-            }
-            GameState::Menu { context } => {
-                if let Some(new_state) = handle_menu_state(context).await {
-                    state = new_state;
-                }
-            }
-            GameState::Exit => {
-                sleep(Duration::from_millis(200));
-                break;
-            }
+        if !state.process_next_frame().await {
+            break;
         }
-    }
-}
-
-async fn handle_running_state(voxel_engine: &mut VoxelEngine) -> Option<GameState> {
-    let delta = get_frame_time().min(0.2);
-    let raycast_result = voxel_engine.process_input(delta);
-    voxel_engine.update_loaded_areas();
-    voxel_engine.update_processes(delta);
-    voxel_engine.draw_scene(raycast_result).await
-}
-
-async fn handle_menu_state(context: &mut InterfaceContext) -> Option<GameState> {
-    if let Some(mut voxel_engine) = context.enter_game() {
-        voxel_engine.load_world();
-        Some(GameState::Running { voxel_engine })
-    } else if context.should_exit() {
-        Some(GameState::Exit)
-    } else {
-        context.draw().await;
-        None
     }
 }

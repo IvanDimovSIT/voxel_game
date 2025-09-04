@@ -1,5 +1,5 @@
 use crate::model::{
-    inventory::{AvailableItems, Item},
+    inventory::{AvailableItems, Inventory, Item},
     voxel::Voxel,
 };
 
@@ -60,6 +60,15 @@ pub fn find_craftable(available_items: &AvailableItems) -> Vec<(CraftingRecipe, 
         .collect()
 }
 
+/// crafts the recipe a number of times
+pub fn craft_recipe(recipe: &CraftingRecipe, inventory: &mut Inventory, craft_count: u8) {
+    for input in recipe.get_inputs() {
+        inventory.remove_item(Item::new(input.voxel, input.count * craft_count));
+    }
+    let output = Item::new(recipe.output.voxel, recipe.output.count * craft_count);
+    inventory.add_item(output);
+}
+
 fn find_max_times_craftable(recipe: &CraftingRecipe, available_items: &AvailableItems) -> u32 {
     recipe
         .get_inputs()
@@ -98,5 +107,46 @@ mod tests {
         available.add(Voxel::Grass, 50u32);
         let craftable = find_craftable(&available);
         assert_eq!(craftable.len(), 0);
+    }
+
+    #[test]
+    pub fn test_craft_recipe_once() {
+        craft_recipe_with_count(1);
+    }
+
+    #[test]
+    pub fn test_craft_recipe_five_times() {
+        craft_recipe_with_count(5);
+    }
+
+    #[test]
+    #[should_panic]
+    pub fn test_craft_recipe_insufficient_inputs() {
+        let mut inventory = Inventory::default();
+        craft_recipe(&RECEPES[0], &mut inventory, 1);
+    }
+
+    fn craft_recipe_with_count(count: u8) {
+        for recipe in RECEPES {
+            let mut inventory = Inventory::default();
+            for input in recipe.get_inputs() {
+                inventory.add_item(Item {
+                    count: input.count * count,
+                    ..*input
+                });
+            }
+            inventory.add_item(Item::new(recipe.output.voxel, 1));
+            craft_recipe(&recipe, &mut inventory, count);
+
+            let items = inventory.create_all_items_map();
+            for input in recipe.get_inputs() {
+                assert_eq!(items.get(input.voxel), 0);
+            }
+
+            assert_eq!(
+                items.get(recipe.output.voxel),
+                (recipe.output.count * count) as u32 + 1
+            );
+        }
     }
 }

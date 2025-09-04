@@ -52,6 +52,18 @@ impl Inventory {
     pub const INVENTORY_SIZE: usize = 40;
     pub const SELECTED_SIZE: usize = 8;
 
+    pub fn new() -> Self {
+        let mut inventory = Self::default();
+        inventory.selected[0] = Item::some(Voxel::Brick, 50);
+        inventory.selected[1] = Item::some(Voxel::Glass, 50);
+        inventory.selected[2] = Item::some(Voxel::Trampoline, 50);
+        inventory.selected[3] = Item::some(Voxel::Boards, 50);
+        inventory.selected[4] = Item::some(Voxel::Cobblestone, 50);
+        inventory.selected[5] = Item::some(Voxel::Lamp, 50);
+
+        inventory
+    }
+
     pub fn add_item(&mut self, mut item: Item) {
         let items_iterator = self
             .selected
@@ -111,6 +123,8 @@ impl Inventory {
                 return;
             }
         }
+
+        debug_assert_eq!(item.count, 0);
     }
 
     pub fn reduce_selected_at(&mut self, index: usize) {
@@ -123,16 +137,9 @@ impl Inventory {
 }
 impl Default for Inventory {
     fn default() -> Self {
-        let mut selected = [None; Self::SELECTED_SIZE];
-        selected[0] = Item::some(Voxel::Brick, 50);
-        selected[1] = Item::some(Voxel::Glass, 50);
-        selected[2] = Item::some(Voxel::Trampoline, 50);
-        selected[3] = Item::some(Voxel::Boards, 50);
-        selected[4] = Item::some(Voxel::Cobblestone, 50);
-        selected[5] = Item::some(Voxel::Lamp, 50);
         Self {
             items: [None; Self::INVENTORY_SIZE],
-            selected,
+            selected: [None; Self::SELECTED_SIZE],
         }
     }
 }
