@@ -6,20 +6,19 @@ use macroquad::{
     input::{MouseButton, is_mouse_button_released, mouse_position},
     math::vec2,
     miniquad::window::screen_size,
-    text::draw_text,
+    text::Font,
     texture::{DrawTextureParams, Texture2D, draw_texture_ex},
 };
 
 use crate::{
-    graphics::texture_manager::TextureManager,
     interface::{
         game_menu::game_menu_context::MenuSelection,
         style::{
             BACKGROUND_COLOR, BUTTON_HOVER_COLOR, SECONDARY_TEXT_COLOR, SELECTED_COLOR, TEXT_COLOR,
         },
         util::{
-            darken_background, draw_centered_multiline_text, draw_item_name, draw_rect_with_shadow,
-            get_text_width, is_point_in_rect,
+            darken_background, draw_centered_multiline_text, draw_game_text, draw_item_name,
+            draw_rect_with_shadow, get_text_width, is_point_in_rect,
         },
     },
     model::{
@@ -27,9 +26,10 @@ use crate::{
         user_settings::UserSettings,
     },
     service::{
+        asset_manager::AssetManager,
         crafting::{CraftingRecipe, find_craftable},
         input::{ScrollDirection, get_scroll_direction},
-        sound_manager::{SoundId, SoundManager},
+        sound_manager::SoundId,
     },
     utils::use_str_buffer,
 };
@@ -87,8 +87,7 @@ impl CraftingMenuContext {
     pub fn draw_menu(
         &mut self,
         inventory: &mut Inventory,
-        texture_manager: &TextureManager,
-        sound_manager: &SoundManager,
+        asset_manager: &AssetManager,
         user_settings: &UserSettings,
     ) -> MenuSelection {
         set_default_camera();
@@ -99,11 +98,10 @@ impl CraftingMenuContext {
         let menu_x = (width - menu_width) / 2.0;
         let menu_y = height * CARD_Y_COEF - TOP_MENU_Y_MARGIN_PX;
         draw_rect_with_shadow(menu_x, menu_y, menu_width, menu_height, BACKGROUND_COLOR);
-        self.handle_pages(menu_x, menu_y, menu_height);
+        self.handle_pages(menu_x, menu_y, menu_height, &asset_manager.font);
 
         let to_craft = self.handle_crafting_cards(
-            texture_manager,
-            sound_manager,
+            asset_manager,
             user_settings,
             width,
             menu_width,
@@ -133,8 +131,7 @@ impl CraftingMenuContext {
     /// draws the crafting cards and returns the number of crafted items
     fn handle_crafting_cards(
         &mut self,
-        texture_manager: &TextureManager,
-        sound_manager: &SoundManager,
+        asset_manager: &AssetManager,
         user_settings: &UserSettings,
         width: f32,
         menu_width: f32,
@@ -150,14 +147,7 @@ impl CraftingMenuContext {
             .map(|(index, (recipe, count))| {
                 (
                     *recipe,
-                    self.draw_crafting_card(
-                        texture_manager,
-                        sound_manager,
-                        user_settings,
-                        recipe,
-                        *count,
-                        index,
-                    ),
+                    self.draw_crafting_card(asset_manager, user_settings, recipe, *count, index),
                 )
             })
             .filter(|(_, count)| *count > 0)
@@ -172,6 +162,7 @@ impl CraftingMenuContext {
                 width,
                 font,
                 TEXT_COLOR,
+                &asset_manager.font,
             );
         }
 
@@ -190,8 +181,7 @@ impl CraftingMenuContext {
     /// returns the number of times to craft
     fn draw_crafting_card(
         &self,
-        texture_manager: &TextureManager,
-        sound_manager: &SoundManager,
+        asset_manager: &AssetManager,
         user_settings: &UserSettings,
         crafting_recipe: &CraftingRecipe,
         max_craftable_count: u32,
@@ -226,7 +216,8 @@ impl CraftingMenuContext {
                 item_size,
                 input,
                 available,
-                texture_manager.get_icon(input.voxel),
+                asset_manager.texture_manager.get_icon(input.voxel),
+                &asset_manager.font,
             );
         }
 
@@ -238,7 +229,7 @@ impl CraftingMenuContext {
             &crafting_recipe.output,
             max_craftable_count,
             already_have,
-            texture_manager.get_icon(crafting_recipe.output.voxel),
+            asset_manager,
         );
 
         if !is_hovered {
@@ -246,10 +237,14 @@ impl CraftingMenuContext {
         }
 
         if is_mouse_button_released(MouseButton::Left) {
-            sound_manager.play_sound(SoundId::Click, user_settings);
+            asset_manager
+                .sound_manager
+                .play_sound(SoundId::Click, user_settings);
             1
         } else if is_mouse_button_released(MouseButton::Right) {
-            sound_manager.play_sound(SoundId::Click, user_settings);
+            asset_manager
+                .sound_manager
+                .play_sound(SoundId::Click, user_settings);
             BULK_CRAFT_COUNT.min(max_craftable_count)
         } else {
             0
@@ -264,15 +259,24 @@ impl CraftingMenuContext {
         item: &Item,
         count: u32,
         already_have: u32,
-        texture: Texture2D,
+        asset_manager: &AssetManager,
     ) {
+        let texture = asset_manager.texture_manager.get_icon(item.voxel);
         const TEXT_X_OFFSET: f32 = 5.0;
         let (mouse_x, mouse_y) = mouse_position();
         let font_size = size * CARD_FONT_SIZE_COEF;
         let buffer = format!("Makes {}X", item.count);
-        let text_width = get_text_width(&buffer, font_size);
+        let text_width = get_text_width(&buffer, font_size, &asset_manager.font);
         let text_x = x - text_width - size - TEXT_X_OFFSET;
-        draw_text(&buffer, text_x, y + font_size, font_size, SELECTED_COLOR);
+
+        draw_game_text(
+            &buffer,
+            text_x,
+            y + font_size,
+            font_size,
+            SELECTED_COLOR,
+            &asset_manager.font,
+        );
         let texture_x = x - size;
         draw_texture_ex(
             &texture,
@@ -284,15 +288,6 @@ impl CraftingMenuContext {
                 ..Default::default()
             },
         );
-        if is_point_in_rect(texture_x, y, size, size, mouse_x, mouse_y) {
-            draw_item_name(
-                mouse_x,
-                mouse_y,
-                item.voxel.display_name(),
-                item.count,
-                font_size,
-            );
-        }
 
         let second_line_y = y + size;
         use_str_buffer(|buffer| {
@@ -300,12 +295,13 @@ impl CraftingMenuContext {
             write!(buffer, "Can craft {can_craft_count}").expect(BUFFER_ERROR);
 
             let second_line_text_y = second_line_y + font_size;
-            draw_text(
+            draw_game_text(
                 buffer,
                 text_x,
                 second_line_text_y,
                 font_size,
                 SECONDARY_TEXT_COLOR,
+                &asset_manager.font,
             );
         });
 
@@ -313,18 +309,38 @@ impl CraftingMenuContext {
         use_str_buffer(|buffer| {
             write!(buffer, "(have {already_have})").expect(BUFFER_ERROR);
             let third_line_text_y = third_line_y + font_size;
-            draw_text(
+            draw_game_text(
                 buffer,
                 text_x,
                 third_line_text_y,
                 font_size,
                 SECONDARY_TEXT_COLOR,
+                &asset_manager.font,
             );
         });
+
+        if is_point_in_rect(texture_x, y, size, size, mouse_x, mouse_y) {
+            draw_item_name(
+                mouse_x,
+                mouse_y,
+                item.voxel.display_name(),
+                item.count,
+                font_size,
+                &asset_manager.font,
+            );
+        }
     }
 
     /// draws the input items for a recipe
-    fn draw_item_input(x: f32, y: f32, size: f32, item: &Item, available: u32, texture: Texture2D) {
+    fn draw_item_input(
+        x: f32,
+        y: f32,
+        size: f32,
+        item: &Item,
+        available: u32,
+        texture: Texture2D,
+        font: &Font,
+    ) {
         const TEXT_OFFSET_X: f32 = 3.0;
         let (mouse_x, mouse_y) = mouse_position();
         draw_texture_ex(
@@ -337,9 +353,34 @@ impl CraftingMenuContext {
                 ..Default::default()
             },
         );
+
         let font_size = size * CARD_FONT_SIZE_COEF;
         let text_start_x = x + size + TEXT_OFFSET_X;
         let text_start_y = y + font_size;
+        use_str_buffer(|buffer| {
+            write!(buffer, "X{}", item.count).expect(BUFFER_ERROR);
+            let count_offset = get_text_width(buffer, font_size, font);
+            draw_game_text(
+                buffer,
+                text_start_x,
+                text_start_y,
+                font_size,
+                SELECTED_COLOR,
+                font,
+            );
+
+            buffer.clear();
+            write!(buffer, " (have {})", available).expect(BUFFER_ERROR);
+            draw_game_text(
+                buffer,
+                text_start_x + count_offset,
+                text_start_y,
+                font_size,
+                SECONDARY_TEXT_COLOR,
+                font,
+            );
+        });
+
         if is_point_in_rect(x, y, size, size, mouse_x, mouse_y) {
             draw_item_name(
                 mouse_x,
@@ -347,35 +388,15 @@ impl CraftingMenuContext {
                 item.voxel.display_name(),
                 item.count,
                 font_size,
+                font,
             );
         }
-        use_str_buffer(|buffer| {
-            write!(buffer, "X{}", item.count).expect(BUFFER_ERROR);
-            let count_offset = get_text_width(buffer, font_size);
-            draw_text(
-                buffer,
-                text_start_x,
-                text_start_y,
-                font_size,
-                SELECTED_COLOR,
-            );
-
-            buffer.clear();
-            write!(buffer, " (have {})", available).expect(BUFFER_ERROR);
-            draw_text(
-                buffer,
-                text_start_x + count_offset,
-                text_start_y,
-                font_size,
-                SECONDARY_TEXT_COLOR,
-            );
-        });
     }
 
     /// draws the page counter and manages page scrolling
-    fn handle_pages(&mut self, menu_x: f32, menu_y: f32, menu_height: f32) {
+    fn handle_pages(&mut self, menu_x: f32, menu_y: f32, menu_height: f32, font: &Font) {
         let max_page = self.calculate_max_page();
-        self.draw_pages_counter(menu_x, menu_y, menu_height, max_page);
+        self.draw_pages_counter(menu_x, menu_y, menu_height, max_page, font);
 
         match get_scroll_direction() {
             ScrollDirection::Down => {
@@ -390,14 +411,21 @@ impl CraftingMenuContext {
         }
     }
 
-    fn draw_pages_counter(&self, menu_x: f32, menu_y: f32, menu_height: f32, max_page: usize) {
+    fn draw_pages_counter(
+        &self,
+        menu_x: f32,
+        menu_y: f32,
+        menu_height: f32,
+        max_page: usize,
+        font: &Font,
+    ) {
         let x = menu_x + PAGES_COUNTER_OFFSET_X;
         let font_size = menu_height * PAGES_COUNTER_FONT_SIZE;
         let y = menu_y + menu_height - PAGES_COUNTER_OFFSET_Y;
 
         use_str_buffer(|buffer| {
             write!(buffer, "Page {}/{}", self.current_page + 1, max_page + 1).expect(BUFFER_ERROR);
-            draw_text(buffer, x, y, font_size, TEXT_COLOR);
+            draw_game_text(buffer, x, y, font_size, TEXT_COLOR, font);
         });
     }
 

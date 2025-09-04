@@ -6,21 +6,20 @@ use macroquad::{
     miniquad::window::screen_size,
     models::draw_cube_wires,
     shapes::{draw_circle, draw_rectangle},
-    text::draw_text,
+    text::Font,
     texture::{DrawTextureParams, Texture2D, draw_texture_ex},
 };
 use std::fmt::Write;
 
 use crate::{
-    interface::style::TEXT_COLOR,
+    interface::{style::TEXT_COLOR, util::draw_game_text},
     model::{
         inventory::{Inventory, Item},
         location::Location,
     },
+    service::asset_manager::AssetManager,
     utils::use_str_buffer,
 };
-
-use super::texture_manager::TextureManager;
 
 const BASE_COUNT_FONT_SIZE: f32 = 0.5;
 
@@ -70,7 +69,7 @@ impl ItemHotbar {
     pub fn draw(
         &self,
         items_on_hotbar: &[Option<Item>; Inventory::SELECTED_SIZE],
-        texture_manager: &TextureManager,
+        asset_manager: &AssetManager,
     ) {
         let (screen_width, screen_height) = screen_size();
         let border_size = screen_width * self.ui_size;
@@ -80,9 +79,12 @@ impl ItemHotbar {
         let y = screen_height - border_size;
 
         for (index, item) in items_on_hotbar.iter().enumerate() {
-            let texture_with_count = item
-                .as_ref()
-                .map(|non_empty| (texture_manager.get_icon(non_empty.voxel), non_empty.count));
+            let texture_with_count = item.as_ref().map(|non_empty| {
+                (
+                    asset_manager.texture_manager.get_icon(non_empty.voxel),
+                    non_empty.count,
+                )
+            });
             let is_selected = self.selected == index;
             let x = x_start + index as f32 * border_size;
 
@@ -93,6 +95,7 @@ impl ItemHotbar {
                 x,
                 y,
                 is_selected,
+                &asset_manager.font,
             );
         }
     }
@@ -104,6 +107,7 @@ impl ItemHotbar {
         x: f32,
         y: f32,
         is_selected: bool,
+        font: &Font,
     ) {
         let border_color = if is_selected {
             TEXT_COLOR
@@ -128,12 +132,13 @@ impl ItemHotbar {
             let font_size = BASE_COUNT_FONT_SIZE * border_size;
             use_str_buffer(|buffer| {
                 write!(buffer, "{count}").expect("error writing to text buffer");
-                draw_text(
+                draw_game_text(
                     buffer,
                     x + offset,
                     y + font_size * 1.7,
                     font_size,
                     TEXT_COLOR,
+                    font,
                 );
             });
         } else {

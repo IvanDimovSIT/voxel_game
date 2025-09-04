@@ -12,7 +12,6 @@ use crate::{
         height_map::HeightMap,
         renderer::Renderer,
         sky::Sky,
-        texture_manager::TextureManager,
         ui_display::{draw_crosshair, draw_selected_voxel},
     },
     interface::{
@@ -26,6 +25,7 @@ use crate::{
     model::{inventory::Item, player_info::PlayerInfo, user_settings::UserSettings, world::World},
     service::{
         active_zone::{get_load_zone, get_render_zone, get_render_zone_on_world_load},
+        asset_manager::AssetManager,
         input::{self, *},
         persistence::{
             player_persistence::{load_player_info, save_player_info},
@@ -39,7 +39,7 @@ use crate::{
             voxel_physics::VoxelSimulator,
         },
         raycast::{RaycastResult, cast_ray},
-        sound_manager::{SoundId, SoundManager},
+        sound_manager::SoundId,
         world_actions::{destroy_voxel, place_voxel, put_player_on_ground, replace_voxel},
         world_time::WorldTime,
     },
@@ -51,7 +51,7 @@ pub struct VoxelEngine {
     player_info: PlayerInfo,
     debug_display: DebugDisplay,
     voxel_simulator: VoxelSimulator,
-    sound_manager: Rc<SoundManager>,
+    asset_manager: Rc<AssetManager>,
     user_settings: UserSettings,
     menu_state: MenuState,
     world_time: WorldTime,
@@ -61,8 +61,7 @@ pub struct VoxelEngine {
 impl VoxelEngine {
     pub fn new(
         world_name: impl Into<String>,
-        texture_manager: Rc<TextureManager>,
-        sound_manager: Rc<SoundManager>,
+        asset_manager: Rc<AssetManager>,
         user_settings: UserSettings,
     ) -> Self {
         let world_name = world_name.into();
@@ -81,8 +80,8 @@ impl VoxelEngine {
                 (WorldTime::new(PI * 0.5), vec![])
             };
 
-        let sky = Sky::new(&texture_manager);
-        let renderer = Renderer::new(texture_manager);
+        let sky = Sky::new(&asset_manager.texture_manager);
+        let renderer = Renderer::new(asset_manager.clone());
         let voxel_simulator = VoxelSimulator::new(simulated_voxels, renderer.get_mesh_generator());
 
         let mut engine = Self {
@@ -92,7 +91,7 @@ impl VoxelEngine {
             debug_display: DebugDisplay::new(),
             user_settings,
             voxel_simulator,
-            sound_manager,
+            asset_manager,
             menu_state: MenuState::Hidden,
             world_time,
             sky,
@@ -224,7 +223,8 @@ impl VoxelEngine {
     /// process falling and collisions
     fn process_physics(&mut self, delta: f32) {
         let collision_type = process_collisions(&mut self.player_info, &mut self.world, delta);
-        self.sound_manager
+        self.asset_manager
+            .sound_manager
             .play_sound_for_collision(collision_type, &self.user_settings);
 
         push_player_up_if_stuck(&mut self.player_info, &mut self.world);
@@ -270,12 +270,16 @@ impl VoxelEngine {
         }
         set_default_camera();
         draw_crosshair(width, height);
-        self.player_info.voxel_selector.draw(
-            &self.player_info.inventory.selected,
-            self.renderer.get_texture_manager(),
+        self.player_info
+            .voxel_selector
+            .draw(&self.player_info.inventory.selected, &self.asset_manager);
+        self.debug_display.draw_debug_display(
+            &self.world,
+            &self.renderer,
+            &camera,
+            rendered,
+            &self.asset_manager.font,
         );
-        self.debug_display
-            .draw_debug_display(&self.world, &self.renderer, &camera, rendered);
         let menu_result = self.process_menu();
 
         next_frame().await;
@@ -301,8 +305,7 @@ impl VoxelEngine {
     ) -> Option<GameState> {
         let menu_selection = crafting_menu_handle.borrow_mut().draw_menu(
             &mut self.player_info.inventory,
-            self.renderer.get_texture_manager(),
-            &self.sound_manager,
+            &self.asset_manager,
             &self.user_settings,
         );
 
@@ -314,7 +317,7 @@ impl VoxelEngine {
         currently_selected_item: Option<Item>,
     ) -> Option<GameState> {
         let (selected_item, menu_selection) = draw_voxel_selection_menu(
-            self.renderer.get_texture_manager(),
+            &self.asset_manager,
             &mut self.player_info,
             currently_selected_item,
         );
@@ -345,7 +348,7 @@ impl VoxelEngine {
             );
         };
         let selection = draw_options_menu(
-            &self.sound_manager,
+            &self.asset_manager,
             &mut self.user_settings,
             change_render_distance_callback,
         );
@@ -353,7 +356,7 @@ impl VoxelEngine {
     }
 
     fn process_main_menu(&mut self) -> Option<GameState> {
-        let selection = draw_main_menu(&self.sound_manager, &self.user_settings);
+        let selection = draw_main_menu(&self.asset_manager, &self.user_settings);
         self.handle_menu_selection(selection)
     }
 
@@ -367,8 +370,7 @@ impl VoxelEngine {
             }
             MenuSelection::ToWorldSelection => Some(GameState::Menu {
                 context: Box::new(InterfaceContext::new_world_selection(
-                    self.sound_manager.clone(),
-                    self.renderer.get_texture_manager_copy(),
+                    self.asset_manager.clone(),
                     self.user_settings.clone(),
                 )),
             }),
@@ -412,7 +414,8 @@ impl VoxelEngine {
                     .inventory
                     .reduce_selected_at(selected_index);
 
-                self.sound_manager
+                self.asset_manager
+                    .sound_manager
                     .play_sound(SoundId::Place, &self.user_settings);
             }
         }
@@ -433,7 +436,8 @@ impl VoxelEngine {
                 );
                 if let Some(destroyed) = maybe_destroyed {
                     self.player_info.inventory.add_item(Item::new(destroyed, 1));
-                    self.sound_manager
+                    self.asset_manager
+                        .sound_manager
                         .play_sound(SoundId::Destroy, &self.user_settings);
                 }
             }
@@ -465,7 +469,8 @@ impl VoxelEngine {
                     self.player_info
                         .inventory
                         .add_item(Item::new(replaced_voxel, 1));
-                    self.sound_manager
+                    self.asset_manager
+                        .sound_manager
                         .play_sound(SoundId::Destroy, &self.user_settings);
                 }
             }

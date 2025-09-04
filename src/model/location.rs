@@ -22,9 +22,10 @@ impl From<InternalLocation> for Location {
         }
     }
 }
-impl Into<Vec3> for Location {
-    fn into(self) -> Vec3 {
-        vec3(self.x as f32, self.y as f32, self.z as f32)
+
+impl From<Location> for Vec3 {
+    fn from(val: Location) -> Self {
+        vec3(val.x as f32, val.y as f32, val.z as f32)
     }
 }
 

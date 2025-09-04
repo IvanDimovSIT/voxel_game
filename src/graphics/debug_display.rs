@@ -2,12 +2,15 @@ use macroquad::{
     camera::Camera3D,
     prelude::info,
     shapes::draw_rectangle,
-    text::draw_text,
+    text::Font,
     time::{get_fps, get_frame_time},
 };
 
 use crate::{
-    interface::style::{CLEAR_SCREEN_COLOR, TEXT_COLOR},
+    interface::{
+        style::{CLEAR_SCREEN_COLOR, TEXT_COLOR},
+        util::draw_game_text,
+    },
     model::{area::VOXELS_IN_AREA, voxel::Voxel, world::World},
     utils::vector_to_location,
 };
@@ -40,6 +43,7 @@ impl DebugDisplay {
         renderer: &Renderer,
         camera: &Camera3D,
         rendered_areas_faces: (usize, usize),
+        font: &Font,
     ) {
         if !self.should_display {
             return;
@@ -57,21 +61,23 @@ impl DebugDisplay {
         let waiting_to_be_rendered = renderer.get_areas_waiting_to_be_rendered();
 
         Self::draw_background();
-        draw_text(
+        draw_game_text(
             &format!("FPS:{fps}({frame_time_ms:.2}ms)"),
             LEFT_MARGIN,
             FONT_SIZE,
             FONT_SIZE,
             TEXT_COLOR,
+            font,
         );
-        draw_text(
+        draw_game_text(
             &format!("Voxel faces:{meshes}"),
             LEFT_MARGIN,
             2.0 * FONT_SIZE,
             FONT_SIZE,
             TEXT_COLOR,
+            font,
         );
-        draw_text(
+        draw_game_text(
             &format!(
                 "Visible: {} Areas:{} ({waiting_to_be_rendered} waiting)",
                 rendered_areas_faces.1, rendered_areas_faces.0
@@ -80,15 +86,17 @@ impl DebugDisplay {
             3.0 * FONT_SIZE,
             FONT_SIZE,
             TEXT_COLOR,
+            font,
         );
-        draw_text(
+        draw_game_text(
             &format!("Loaded areas:{loaded_areas}({areas_memory_kb}KB)"),
             LEFT_MARGIN,
             4.0 * FONT_SIZE,
             FONT_SIZE,
             TEXT_COLOR,
+            font,
         );
-        draw_text(
+        draw_game_text(
             &format!(
                 "X:{:.2}, Y:{:.2}, Z:{:.2}",
                 camera.position.x, camera.position.y, camera.position.z
@@ -97,8 +105,9 @@ impl DebugDisplay {
             5.0 * FONT_SIZE,
             FONT_SIZE,
             TEXT_COLOR,
+            font,
         );
-        draw_text(
+        draw_game_text(
             &format!(
                 "(X:{}, Y:{}, Z:{})",
                 camera_location.x, camera_location.y, camera_location.z
@@ -107,8 +116,9 @@ impl DebugDisplay {
             6.0 * FONT_SIZE,
             FONT_SIZE,
             TEXT_COLOR,
+            font,
         );
-        draw_text(
+        draw_game_text(
             &format!(
                 "Look: X:{:.2}, Y:{:.2}, Z:{:.2}",
                 look_target.x, look_target.y, look_target.z
@@ -117,6 +127,7 @@ impl DebugDisplay {
             7.0 * FONT_SIZE,
             FONT_SIZE,
             TEXT_COLOR,
+            font,
         );
     }
 

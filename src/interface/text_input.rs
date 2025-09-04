@@ -7,8 +7,10 @@ use macroquad::{
         mouse_position,
     },
     shapes::draw_rectangle_lines,
-    text::{TextParams, draw_text_ex},
+    text::Font,
 };
+
+use crate::interface::util::draw_game_text;
 
 use super::{
     style::*,
@@ -77,7 +79,7 @@ impl TextInput {
         &self.text
     }
 
-    pub fn draw(&self, x: f32, y: f32, w: f32, h: f32, text_size: u16) {
+    pub fn draw(&self, x: f32, y: f32, w: f32, h: f32, text_size: u16, font: &Font) {
         let (mouse_x, mouse_y) = mouse_position();
         let is_hovered = is_point_in_rect(x, y, w, h, mouse_x, mouse_y);
         let text_input_color = if is_hovered {
@@ -94,15 +96,13 @@ impl TextInput {
 
         draw_rect_with_shadow(x, y, w, h, text_input_color);
         draw_rectangle_lines(x, y, w, h, border_size, border_color);
-        draw_text_ex(
+        draw_game_text(
             &text_to_draw,
             x + MARGIN,
             y + h * 0.5 + text_size as f32 * 0.5,
-            TextParams {
-                font_size: text_size,
-                color: BLACK,
-                ..Default::default()
-            },
+            text_size,
+            BLACK,
+            font,
         );
     }
 

@@ -4,10 +4,13 @@ use macroquad::{
     color::BLACK,
     input::{is_mouse_button_pressed, mouse_position},
     shapes::draw_rectangle,
-    text::draw_text,
+    text::Font,
 };
 
-use crate::service::input::{ScrollDirection, get_scroll_direction};
+use crate::{
+    interface::util::draw_game_text,
+    service::input::{ScrollDirection, get_scroll_direction},
+};
 
 use super::{
     style::{BUTTON_COLOR, BUTTON_HOVER_COLOR, SELECTED_COLOR},
@@ -61,7 +64,7 @@ impl ListInput {
     }
 
     /// returns the newly selected value
-    pub fn draw(&mut self, x: f32, y: f32, w: f32, font_size: f32) -> Option<String> {
+    pub fn draw(&mut self, x: f32, y: f32, w: f32, font_size: f32, font: &Font) -> Option<String> {
         let mut newly_selected = None;
         self.scroll();
         let values_on_page = &self.values[self.find_values_on_page_range()];
@@ -87,7 +90,8 @@ impl ListInput {
         );
 
         for (index, value) in values_on_page.iter().enumerate() {
-            let is_mouseover = self.draw_row_and_check_if_mouseover(&draw_params, index, value);
+            let is_mouseover =
+                self.draw_row_and_check_if_mouseover(&draw_params, index, value, font);
             if is_mouseover && is_mouse_button_pressed(macroquad::input::MouseButton::Left) {
                 self.selected = Some(index + self.current_page * self.rows);
                 newly_selected = self.get_selected();
@@ -112,6 +116,7 @@ impl ListInput {
         draw_params: &DrawParams,
         index: usize,
         value: &str,
+        font: &Font,
     ) -> bool {
         let row_y = draw_params.y + index as f32 * draw_params.y_offset;
         let is_selected = self.selected.is_some()
@@ -139,13 +144,14 @@ impl ListInput {
                 bg_color,
             );
         }
-        draw_text(
+        draw_game_text(
             value,
             draw_params.x + 2.0,
             draw_params.y + (index as f32 + 1.0) * draw_params.y_offset
                 - draw_params.y_offset * 0.1,
             draw_params.font_size,
             text_color,
+            font,
         );
         is_mouseover
     }

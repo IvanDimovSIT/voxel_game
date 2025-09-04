@@ -20,13 +20,14 @@ use crate::{
         voxel::{MAX_VOXEL_VARIANTS, Voxel},
         world::World,
     },
-    service::{camera_controller::CameraController, world_time::WorldTime},
+    service::{
+        asset_manager::AssetManager, camera_controller::CameraController, world_time::WorldTime,
+    },
     utils::StackVec,
 };
 
 use super::{
     mesh_generator::{FaceDirection, MeshGenerator},
-    texture_manager::TextureManager,
     voxel_shader::VoxelShader,
 };
 
@@ -92,10 +93,10 @@ pub struct Renderer {
     render_set: HashSet<AreaLocation>,
 }
 impl Renderer {
-    pub fn new(texture_manager: Rc<TextureManager>) -> Self {
+    pub fn new(asset_manager: Rc<AssetManager>) -> Self {
         Self {
             meshes: Meshes::new(),
-            mesh_generator: MeshGenerator::new(texture_manager),
+            mesh_generator: MeshGenerator::new(asset_manager),
             shader: VoxelShader::new(),
             render_set: HashSet::new(),
         }
@@ -414,14 +415,6 @@ impl Renderer {
 
     pub fn get_mesh_generator(&self) -> &MeshGenerator {
         &self.mesh_generator
-    }
-
-    pub fn get_texture_manager(&self) -> &TextureManager {
-        self.mesh_generator.get_texture_manager()
-    }
-
-    pub fn get_texture_manager_copy(&self) -> Rc<TextureManager> {
-        self.mesh_generator.get_texture_manager_copy()
     }
 
     fn prepare_lights(

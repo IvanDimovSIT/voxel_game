@@ -1,13 +1,13 @@
 use macroquad::{
     camera::set_default_camera,
     input::mouse_position,
+    math::Rect,
     miniquad::window::{screen_size, set_fullscreen},
-    text::draw_text,
+    text::Font,
     window::next_frame,
 };
 
 use crate::{
-    graphics::texture_manager::TextureManager,
     interface::{
         background::draw_background,
         button::draw_button,
@@ -15,12 +15,13 @@ use crate::{
         style::TEXT_COLOR,
         title_screen::TitleScreenContext,
         util::{
-            draw_centered_multiline_text, draw_version_number, get_text_width, is_point_in_rect,
+            draw_centered_multiline_text, draw_game_text, draw_version_number, get_text_width,
+            is_point_in_rect,
         },
     },
     model::user_settings::{ShadowType, UserSettings},
     service::{
-        persistence::user_settings_persistence::write_user_settings, sound_manager::SoundManager,
+        asset_manager::AssetManager, persistence::user_settings_persistence::write_user_settings,
     },
 };
 
@@ -52,24 +53,23 @@ impl SettingsContext {
     /// returns true if the settings menu should be closed
     pub async fn draw(
         &mut self,
-        texture_manager: &TextureManager,
-        sound_manager: &SoundManager,
+        asset_manager: &AssetManager,
         user_settings: &mut UserSettings,
     ) -> InterfaceScreen {
         set_default_camera();
         let (width, height) = screen_size();
-        draw_background(width, height, texture_manager);
+        draw_background(width, height, &asset_manager.texture_manager);
         let x_start = (width - BUTTON_WIDTH) * 0.5;
         let y_start = height * 0.3;
 
-        Self::draw_settings_title(width, height);
-        Self::handle_render_distance(sound_manager, user_settings, width, y_start);
-        Self::handle_toggle_sound_button(sound_manager, user_settings, x_start, y_start);
-        Self::handle_toggle_fullscreen_button(sound_manager, user_settings, x_start, y_start);
-        Self::handle_toggle_dynamic_light(sound_manager, user_settings, x_start, y_start);
-        draw_version_number(height);
+        Self::draw_settings_title(width, height, &asset_manager.font);
+        Self::handle_render_distance(asset_manager, user_settings, width, y_start);
+        Self::handle_toggle_sound_button(asset_manager, user_settings, x_start, y_start);
+        Self::handle_toggle_fullscreen_button(asset_manager, user_settings, x_start, y_start);
+        Self::handle_toggle_dynamic_light(asset_manager, user_settings, x_start, y_start);
+        draw_version_number(height, &asset_manager.font);
 
-        let should_exit = Self::draw_back_button(sound_manager, user_settings);
+        let should_exit = Self::draw_back_button(asset_manager, user_settings);
         next_frame().await;
 
         if should_exit {
@@ -80,17 +80,17 @@ impl SettingsContext {
         }
     }
 
-    fn draw_settings_title(width: f32, height: f32) {
+    fn draw_settings_title(width: f32, height: f32, font: &Font) {
         let settings_text = "Settings";
-        let text_width = get_text_width(settings_text, SETTINGS_TEXT_WIDTH);
+        let text_width = get_text_width(settings_text, SETTINGS_TEXT_WIDTH, font);
         let x = (width - text_width) * 0.5;
         let y = height * 0.1;
 
-        draw_text(settings_text, x, y, SETTINGS_TEXT_WIDTH, TEXT_COLOR);
+        draw_game_text(settings_text, x, y, SETTINGS_TEXT_WIDTH, TEXT_COLOR, font);
     }
 
     fn handle_render_distance(
-        sound_manager: &SoundManager,
+        asset_manager: &AssetManager,
         user_settings: &mut UserSettings,
         width: f32,
         y_start: f32,
@@ -103,6 +103,7 @@ impl SettingsContext {
             height,
             &DECREASE_RENDER_DISTANCE_DESCRIPTION,
             is_point_in_rect(x, y_start, BUTTON_HEIGHT, BUTTON_HEIGHT, mouse_x, mouse_y),
+            &asset_manager.font,
         );
         Self::draw_description(
             width,
@@ -116,35 +117,41 @@ impl SettingsContext {
                 mouse_x,
                 mouse_y,
             ),
+            &asset_manager.font,
         );
         let decrease = draw_button(
-            x,
-            y_start,
-            BUTTON_HEIGHT,
-            BUTTON_HEIGHT,
+            Rect {
+                x,
+                y: y_start,
+                w: BUTTON_HEIGHT,
+                h: BUTTON_HEIGHT,
+            },
             "-",
             SMALL_BUTTON_TEXT_SIZE,
-            sound_manager,
+            asset_manager,
             user_settings,
         );
 
         let text = format!("View distance: {}", user_settings.get_render_distance());
-        draw_text(
+        draw_game_text(
             &text,
             x + BUTTON_HEIGHT_OFFSET,
             y_start + BUTTON_TEXT_SIZE,
             BUTTON_TEXT_SIZE,
             TEXT_COLOR,
+            &asset_manager.font,
         );
 
         let increase = draw_button(
-            x + RENDER_DISTANCE_TEXT_WIDTH,
-            y_start,
-            BUTTON_HEIGHT,
-            BUTTON_HEIGHT,
+            Rect {
+                x: x + RENDER_DISTANCE_TEXT_WIDTH,
+                y: y_start,
+                w: BUTTON_HEIGHT,
+                h: BUTTON_HEIGHT,
+            },
             "+",
             SMALL_BUTTON_TEXT_SIZE,
-            sound_manager,
+            asset_manager,
             user_settings,
         );
 
@@ -157,7 +164,7 @@ impl SettingsContext {
 
     /// returns true if pressed
     fn handle_toggle_sound_button(
-        sound_manager: &SoundManager,
+        asset_manager: &AssetManager,
         user_settings: &mut UserSettings,
         x_start: f32,
         y_start: f32,
@@ -170,20 +177,23 @@ impl SettingsContext {
             height,
             &TOGGLE_SOUNDS_DESCRIPTION,
             is_point_in_rect(x_start, y, BUTTON_WIDTH, BUTTON_HEIGHT, mouse_x, mouse_y),
+            &asset_manager.font,
         );
 
         let should_toggle = draw_button(
-            x_start,
-            y,
-            BUTTON_WIDTH,
-            BUTTON_HEIGHT,
+            Rect {
+                x: x_start,
+                y,
+                w: BUTTON_WIDTH,
+                h: BUTTON_HEIGHT,
+            },
             if user_settings.has_sound {
                 "Sound:ON"
             } else {
                 "Sound:OFF"
             },
             BUTTON_TEXT_SIZE as u16,
-            sound_manager,
+            asset_manager,
             user_settings,
         );
 
@@ -193,7 +203,7 @@ impl SettingsContext {
     }
 
     fn handle_toggle_fullscreen_button(
-        sound_manager: &SoundManager,
+        asset_manager: &AssetManager,
         user_settings: &mut UserSettings,
         x_start: f32,
         y_start: f32,
@@ -206,20 +216,23 @@ impl SettingsContext {
             height,
             &TOGGLE_FULLSCREEN_DESCRIPTION,
             is_point_in_rect(x_start, y, BUTTON_WIDTH, BUTTON_HEIGHT, mouse_x, mouse_y),
+            &asset_manager.font,
         );
 
         let should_change = draw_button(
-            x_start,
-            y,
-            BUTTON_WIDTH,
-            BUTTON_HEIGHT,
+            Rect {
+                x: x_start,
+                y,
+                w: BUTTON_WIDTH,
+                h: BUTTON_HEIGHT,
+            },
             if user_settings.is_fullscreen {
                 "Go windowed"
             } else {
                 "Go fullscreen"
             },
             BUTTON_TEXT_SIZE as u16,
-            sound_manager,
+            asset_manager,
             user_settings,
         );
         if should_change {
@@ -229,7 +242,7 @@ impl SettingsContext {
     }
 
     fn handle_toggle_dynamic_light(
-        sound_manager: &SoundManager,
+        asset_manager: &AssetManager,
         user_settings: &mut UserSettings,
         x_start: f32,
         y_start: f32,
@@ -242,20 +255,23 @@ impl SettingsContext {
             height,
             &TOGGLE_LIGHTS_DESCRIPTION,
             is_point_in_rect(x_start, y, BUTTON_WIDTH, BUTTON_HEIGHT, mouse_x, mouse_y),
+            &asset_manager.font,
         );
 
         let should_change = draw_button(
-            x_start,
-            y,
-            BUTTON_WIDTH,
-            BUTTON_HEIGHT,
+            Rect {
+                x: x_start,
+                y,
+                w: BUTTON_WIDTH,
+                h: BUTTON_HEIGHT,
+            },
             match user_settings.shadow_type {
                 ShadowType::Soft => "Dynamic lights, soft shadows",
                 ShadowType::Hard => "Dynamic lights, hard shadows",
                 ShadowType::None => "Static lights and shadows",
             },
             BUTTON_TEXT_SIZE as u16,
-            sound_manager,
+            asset_manager,
             user_settings,
         );
         if should_change {
@@ -271,20 +287,28 @@ impl SettingsContext {
         }
     }
 
-    fn draw_back_button(sound_manager: &SoundManager, user_settings: &UserSettings) -> bool {
+    fn draw_back_button(asset_manager: &AssetManager, user_settings: &UserSettings) -> bool {
         draw_button(
-            10.0,
-            10.0,
-            BACK_BUTTON_SIZE,
-            BACK_BUTTON_SIZE,
+            Rect {
+                x: 10.0,
+                y: 10.0,
+                w: BACK_BUTTON_SIZE,
+                h: BACK_BUTTON_SIZE,
+            },
             "<",
             BACK_BUTTON_FONT_SIZE,
-            sound_manager,
+            asset_manager,
             user_settings,
         )
     }
 
-    fn draw_description(width: f32, height: f32, descriptions: &[&str], should_draw: bool) {
+    fn draw_description(
+        width: f32,
+        height: f32,
+        descriptions: &[&str],
+        should_draw: bool,
+        font: &Font,
+    ) {
         if !should_draw {
             return;
         }
@@ -295,6 +319,7 @@ impl SettingsContext {
             width,
             DESCRIPTION_FONT_SIZE,
             TEXT_COLOR,
+            font,
         );
     }
 }

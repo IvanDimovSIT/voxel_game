@@ -1,21 +1,20 @@
 use macroquad::{
-    camera::set_default_camera, color::BLACK, input::clear_input_queue,
-    miniquad::window::screen_size, text::draw_text, window::next_frame,
+    camera::set_default_camera, color::BLACK, input::clear_input_queue, math::Rect,
+    miniquad::window::screen_size, text::Font, window::next_frame,
 };
 
 use crate::{
-    graphics::texture_manager::TextureManager,
     interface::{
         background::draw_background,
         button::draw_button,
         interface_context::InterfaceScreen,
         settings_menu::SettingsContext,
         style::TEXT_COLOR,
-        util::{draw_version_number, get_text_width},
+        util::{draw_game_text, draw_version_number, get_text_width},
         world_selection::WorldSelectionContext,
     },
     model::user_settings::UserSettings,
-    service::sound_manager::SoundManager,
+    service::asset_manager::AssetManager,
 };
 
 const TITLE_TEXT: &str = "Voxel World";
@@ -37,19 +36,18 @@ impl TitleScreenContext {
 
     pub async fn draw(
         &mut self,
-        texture_manager: &TextureManager,
-        sound_manager: &SoundManager,
+        asset_manager: &AssetManager,
         user_settings: &UserSettings,
     ) -> InterfaceScreen {
         set_default_camera();
         let (width, height) = screen_size();
-        draw_background(width, height, texture_manager);
-        Self::draw_title(width, height);
-        let should_play = Self::draw_play_button(width, height, sound_manager, user_settings);
+        draw_background(width, height, &asset_manager.texture_manager);
+        Self::draw_title(width, height, &asset_manager.font);
+        let should_play = Self::draw_play_button(width, height, asset_manager, user_settings);
         let should_enter_settings =
-            Self::draw_settings_button(width, height, sound_manager, user_settings);
-        self.should_exit = Self::draw_exit_button(width, height, sound_manager, user_settings);
-        draw_version_number(height);
+            Self::draw_settings_button(width, height, asset_manager, user_settings);
+        self.should_exit = Self::draw_exit_button(width, height, asset_manager, user_settings);
+        draw_version_number(height, &asset_manager.font);
         next_frame().await;
 
         if should_enter_settings {
@@ -65,17 +63,17 @@ impl TitleScreenContext {
         self.should_exit
     }
 
-    fn draw_title(width: f32, height: f32) {
-        let x = (width - get_text_width(TITLE_TEXT, TITLE_SIZE)) * 0.5;
+    fn draw_title(width: f32, height: f32, font: &Font) {
+        let x = (width - get_text_width(TITLE_TEXT, TITLE_SIZE, font)) * 0.5;
         let y = height * 0.15;
-        draw_text("Voxel World", x + 2.0, y + 2.0, TITLE_SIZE, BLACK);
-        draw_text("Voxel World", x, y, TITLE_SIZE, TEXT_COLOR);
+        draw_game_text("Voxel World", x + 2.0, y + 2.0, TITLE_SIZE, BLACK, font);
+        draw_game_text("Voxel World", x, y, TITLE_SIZE, TEXT_COLOR, font);
     }
 
     fn draw_title_screen_button(
         width: f32,
         height: f32,
-        sound_manager: &SoundManager,
+        asset_manager: &AssetManager,
         user_settings: &UserSettings,
         text: &str,
         order: u32,
@@ -83,13 +81,15 @@ impl TitleScreenContext {
         let x = (width - BUTTON_WIDTH) * 0.5;
         let y = height * 0.35 + BUTTON_HEIGHT_OFFSET * order as f32;
         draw_button(
-            x,
-            y,
-            BUTTON_WIDTH,
-            BUTTON_HEIGHT,
+            Rect {
+                x,
+                y,
+                w: BUTTON_WIDTH,
+                h: BUTTON_HEIGHT,
+            },
             text,
             BUTTON_TEXT_SIZE,
-            sound_manager,
+            asset_manager,
             user_settings,
         )
     }
@@ -97,22 +97,22 @@ impl TitleScreenContext {
     fn draw_play_button(
         width: f32,
         height: f32,
-        sound_manager: &SoundManager,
+        asset_manager: &AssetManager,
         user_settings: &UserSettings,
     ) -> bool {
-        Self::draw_title_screen_button(width, height, sound_manager, user_settings, "   Play", 0)
+        Self::draw_title_screen_button(width, height, asset_manager, user_settings, "   Play", 0)
     }
 
     fn draw_settings_button(
         width: f32,
         height: f32,
-        sound_manager: &SoundManager,
+        asset_manager: &AssetManager,
         user_settings: &UserSettings,
     ) -> bool {
         Self::draw_title_screen_button(
             width,
             height,
-            sound_manager,
+            asset_manager,
             user_settings,
             "   Settings",
             1,
@@ -122,9 +122,9 @@ impl TitleScreenContext {
     fn draw_exit_button(
         width: f32,
         height: f32,
-        sound_manager: &SoundManager,
+        asset_manager: &AssetManager,
         user_settings: &UserSettings,
     ) -> bool {
-        Self::draw_title_screen_button(width, height, sound_manager, user_settings, "   Exit", 2)
+        Self::draw_title_screen_button(width, height, asset_manager, user_settings, "   Exit", 2)
     }
 }

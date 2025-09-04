@@ -6,9 +6,12 @@ use macroquad::{
     ui::Vertex,
 };
 
-use crate::model::{
-    location::{InternalLocation, Location},
-    voxel::Voxel,
+use crate::{
+    model::{
+        location::{InternalLocation, Location},
+        voxel::Voxel,
+    },
+    service::asset_manager::AssetManager,
 };
 
 use super::texture_manager::TextureManager;
@@ -30,7 +33,7 @@ pub enum FaceDirection {
 }
 
 pub struct MeshGenerator {
-    texture_manager: Rc<TextureManager>,
+    asset_manager: Rc<AssetManager>,
 }
 impl MeshGenerator {
     const COLOR: [u8; 4] = [255, 255, 255, 255];
@@ -91,8 +94,8 @@ impl MeshGenerator {
         Vec2::new(0.0, 0.0),
     ];
 
-    pub fn new(texture_manager: Rc<TextureManager>) -> Self {
-        Self { texture_manager }
+    pub fn new(asset_manager: Rc<AssetManager>) -> Self {
+        Self { asset_manager }
     }
 
     /// generates a mesh for the voxel only with the side faces from the diretions slice
@@ -132,7 +135,7 @@ impl MeshGenerator {
         Mesh {
             vertices,
             indices,
-            texture: Some(self.texture_manager.get(voxel)),
+            texture: Some(self.asset_manager.texture_manager.get(voxel)),
         }
     }
 
@@ -155,7 +158,7 @@ impl MeshGenerator {
         Mesh {
             vertices,
             indices,
-            texture: Some(self.texture_manager.get(voxel)),
+            texture: Some(self.asset_manager.texture_manager.get(voxel)),
         }
     }
 
@@ -343,14 +346,6 @@ impl MeshGenerator {
                 ]
             }
         }
-    }
-
-    pub fn get_texture_manager(&self) -> &TextureManager {
-        &self.texture_manager
-    }
-
-    pub fn get_texture_manager_copy(&self) -> Rc<TextureManager> {
-        self.texture_manager.clone()
     }
 
     /// checks if the face should be generated based on the current voxel and its neighbour

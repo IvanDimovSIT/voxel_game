@@ -2,21 +2,22 @@
 
 use std::{rc::Rc, thread::sleep, time::Duration};
 
-use graphics::texture_manager::TextureManager;
 use macroquad::{
     miniquad::{conf::Icon, window::set_fullscreen},
     time::get_frame_time,
     window::Conf,
 };
 use model::user_settings::UserSettings;
-use service::sound_manager::SoundManager;
 use voxel_engine::VoxelEngine;
 
 use crate::{
     interface::interface_context::InterfaceContext,
-    service::persistence::{
-        generic_persistence::initialise_save_directory,
-        user_settings_persistence::read_or_initialise_user_settings,
+    service::{
+        asset_manager::AssetManager,
+        persistence::{
+            generic_persistence::initialise_save_directory,
+            user_settings_persistence::read_or_initialise_user_settings,
+        },
     },
 };
 
@@ -47,15 +48,10 @@ enum GameState {
     Exit,
 }
 impl GameState {
-    fn new(
-        texture_manager: Rc<TextureManager>,
-        sound_manager: Rc<SoundManager>,
-        user_settings: UserSettings,
-    ) -> Self {
+    fn new(asset_manager: Rc<AssetManager>, user_settings: UserSettings) -> Self {
         Self::Menu {
             context: Box::new(InterfaceContext::new_title_screen(
-                sound_manager,
-                texture_manager,
+                asset_manager,
                 user_settings,
             )),
         }
@@ -65,17 +61,12 @@ impl GameState {
 #[macroquad::main(config)]
 async fn main() {
     initialise_save_directory();
-    let texture_manager = Rc::new(TextureManager::new().await);
-    let sound_manager = Rc::new(SoundManager::new().await);
+    let asset_manager = AssetManager::new().await;
     let user_settings = read_or_initialise_user_settings();
     if user_settings.is_fullscreen {
         set_fullscreen(true);
     }
-    let mut state = GameState::new(
-        texture_manager.clone(),
-        sound_manager.clone(),
-        user_settings,
-    );
+    let mut state = GameState::new(asset_manager.clone(), user_settings);
 
     loop {
         match &mut state {
