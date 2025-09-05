@@ -6,6 +6,8 @@ use crate::service::{
     world_time::WorldTime,
 };
 
+const IS_COMPRESSED: bool = false;
+
 #[derive(Debug, Clone, Encode, Decode)]
 pub struct WorldMetadata {
     pub delta: f32,
@@ -27,12 +29,12 @@ fn get_metadata_filepath(world_name: &str) -> String {
 /// stores the world time
 pub fn store_world_metadata(world_metadata: WorldMetadata, world_name: &str) {
     let filepath = get_metadata_filepath(world_name);
-    let _ = create_directory(world_name);
-    let _result = write_binary_object(&filepath, &world_metadata);
+    let _create_result = create_directory(world_name);
+    let _result = write_binary_object(&filepath, &world_metadata, IS_COMPRESSED);
 }
 
 /// loads the world metadata from disk
 pub fn load_world_metadata(world_name: &str) -> Option<WorldMetadata> {
     let filepath = get_metadata_filepath(world_name);
-    read_binary_object(&filepath)
+    read_binary_object(&filepath, IS_COMPRESSED)
 }

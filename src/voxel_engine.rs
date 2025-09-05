@@ -268,6 +268,8 @@ impl VoxelEngine {
         {
             draw_selected_voxel(first_non_empty, &camera);
         }
+        self.debug_display
+            .draw_area_border(&self.player_info.camera_controller);
         set_default_camera();
         draw_crosshair(width, height);
         self.player_info

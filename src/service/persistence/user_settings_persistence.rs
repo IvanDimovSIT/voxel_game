@@ -5,20 +5,22 @@ use crate::{
     service::persistence::generic_persistence::{read_binary_object, write_binary_object},
 };
 
+const IS_COMPRESSED: bool = false;
 const USER_SETTINGS_FILEPATH: &str = "settings.dat";
 
 pub fn read_or_initialise_user_settings() -> UserSettings {
-    read_binary_object(USER_SETTINGS_FILEPATH).unwrap_or_default()
+    read_binary_object(USER_SETTINGS_FILEPATH, IS_COMPRESSED).unwrap_or_default()
 }
 
 pub fn write_user_settings_blocking(user_settings: &UserSettings) {
-    let _result = write_binary_object(USER_SETTINGS_FILEPATH, &user_settings);
+    let _result = write_binary_object(USER_SETTINGS_FILEPATH, &user_settings, IS_COMPRESSED);
 }
 
 /// non blocking write
 pub fn write_user_settings(user_settings: &UserSettings) {
     let user_settings_copy = user_settings.clone();
     spawn(move || {
-        let _result = write_binary_object(USER_SETTINGS_FILEPATH, &user_settings_copy);
+        let _result =
+            write_binary_object(USER_SETTINGS_FILEPATH, &user_settings_copy, IS_COMPRESSED);
     });
 }

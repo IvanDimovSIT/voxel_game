@@ -148,14 +148,9 @@ impl Default for Inventory {
 mod tests {
     use super::*;
 
-    const EMPTY_INVENTORY: Inventory = Inventory {
-        items: [None; Inventory::INVENTORY_SIZE],
-        selected: [None; Inventory::SELECTED_SIZE],
-    };
-
     #[test]
     pub fn test_add_item_into_empty() {
-        let mut inventory = EMPTY_INVENTORY;
+        let mut inventory = Inventory::default();
         inventory.add_item(Item::new(Voxel::Brick, 10));
 
         assert!(inventory.selected[0].is_some());
@@ -165,7 +160,7 @@ mod tests {
 
     #[test]
     pub fn test_add_item_into_same_stack() {
-        let mut inventory = EMPTY_INVENTORY;
+        let mut inventory = Inventory::default();
         inventory.selected[1] = Item::some(Voxel::Brick, 20);
         inventory.add_item(Item::new(Voxel::Brick, 10));
 
@@ -176,7 +171,7 @@ mod tests {
 
     #[test]
     pub fn test_add_item_into_prexisting() {
-        let mut inventory = EMPTY_INVENTORY;
+        let mut inventory = Inventory::default();
         inventory.selected[0] = Item::some(Voxel::Grass, 20);
         inventory.add_item(Item::new(Voxel::Brick, 10));
 
@@ -187,7 +182,7 @@ mod tests {
 
     #[test]
     pub fn test_add_item_into_inventory() {
-        let mut inventory = EMPTY_INVENTORY;
+        let mut inventory = Inventory::default();
         inventory
             .selected
             .iter_mut()
@@ -201,7 +196,7 @@ mod tests {
 
     #[test]
     pub fn test_add_item_partial_join() {
-        let mut inventory = EMPTY_INVENTORY;
+        let mut inventory = Inventory::default();
         inventory.selected[0] = Item::some(Voxel::Brick, 80);
         inventory.add_item(Item::new(Voxel::Brick, 30));
 
@@ -215,7 +210,7 @@ mod tests {
 
     #[test]
     pub fn test_create_all_items_map() {
-        let mut inventory = EMPTY_INVENTORY;
+        let mut inventory = Inventory::default();
         inventory.selected[0] = Item::some(Voxel::Brick, 80);
         inventory.selected[1] = Item::some(Voxel::Brick, 40);
         inventory.items[0] = Item::some(Voxel::Sand, 80);
@@ -245,7 +240,7 @@ mod tests {
 
     #[test]
     pub fn test_remove_item() {
-        let mut inventory = EMPTY_INVENTORY;
+        let mut inventory = Inventory::default();
         inventory.selected[0] = Item::some(Voxel::Brick, 60);
         inventory.selected[1] = Item::some(Voxel::Brick, 40);
         inventory.remove_item(Item::new(Voxel::Brick, 70));
@@ -253,5 +248,21 @@ mod tests {
         assert!(inventory.selected[0].is_none());
         assert!(inventory.selected[1].is_some());
         assert_eq!(inventory.selected[1].unwrap().count, 30);
+    }
+
+    #[test]
+    #[should_panic]
+    pub fn test_remove_item_insufficient_quantity() {
+        let mut inventory = Inventory::default();
+        inventory.selected[0] = Item::some(Voxel::Brick, 60);
+        inventory.remove_item(Item::new(Voxel::Brick, 70));
+    }
+
+    #[test]
+    #[should_panic]
+    pub fn test_remove_item_not_found() {
+        let mut inventory = Inventory::default();
+        inventory.selected[0] = Item::some(Voxel::Brick, 60);
+        inventory.remove_item(Item::new(Voxel::Stone, 10));
     }
 }

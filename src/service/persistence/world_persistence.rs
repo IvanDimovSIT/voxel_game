@@ -19,6 +19,8 @@ use crate::{
 
 use super::config::BASE_SAVE_PATH;
 
+const IS_COMPRESSED: bool = true;
+
 fn get_filepath(area_x: u32, area_y: u32, world_name: &str) -> String {
     format!("{world_name}/area{area_x}_{area_y}.dat")
 }
@@ -33,7 +35,7 @@ pub fn store_blocking(area: Area, world_name: &str) {
     let filepath = get_filepath(area.get_x(), area.get_y(), world_name);
     let area_dto: AreaDTO = area.into();
     let _ = create_directory(world_name);
-    let _result = write_binary_object(&filepath, &area_dto);
+    let _result = write_binary_object(&filepath, &area_dto, IS_COMPRESSED);
 }
 
 /// stores an area on a background thread
@@ -54,7 +56,7 @@ pub fn store_all_blocking(areas: Vec<Area>, world_name: String) {
 /// loads an area from disk
 pub fn load_blocking(area_location: AreaLocation, world_name: &str) -> Area {
     let filepath = get_filepath(area_location.x, area_location.y, world_name);
-    let area_dto: Option<AreaDTO> = read_binary_object(&filepath);
+    let area_dto: Option<AreaDTO> = read_binary_object(&filepath, IS_COMPRESSED);
 
     area_dto
         .map(|dto| dto.into_area(area_location, false))
@@ -131,5 +133,100 @@ pub fn delete_world(world_name: &str) {
         error!("Error deleting world: '{}'", err);
     } else {
         info!("Deleted world '{}'", world_name);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::{collections::HashMap, fs::remove_dir_all, time::Instant};
+
+    use crate::model::{
+        area::{AREA_HEIGHT, AREA_SIZE},
+        location::InternalLocation,
+    };
+
+    use super::*;
+
+    struct TestWorldName {
+        name: &'static str,
+    }
+    impl TestWorldName {
+        fn new(name: &'static str) -> Self {
+            Self { name }
+        }
+    }
+    impl Drop for TestWorldName {
+        fn drop(&mut self) {
+            let dir_name = get_world_directory(self.name);
+            remove_dir_all(&dir_name).unwrap();
+        }
+    }
+
+    #[test]
+    pub fn test_world_persistence_load() {
+        let world_name = TestWorldName::new("test_world_persistence_load_temp_test_world");
+
+        let area_location = AreaLocation::new(0, 0);
+        let area = AreaGenerator::generate_area(area_location, world_name.name);
+        store_blocking(area.clone(), world_name.name);
+
+        let loaded_area = load_blocking(area_location, world_name.name);
+
+        assert!(!loaded_area.has_changed);
+        assert_eq!(loaded_area.get_x(), area_location.x);
+        assert_eq!(loaded_area.get_y(), area_location.y);
+        assert_areas_equal(&area, &loaded_area);
+    }
+
+    #[test]
+    pub fn test_world_persistence_area_loader_batch_load() {
+        let world_name = TestWorldName::new("test_world_persistence_area_loader_batch_load");
+
+        let area_locations = [
+            AreaLocation::new(0, 0),
+            AreaLocation::new(1, 0),
+            AreaLocation::new(0, 1),
+            AreaLocation::new(1, 1),
+        ];
+        let mut areas: HashMap<_, _> = area_locations
+            .into_iter()
+            .map(|loc| (loc, AreaGenerator::generate_area(loc, world_name.name)))
+            .collect();
+
+        store_all_blocking(
+            areas.clone().into_values().collect(),
+            world_name.name.to_owned(),
+        );
+
+        let mut area_loader = AreaLoader::new();
+        area_loader.batch_load(&area_locations, world_name.name);
+
+        let start = Instant::now();
+        loop {
+            let loaded = area_loader.get_loaded();
+            for area in loaded {
+                assert!(!area.has_changed);
+                let original = areas.remove(&area.get_area_location()).unwrap();
+                assert_areas_equal(&area, &original);
+            }
+            let ellpased_ms = start.elapsed().as_millis();
+
+            if ellpased_ms > 100 {
+                break;
+            }
+        }
+
+        assert!(areas.is_empty());
+    }
+
+    fn assert_areas_equal(area1: &Area, area2: &Area) {
+        for z in 0..AREA_HEIGHT {
+            for y in 0..AREA_SIZE {
+                for x in 0..AREA_SIZE {
+                    let local_location = InternalLocation::new(x, y, z);
+                    assert_eq!(area1.get(local_location), area2.get(local_location));
+                }
+            }
+        }
     }
 }

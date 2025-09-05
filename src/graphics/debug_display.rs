@@ -1,5 +1,8 @@
 use macroquad::{
     camera::Camera3D,
+    color::WHITE,
+    math::vec3,
+    models::draw_cube_wires,
     prelude::info,
     shapes::draw_rectangle,
     text::Font,
@@ -11,7 +14,12 @@ use crate::{
         style::{CLEAR_SCREEN_COLOR, TEXT_COLOR},
         util::draw_game_text,
     },
-    model::{area::VOXELS_IN_AREA, voxel::Voxel, world::World},
+    model::{
+        area::{AREA_HEIGHT, AREA_SIZE, VOXELS_IN_AREA},
+        voxel::Voxel,
+        world::World,
+    },
+    service::camera_controller::CameraController,
     utils::vector_to_location,
 };
 
@@ -129,6 +137,28 @@ impl DebugDisplay {
             TEXT_COLOR,
             font,
         );
+    }
+
+    pub fn draw_area_border(&self, camera_controller: &CameraController) {
+        if !self.should_display {
+            return;
+        }
+
+        const AREA_SIZE_F32: f32 = AREA_SIZE as f32;
+        const AREA_SIZE_I32: i32 = AREA_SIZE as i32;
+
+        let camera_location = camera_controller.get_camera_voxel_location();
+        let area_x = camera_location.x.div_euclid(AREA_SIZE as i32);
+        let area_y = camera_location.y.div_euclid(AREA_SIZE as i32);
+
+        let x = (area_x * AREA_SIZE_I32) as f32 + AREA_SIZE_F32 / 2.0 - 0.5;
+        let y = (area_y * AREA_SIZE_I32) as f32 + AREA_SIZE_F32 / 2.0 - 0.5;
+        let z = AREA_HEIGHT as f32 / 2.0;
+        let size = AREA_SIZE_F32;
+        let height = AREA_HEIGHT as f32;
+
+        let position = vec3(x, y, z - 0.5) - camera_controller.get_position();
+        draw_cube_wires(position, vec3(size, size, height), WHITE);
     }
 
     fn draw_background() {
