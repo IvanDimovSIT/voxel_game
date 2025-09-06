@@ -65,7 +65,7 @@ impl Area {
     }
 
     fn set_column_height(&mut self, local_location: InternalLocation) {
-        self.max_height[(local_location.x + local_location.y * AREA_SIZE) as usize] =
+        self.max_height[Self::convert_to_height_index(local_location)] =
             self.calculate_column_height(local_location);
     }
 
@@ -80,9 +80,15 @@ impl Area {
             .unwrap_or(AREA_HEIGHT - 1) as u8
     }
 
+    #[inline(always)]
     fn convert_to_index(local_location: InternalLocation) -> usize {
         (local_location.x + local_location.y * AREA_SIZE + local_location.z * AREA_SIZE * AREA_SIZE)
             as usize
+    }
+
+    #[inline(always)]
+    fn convert_to_height_index(local_location: InternalLocation) -> usize {
+        (local_location.x + local_location.y * AREA_SIZE) as usize
     }
 
     pub fn get(&self, local_location: InternalLocation) -> Voxel {
@@ -101,7 +107,16 @@ impl Area {
 
     pub fn set(&mut self, local_location: InternalLocation, voxel: Voxel) {
         self.voxels[Self::convert_to_index(local_location)] = voxel;
-        self.set_column_height(local_location);
+
+        if voxel == Voxel::None || Voxel::TRANSPARENT.contains(&voxel) {
+            self.set_column_height(local_location);
+        } else {
+            let height_index = Self::convert_to_height_index(local_location);
+            let prev_height = self.max_height[height_index];
+            if prev_height > local_location.z as u8 {
+                self.max_height[height_index] = local_location.z as u8;
+            }
+        }
     }
 
     pub fn get_area_location(&self) -> AreaLocation {
@@ -228,10 +243,13 @@ mod tests {
         let mut area = Area::new(AreaLocation::new(0, 0));
         area.set(InternalLocation::new(0, 0, 10), Voxel::Brick);
         assert_eq!(area.sample_height(0, 0), 10);
+
         area.set(InternalLocation::new(0, 0, 5), Voxel::Brick);
         assert_eq!(area.sample_height(0, 0), 5);
+
         area.set(InternalLocation::new(0, 0, 20), Voxel::Brick);
         assert_eq!(area.sample_height(0, 0), 5);
+
         area.set(InternalLocation::new(1, 0, 1), Voxel::Brick);
         assert_eq!(area.sample_height(0, 0), 5);
         assert_eq!(area.sample_height(1, 0), 1);
@@ -240,25 +258,54 @@ mod tests {
     #[test]
     fn test_calculate_max_height_transparent() {
         let mut area = Area::new(AreaLocation::new(0, 0));
+
         area.set(InternalLocation::new(0, 0, 10), Voxel::Brick);
         assert_eq!(area.sample_height(0, 0), 10);
+
         area.set(InternalLocation::new(0, 0, 5), Voxel::Glass);
         assert_eq!(area.sample_height(0, 0), 10);
+
         area.set(InternalLocation::new(0, 0, 8), Voxel::Brick);
         assert_eq!(area.sample_height(0, 0), 8);
+
         area.set(InternalLocation::new(1, 0, 1), Voxel::Glass);
         assert_eq!(area.sample_height(1, 0), AREA_HEIGHT as u8 - 1);
     }
 
     #[test]
+    fn test_calculate_max_height_replace_existing() {
+        let mut area = Area::new(AreaLocation::new(0, 0));
+
+        area.set(InternalLocation::new(0, 0, 10), Voxel::Brick);
+        assert_eq!(area.sample_height(0, 0), 10);
+
+        area.set(InternalLocation::new(0, 0, 10), Voxel::Brick);
+        assert_eq!(area.sample_height(0, 0), 10);
+
+        area.set(InternalLocation::new(0, 0, 10), Voxel::Glass);
+        assert_eq!(area.sample_height(0, 0), AREA_HEIGHT as u8 - 1);
+
+        area.set(InternalLocation::new(0, 0, 5), Voxel::Brick);
+        assert_eq!(area.sample_height(0, 0), 5);
+
+        area.set(InternalLocation::new(0, 0, 5), Voxel::None);
+        assert_eq!(area.sample_height(0, 0), AREA_HEIGHT as u8 - 1);
+    }
+
+    #[test]
     fn test_set_without_calculating_max_height() {
         let mut area = Area::new(AreaLocation::new(0, 0));
+
         area.set_without_updating_max_height(InternalLocation::new(0, 0, 10), Voxel::Brick);
         assert_eq!(area.sample_height(0, 0), AREA_HEIGHT as u8 - 1);
+
         area.set_without_updating_max_height(InternalLocation::new(0, 0, 5), Voxel::Brick);
         assert_eq!(area.sample_height(0, 0), AREA_HEIGHT as u8 - 1);
+
+        area.update_all_column_heights();
         area.set(InternalLocation::new(0, 0, 20), Voxel::Brick);
         assert_eq!(area.sample_height(0, 0), 5);
+
         area.set(InternalLocation::new(1, 0, 1), Voxel::Brick);
         assert_eq!(area.sample_height(0, 0), 5);
         assert_eq!(area.sample_height(1, 0), 1);

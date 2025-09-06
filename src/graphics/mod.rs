@@ -6,4 +6,5 @@ pub mod sky;
 pub mod sky_shader;
 pub mod texture_manager;
 pub mod ui_display;
+pub mod voxel_particle_system;
 pub mod voxel_shader;

@@ -1,7 +1,7 @@
 use macroquad::math::vec3;
 
 use crate::{
-    graphics::renderer::Renderer,
+    graphics::{renderer::Renderer, voxel_particle_system::VoxelParticleSystem},
     model::{
         area::AREA_HEIGHT, location::Location, player_info::PlayerInfo, voxel::Voxel, world::World,
     },
@@ -63,6 +63,7 @@ pub fn destroy_voxel(
     world: &mut World,
     renderer: &mut Renderer,
     voxel_simulator: &mut VoxelSimulator,
+    voxel_particles: &mut VoxelParticleSystem,
 ) -> Option<Voxel> {
     let voxel = world.get(location);
     if voxel == Voxel::None || location.z == AREA_HEIGHT as i32 - 1 {
@@ -70,6 +71,7 @@ pub fn destroy_voxel(
     }
 
     world.set(location, Voxel::None);
+    voxel_particles.add_particles_for_destroyed(voxel, location, renderer.get_mesh_generator());
     renderer.update_location(world, location);
     voxel_simulator.update_voxels(world, renderer, location);
 

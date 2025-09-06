@@ -51,7 +51,7 @@ mod tests {
     use super::*;
 
     #[test]
-    pub fn test_get_render_zone() {
+    fn test_get_render_zone() {
         let render_zone = get_render_zone(AreaLocation::new(10, 10), 2);
         assert_eq!(render_zone.len(), 25);
         for location in render_zone {
@@ -61,7 +61,7 @@ mod tests {
     }
 
     #[test]
-    pub fn test_get_render_zone_on_world_load_less_than_minimum() {
+    fn test_get_render_zone_on_world_load_less_than_minimum() {
         let render_zone = get_render_zone_on_world_load(AreaLocation::new(10, 10), 9);
         const MINIMUM_AREAS_SIDE: u32 = INITIAL_LOAD_MINIMUM_RENDER_DISTANCE * 2 + 1;
         const MINIMUM_AREAS: u32 = MINIMUM_AREAS_SIDE * MINIMUM_AREAS_SIDE;
@@ -73,7 +73,7 @@ mod tests {
     }
 
     #[test]
-    pub fn test_get_render_zone_on_world_load_greater_than_minimum() {
+    fn test_get_render_zone_on_world_load_greater_than_minimum() {
         let render_zone = get_render_zone_on_world_load(AreaLocation::new(10, 10), 16);
         const AREAS_SIDE: u32 = 1 + 2 * (16 - INITIAL_LOAD_RENDER_DISTANCE_REDUCTION);
         const AREAS_SIZE: u32 = AREAS_SIDE * AREAS_SIDE;
@@ -85,7 +85,7 @@ mod tests {
     }
 
     #[test]
-    pub fn test_get_load_zone() {
+    fn test_get_load_zone() {
         let load_zone = get_load_zone(AreaLocation::new(10, 10), 2);
         let side_of_zone = 1 + 2 * (2 + LOAD_EXTRA);
         let area_of_zone = side_of_zone * side_of_zone;

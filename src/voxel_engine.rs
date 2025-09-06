@@ -13,6 +13,7 @@ use crate::{
         renderer::Renderer,
         sky::Sky,
         ui_display::{draw_crosshair, draw_selected_voxel},
+        voxel_particle_system::VoxelParticleSystem,
     },
     interface::{
         game_menu::{
@@ -51,6 +52,7 @@ pub struct VoxelEngine {
     player_info: PlayerInfo,
     debug_display: DebugDisplay,
     voxel_simulator: VoxelSimulator,
+    voxel_particles: VoxelParticleSystem,
     asset_manager: Rc<AssetManager>,
     user_settings: UserSettings,
     menu_state: MenuState,
@@ -96,6 +98,7 @@ impl VoxelEngine {
             world_time,
             sky,
             height_map: HeightMap::new(),
+            voxel_particles: VoxelParticleSystem::new(),
         };
 
         if !successful_load {
@@ -218,6 +221,7 @@ impl VoxelEngine {
         }
         self.world_time.update(delta);
         self.process_physics(delta);
+        self.voxel_particles.update(delta);
     }
 
     /// process falling and collisions
@@ -259,6 +263,7 @@ impl VoxelEngine {
             &self.world,
             &mut self.height_map,
         );
+        self.voxel_particles.draw();
         self.voxel_simulator.draw(&camera);
         gl_use_default_material();
         if let RaycastResult::Hit {
@@ -435,6 +440,7 @@ impl VoxelEngine {
                     &mut self.world,
                     &mut self.renderer,
                     &mut self.voxel_simulator,
+                    &mut self.voxel_particles,
                 );
                 if let Some(destroyed) = maybe_destroyed {
                     self.player_info.inventory.add_item(Item::new(destroyed, 1));

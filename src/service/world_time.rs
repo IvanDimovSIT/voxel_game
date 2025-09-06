@@ -46,7 +46,7 @@ mod tests {
     use super::*;
 
     #[test]
-    pub fn test_world_time() {
+    fn test_world_time() {
         let mut world_time = WorldTime::new(0.0);
         world_time.update(0.1);
         assert_in_range(&world_time);

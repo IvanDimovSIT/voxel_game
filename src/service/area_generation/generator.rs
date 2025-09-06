@@ -152,9 +152,36 @@ mod tests {
         assert!(!check_if_areas_are_different(&area1, &area2));
     }
 
+    #[test]
+    fn test_genearate_area_heights_calculated_correctly() {
+        let areas: Vec<_> = (0..10)
+            .into_iter()
+            .map(|x| AreaGenerator::generate_area(AreaLocation::new(x, 123), "test"))
+            .collect();
+
+        let mut areas_calculated_heights = areas.clone();
+        for area in &mut areas_calculated_heights {
+            area.update_all_column_heights();
+        }
+
+        let are_all_identical = areas
+            .iter()
+            .zip(areas_calculated_heights.iter())
+            .all(|(a1, a2)| !check_if_areas_are_different(a1, a2));
+
+        assert!(are_all_identical);
+    }
+
     fn check_if_areas_are_different(area1: &Area, area2: &Area) -> bool {
         for x in 0..AREA_SIZE {
             for y in 0..AREA_SIZE {
+                let height1 = area1.sample_height(x, y);
+                let height2 = area2.sample_height(x, y);
+
+                if height1 != height2 {
+                    return true;
+                }
+
                 for z in 0..AREA_HEIGHT {
                     let loc = InternalLocation::new(x, y, z);
                     let voxel1 = area1.get(loc);

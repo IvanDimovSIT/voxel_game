@@ -82,7 +82,7 @@ mod tests {
     use super::*;
 
     #[test]
-    pub fn test_find_craftable_some() {
+    fn test_find_craftable_some() {
         let mut available = AvailableItems::new_empty();
         available.add(Voxel::Wood, 10u32);
         available.add(Voxel::Stone, 10u32);
@@ -99,7 +99,7 @@ mod tests {
     }
 
     #[test]
-    pub fn test_find_craftable_none() {
+    fn test_find_craftable_none() {
         let mut available = AvailableItems::new_empty();
         available.add(Voxel::Boards, 10u32);
         available.add(Voxel::Glass, 220u32);
@@ -110,18 +110,18 @@ mod tests {
     }
 
     #[test]
-    pub fn test_craft_recipe_once() {
+    fn test_craft_recipe_once() {
         craft_recipe_with_count(1);
     }
 
     #[test]
-    pub fn test_craft_recipe_five_times() {
+    fn test_craft_recipe_five_times() {
         craft_recipe_with_count(5);
     }
 
     #[test]
     #[should_panic]
-    pub fn test_craft_recipe_insufficient_inputs() {
+    fn test_craft_recipe_insufficient_inputs() {
         let mut inventory = Inventory::default();
         craft_recipe(&RECEPES[0], &mut inventory, 1);
     }

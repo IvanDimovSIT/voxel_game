@@ -1,8 +1,9 @@
 use std::rc::Rc;
 
 use macroquad::{
-    math::{Vec2, Vec3, Vec4},
+    math::{Vec2, Vec3, Vec4, vec2},
     models::Mesh,
+    rand::rand,
     ui::Vertex,
 };
 
@@ -94,6 +95,8 @@ impl MeshGenerator {
         Vec2::new(0.0, 0.0),
     ];
 
+    const PARTICLE_SIZE: f32 = 0.08;
+
     pub fn new(asset_manager: Rc<AssetManager>) -> Self {
         Self { asset_manager }
     }
@@ -140,26 +143,54 @@ impl MeshGenerator {
     }
 
     pub fn generate_mesh_for_falling_voxel(&self, voxel: Voxel, position: Vec3) -> Mesh {
-        let vertices: Vec<_> = Self::ALL_DIRECTIONS
-            .iter()
-            .flat_map(|dir| {
-                Self::get_verticies_for_voxel(voxel, *dir, position.x, position.y, position.z)
-            })
-            .collect();
-
-        let indices: Vec<_> = (0..Self::ALL_DIRECTIONS.len() as u16)
-            .flat_map(|offset| {
-                Self::INDECIES
-                    .into_iter()
-                    .map(move |ind| ind + offset * Self::VERTICES_PER_FACE as u16)
-            })
-            .collect();
+        let vertices = Self::create_vertices_for_all_sides(voxel, position).collect();
+        let indices = Self::create_indeicies_for_all_sides();
 
         Mesh {
             vertices,
             indices,
             texture: Some(self.asset_manager.texture_manager.get(voxel)),
         }
+    }
+
+    pub fn generate_mesh_for_particle(&self, voxel: Voxel, position: Vec3) -> Mesh {
+        let vertices = Self::create_vertices_for_all_sides(voxel, Vec3::ZERO)
+            .map(|vertex| Vertex {
+                position: vertex.position * Self::PARTICLE_SIZE + position,
+                uv: Self::sample_random_uv(),
+                ..vertex
+            })
+            .collect();
+        let indices = Self::create_indeicies_for_all_sides();
+
+        Mesh {
+            vertices,
+            indices,
+            texture: Some(self.asset_manager.texture_manager.get(voxel)),
+        }
+    }
+
+    fn sample_random_uv() -> Vec2 {
+        let x = (rand() % 100) as f32 / 100.0;
+        let y = (rand() % 100) as f32 / 100.0;
+
+        vec2(x, y)
+    }
+
+    fn create_vertices_for_all_sides(voxel: Voxel, position: Vec3) -> impl Iterator<Item = Vertex> {
+        Self::ALL_DIRECTIONS.iter().flat_map(move |dir| {
+            Self::get_verticies_for_voxel(voxel, *dir, position.x, position.y, position.z)
+        })
+    }
+
+    fn create_indeicies_for_all_sides() -> Vec<u16> {
+        (0..Self::ALL_DIRECTIONS.len() as u16)
+            .flat_map(|offset| {
+                Self::INDECIES
+                    .into_iter()
+                    .map(move |ind| ind + offset * Self::VERTICES_PER_FACE as u16)
+            })
+            .collect()
     }
 
     fn get_verticies_for_voxel(
