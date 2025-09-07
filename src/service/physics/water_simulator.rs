@@ -9,7 +9,7 @@ use crate::{
     utils::StackVec,
 };
 
-const WATER_SPEED: f32 = 1.0;
+const WATER_SPEED: f32 = 0.5;
 
 const LOWEST_WATER: Voxel = Voxel::Water4;
 
@@ -137,7 +137,6 @@ impl WaterSimulator {
             world.set(side, voxel_to_set);
             renderer.update_location(world, side);
             self.check_locations.insert(side);
-            println!("Flow sides for {voxel:?}");
         }
     }
 

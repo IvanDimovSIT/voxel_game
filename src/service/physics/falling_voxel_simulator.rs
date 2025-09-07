@@ -51,10 +51,10 @@ pub struct SimulatedVoxelDTO {
     velocity: f32,
 }
 
-pub struct VoxelSimulator {
+pub struct FallingVoxelSimulator {
     simulated_voxels: Vec<SimulatedVoxel>,
 }
-impl VoxelSimulator {
+impl FallingVoxelSimulator {
     pub fn new(
         simulated_voxel_dtos: Vec<SimulatedVoxelDTO>,
         mesh_generator: &MeshGenerator,
@@ -154,7 +154,7 @@ impl VoxelSimulator {
         &mut self,
         world: &mut World,
         renderer: &mut Renderer,
-        simulator: &mut WaterSimulator,
+        water_simulator: &mut WaterSimulator,
         delta: f32,
     ) {
         for voxel in &mut self.simulated_voxels {
@@ -167,7 +167,7 @@ impl VoxelSimulator {
         }
 
         self.simulated_voxels
-            .retain(|voxel| Self::retain_or_place_voxel(voxel, world, renderer, simulator));
+            .retain(|voxel| Self::retain_or_place_voxel(voxel, world, renderer, water_simulator));
     }
 
     pub fn draw(&self, camera: &Camera3D) {

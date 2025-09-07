@@ -83,6 +83,17 @@ impl World {
         })
     }
 
+    /// takes ownership of an area removing it from the world
+    pub fn take_area(&mut self, area_location: AreaLocation) -> Area {
+        self.load_area(area_location);
+        self.areas.remove(&area_location).expect("Area not loaded")
+    }
+
+    /// returns ownership of an area
+    pub fn return_area(&mut self, area: Area) {
+        self.areas.insert(area.get_area_location(), area);
+    }
+
     pub fn get_renderable_voxels_for_area(
         &mut self,
         area_location: AreaLocation,
@@ -123,6 +134,25 @@ impl World {
     pub fn get(&mut self, location: impl Into<InternalLocation>) -> Voxel {
         let (area_location, local_location) =
             Self::convert_global_to_area_and_local_location(location.into());
+        self.load_area(area_location);
+        let area = &self.areas[&area_location];
+        area.get(local_location)
+    }
+
+    pub fn get_with_cache(
+        &mut self,
+        location: impl Into<InternalLocation>,
+        cached_area: Option<&Area>,
+    ) -> Voxel {
+        let (area_location, local_location) =
+            Self::convert_global_to_area_and_local_location(location.into());
+
+        if let Some(area) = cached_area {
+            if area.get_area_location() == area_location {
+                return area.get(local_location);
+            }
+        }
+
         self.load_area(area_location);
         let area = &self.areas[&area_location];
         area.get(local_location)

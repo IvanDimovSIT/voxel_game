@@ -3,7 +3,7 @@ use bincode::{Decode, Encode};
 use crate::service::{
     persistence::generic_persistence::{create_directory, read_binary_object, write_binary_object},
     physics::{
-        voxel_physics::{SimulatedVoxelDTO, VoxelSimulator},
+        falling_voxel_simulator::SimulatedVoxelDTO, voxel_simulator::VoxelSimulator,
         water_simulator::WaterSimulator,
     },
     world_time::WorldTime,
@@ -18,15 +18,12 @@ pub struct WorldMetadata {
     pub water_simulator: WaterSimulator,
 }
 impl WorldMetadata {
-    pub fn new(
-        world_time: &WorldTime,
-        voxel_simulator: &VoxelSimulator,
-        water_simulator: &WaterSimulator,
-    ) -> Self {
+    pub fn new(world_time: &WorldTime, voxel_simulator: &VoxelSimulator) -> Self {
+        let (simulated_voxels, water_simulator) = voxel_simulator.create_dtos();
         Self {
             delta: world_time.get_delta(),
-            simulated_voxels: voxel_simulator.create_simulated_voxel_dtos(),
-            water_simulator: water_simulator.clone(),
+            simulated_voxels,
+            water_simulator,
         }
     }
 }

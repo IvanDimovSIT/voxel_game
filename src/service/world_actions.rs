@@ -6,8 +6,7 @@ use crate::{
         area::AREA_HEIGHT, location::Location, player_info::PlayerInfo, voxel::Voxel, world::World,
     },
     service::physics::{
-        player_physics::will_new_voxel_cause_collision, voxel_physics::VoxelSimulator,
-        water_simulator::WaterSimulator,
+        player_physics::will_new_voxel_cause_collision, voxel_simulator::VoxelSimulator,
     },
     utils::vector_to_location,
 };
@@ -19,7 +18,6 @@ pub fn place_voxel(
     world: &mut World,
     renderer: &mut Renderer,
     voxel_simulator: &mut VoxelSimulator,
-    water_simulator: &mut WaterSimulator,
 ) -> bool {
     debug_assert!(voxel != Voxel::None);
     let unable_to_place_voxel = world.get(location).is_solid()
@@ -32,8 +30,7 @@ pub fn place_voxel(
 
     world.set(location, voxel);
     renderer.update_location(world, location);
-    voxel_simulator.update_voxels(world, renderer, water_simulator, location);
-    water_simulator.location_updated(location);
+    voxel_simulator.update_location(location, world, renderer);
 
     true
 }
@@ -44,19 +41,17 @@ pub fn replace_voxel(
     world: &mut World,
     renderer: &mut Renderer,
     voxel_simulator: &mut VoxelSimulator,
-    water_simulator: &mut WaterSimulator,
 ) -> Option<Voxel> {
     debug_assert!(voxel != Voxel::None);
     let to_be_replaced = world.get(location);
-    if to_be_replaced.is_solid() || location.z == AREA_HEIGHT as i32 - 1 || to_be_replaced == voxel
+    if !to_be_replaced.is_solid() || location.z == AREA_HEIGHT as i32 - 1 || to_be_replaced == voxel
     {
         return None;
     }
 
     world.set(location, voxel);
     renderer.update_location(world, location);
-    voxel_simulator.update_voxels(world, renderer, water_simulator, location);
-    water_simulator.location_updated(location);
+    voxel_simulator.update_location(location, world, renderer);
 
     Some(to_be_replaced)
 }
@@ -67,7 +62,6 @@ pub fn destroy_voxel(
     renderer: &mut Renderer,
     voxel_simulator: &mut VoxelSimulator,
     voxel_particles: &mut VoxelParticleSystem,
-    water_simulator: &mut WaterSimulator,
 ) -> Option<Voxel> {
     let voxel = world.get(location);
     if voxel == Voxel::None || location.z == AREA_HEIGHT as i32 - 1 {
@@ -77,8 +71,7 @@ pub fn destroy_voxel(
     world.set(location, Voxel::None);
     voxel_particles.add_particles_for_destroyed(voxel, location, renderer.get_mesh_generator());
     renderer.update_location(world, location);
-    voxel_simulator.update_voxels(world, renderer, water_simulator, location);
-    water_simulator.location_updated(location);
+    voxel_simulator.update_location(location, world, renderer);
 
     Some(voxel)
 }

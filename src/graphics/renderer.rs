@@ -14,7 +14,7 @@ use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use crate::{
     graphics::height_map::HeightMap,
     model::{
-        area::{AREA_HEIGHT, AREA_SIZE, AreaLocation},
+        area::{AREA_HEIGHT, AREA_SIZE, Area, AreaLocation},
         location::{InternalLocation, LOCATION_OFFSET, Location},
         player_info::PlayerInfo,
         user_settings::UserSettings,
@@ -123,6 +123,7 @@ impl Renderer {
         world: &mut World,
         global_location: InternalLocation,
         voxel: Voxel,
+        cached_area: Option<&Area>,
     ) -> GeneratedMeshResult {
         let area_location = World::convert_global_to_area_location(global_location);
 
@@ -132,25 +133,43 @@ impl Renderer {
 
         let mut face_directions = StackVec::<FaceDirection, 6>::new();
 
-        if MeshGenerator::should_generate_face(voxel, world.get(global_location.offset_x(1))) {
+        if MeshGenerator::should_generate_face(
+            voxel,
+            world.get_with_cache(global_location.offset_x(1), cached_area),
+        ) {
             face_directions.push(FaceDirection::Left);
         }
-        if MeshGenerator::should_generate_face(voxel, world.get(global_location.offset_x(-1))) {
+        if MeshGenerator::should_generate_face(
+            voxel,
+            world.get_with_cache(global_location.offset_x(-1), cached_area),
+        ) {
             face_directions.push(FaceDirection::Right);
         }
-        if MeshGenerator::should_generate_face(voxel, world.get(global_location.offset_y(1))) {
+        if MeshGenerator::should_generate_face(
+            voxel,
+            world.get_with_cache(global_location.offset_y(1), cached_area),
+        ) {
             face_directions.push(FaceDirection::Front);
         }
-        if MeshGenerator::should_generate_face(voxel, world.get(global_location.offset_y(-1))) {
+        if MeshGenerator::should_generate_face(
+            voxel,
+            world.get_with_cache(global_location.offset_y(-1), cached_area),
+        ) {
             face_directions.push(FaceDirection::Back);
         }
         if global_location.z + 1 < AREA_HEIGHT
-            && MeshGenerator::should_generate_face(voxel, world.get(global_location.offset_z(1)))
+            && MeshGenerator::should_generate_face(
+                voxel,
+                world.get_with_cache(global_location.offset_z(1), cached_area),
+            )
         {
             face_directions.push(FaceDirection::Down);
         }
         if global_location.z > 0
-            && MeshGenerator::should_generate_face(voxel, world.get(global_location.offset_z(-1)))
+            && MeshGenerator::should_generate_face(
+                voxel,
+                world.get_with_cache(global_location.offset_z(-1), cached_area),
+            )
         {
             face_directions.push(FaceDirection::Up);
         }
@@ -199,8 +218,10 @@ impl Renderer {
         world: &mut World,
         global_location: InternalLocation,
         voxel: Voxel,
+        cached_area: Option<&Area>,
     ) {
-        let meshing_result = self.generate_mesh_for_voxel(world, global_location, voxel);
+        let meshing_result =
+            self.generate_mesh_for_voxel(world, global_location, voxel, cached_area);
         self.set_voxel_mesh(
             meshing_result.area_location,
             global_location,
@@ -213,7 +234,7 @@ impl Renderer {
     pub fn update_location(&mut self, world: &mut World, location: impl Into<InternalLocation>) {
         let internal_location = location.into();
         if let Some(voxel) = world.get_without_loading(internal_location) {
-            self.update_meshes_for_voxel(world, internal_location, voxel);
+            self.update_meshes_for_voxel(world, internal_location, voxel, None);
         }
 
         let mut neighbors = StackVec::<InternalLocation, 6>::new();
@@ -254,7 +275,7 @@ impl Renderer {
 
         for neighbor in neighbors {
             if let Some(neighbour_voxel) = world.get_without_loading(neighbor) {
-                self.update_meshes_for_voxel(world, neighbor, neighbour_voxel);
+                self.update_meshes_for_voxel(world, neighbor, neighbour_voxel, None);
             }
         }
     }
@@ -287,10 +308,12 @@ impl Renderer {
         }
 
         let voxels = world.get_renderable_voxels_for_area(area_location);
+        let area = world.take_area(area_location);
 
         for (location, voxel) in voxels {
-            self.update_meshes_for_voxel(world, location, voxel);
+            self.update_meshes_for_voxel(world, location, voxel, Some(&area));
         }
+        world.return_area(area);
     }
 
     fn is_area_visible(
