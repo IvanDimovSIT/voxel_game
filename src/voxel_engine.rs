@@ -11,6 +11,7 @@ use crate::{
         debug_display::DebugDisplay,
         height_map::HeightMap,
         renderer::Renderer,
+        screen_effects::draw_water_effect,
         sky::Sky,
         ui_display::{draw_crosshair, draw_selected_voxel},
         voxel_particle_system::VoxelParticleSystem,
@@ -27,7 +28,7 @@ use crate::{
     service::{
         active_zone::{get_load_zone, get_render_zone, get_render_zone_on_world_load},
         asset_manager::AssetManager,
-        input::{self, *},
+        input::{self, ScrollDirection},
         persistence::{
             player_persistence::{load_player_info, save_player_info},
             user_settings_persistence::write_user_settings_blocking,
@@ -36,12 +37,17 @@ use crate::{
             },
         },
         physics::{
-            player_physics::{process_collisions, push_player_up_if_stuck, try_jump, try_move},
+            player_physics::{
+                process_collisions, push_player_up_if_stuck, try_jump, try_move, try_swim,
+            },
             voxel_physics::VoxelSimulator,
+            water_simulator::WaterSimulator,
         },
         raycast::{RaycastResult, cast_ray},
         sound_manager::SoundId,
-        world_actions::{destroy_voxel, place_voxel, put_player_on_ground, replace_voxel},
+        world_actions::{
+            destroy_voxel, place_voxel, put_player_on_ground, replace_voxel, update_player_in_water,
+        },
         world_time::WorldTime,
     },
 };
@@ -52,6 +58,7 @@ pub struct VoxelEngine {
     player_info: PlayerInfo,
     debug_display: DebugDisplay,
     voxel_simulator: VoxelSimulator,
+    water_simulator: WaterSimulator,
     voxel_particles: VoxelParticleSystem,
     asset_manager: Rc<AssetManager>,
     user_settings: UserSettings,
@@ -72,14 +79,15 @@ impl VoxelEngine {
             .unwrap_or_else(|| (PlayerInfo::new(vec3(0.0, 0.0, 0.0)), false));
 
         player_info.camera_controller.set_focus(true);
-        let (world_time, simulated_voxels) =
+        let (world_time, simulated_voxels, water_simulator) =
             if let Some(world_metadata) = load_world_metadata(&world_name) {
                 (
                     WorldTime::new(world_metadata.delta),
                     world_metadata.simulated_voxels,
+                    world_metadata.water_simulator,
                 )
             } else {
-                (WorldTime::new(PI * 0.5), vec![])
+                (WorldTime::new(PI * 0.5), vec![], WaterSimulator::new())
             };
 
         let sky = Sky::new(&asset_manager.texture_manager);
@@ -99,6 +107,7 @@ impl VoxelEngine {
             sky,
             height_map: HeightMap::new(),
             voxel_particles: VoxelParticleSystem::new(),
+            water_simulator,
         };
 
         if !successful_load {
@@ -146,44 +155,47 @@ impl VoxelEngine {
             return raycast_result;
         }
 
-        if is_enter_inventory() {
+        if input::is_enter_inventory() {
             self.player_info.camera_controller.set_focus(false);
             self.menu_state = MenuState::ItemSelection {
                 currently_selected_item: None,
             };
-        } else if is_enter_crafting() {
+        } else if input::is_enter_crafting() {
             self.player_info.camera_controller.set_focus(false);
             self.menu_state =
                 MenuState::Crafting(CraftingMenuContext::new(&self.player_info.inventory));
         }
-        if is_place_voxel(&self.player_info.camera_controller) {
+        if input::is_place_voxel(&self.player_info.camera_controller) {
             self.try_place_voxel(raycast_result);
         }
-        if is_destroy_voxel(&self.player_info.camera_controller) {
+        if input::is_destroy_voxel(&self.player_info.camera_controller) {
             self.try_destroy_voxel(raycast_result);
         }
-        if is_replace_voxel(&self.player_info.camera_controller) {
+        if input::is_replace_voxel(&self.player_info.camera_controller) {
             self.try_replace_voxel(raycast_result);
         }
-        if jump() {
+        if input::jump() {
             try_jump(&mut self.player_info, &mut self.world);
         }
-        if move_forward() {
+        if input::swim() {
+            try_swim(&mut self.player_info, delta);
+        }
+        if input::move_forward() {
             self.try_move_forward(self.player_info.move_speed, delta);
         }
-        if move_back() {
+        if input::move_back() {
             self.try_move_forward(-self.player_info.move_speed, delta);
         }
-        if move_left() {
+        if input::move_left() {
             self.try_move_right(-self.player_info.move_speed, delta);
         }
-        if move_right() {
+        if input::move_right() {
             self.try_move_right(self.player_info.move_speed, delta);
         }
-        if toggle_debug() {
+        if input::toggle_debug() {
             self.debug_display.toggle_display();
         }
-        match get_scroll_direction() {
+        match input::get_scroll_direction() {
             ScrollDirection::Up => self.player_info.voxel_selector.select_next(),
             ScrollDirection::Down => self.player_info.voxel_selector.select_prev(),
             ScrollDirection::None => {}
@@ -205,10 +217,10 @@ impl VoxelEngine {
     }
 
     fn manage_menu_state(&mut self) {
-        if exit_focus() && !self.menu_state.is_in_menu() {
+        if input::exit_focus() && !self.menu_state.is_in_menu() {
             self.menu_state = MenuState::Main;
             self.player_info.camera_controller.set_focus(false);
-        } else if exit_focus() {
+        } else if input::exit_focus() {
             self.menu_state = MenuState::Hidden;
             self.player_info.camera_controller.set_focus(true);
         }
@@ -222,6 +234,7 @@ impl VoxelEngine {
         self.world_time.update(delta);
         self.process_physics(delta);
         self.voxel_particles.update(delta);
+        update_player_in_water(&mut self.player_info, &mut self.world);
     }
 
     /// process falling and collisions
@@ -232,8 +245,14 @@ impl VoxelEngine {
             .play_sound_for_collision(collision_type, &self.user_settings);
 
         push_player_up_if_stuck(&mut self.player_info, &mut self.world);
-        self.voxel_simulator
-            .simulate_falling(&mut self.world, &mut self.renderer, delta);
+        self.voxel_simulator.simulate_falling(
+            &mut self.world,
+            &mut self.renderer,
+            &mut self.water_simulator,
+            delta,
+        );
+        self.water_simulator
+            .update(&mut self.world, &mut self.renderer, delta);
     }
 
     /// updates the areas loaded in memory and unloads old areas
@@ -257,7 +276,7 @@ impl VoxelEngine {
         self.sky.draw_sky(&self.world_time, &camera);
         let rendered = self.renderer.render_voxels(
             &camera,
-            self.user_settings.get_render_distance(),
+            &self.player_info,
             &self.world_time,
             &self.user_settings,
             &self.world,
@@ -276,6 +295,9 @@ impl VoxelEngine {
         self.debug_display
             .draw_area_border(&self.player_info.camera_controller);
         set_default_camera();
+        if self.player_info.is_in_water {
+            draw_water_effect(width, height, &self.asset_manager.texture_manager);
+        }
         draw_crosshair(width, height);
         self.player_info
             .voxel_selector
@@ -413,6 +435,7 @@ impl VoxelEngine {
                     &mut self.world,
                     &mut self.renderer,
                     &mut self.voxel_simulator,
+                    &mut self.water_simulator,
                 );
                 if !has_placed {
                     return;
@@ -441,6 +464,7 @@ impl VoxelEngine {
                     &mut self.renderer,
                     &mut self.voxel_simulator,
                     &mut self.voxel_particles,
+                    &mut self.water_simulator,
                 );
                 if let Some(destroyed) = maybe_destroyed {
                     self.player_info.inventory.add_item(Item::new(destroyed, 1));
@@ -471,6 +495,7 @@ impl VoxelEngine {
                     &mut self.world,
                     &mut self.renderer,
                     &mut self.voxel_simulator,
+                    &mut self.water_simulator,
                 );
                 if let Some(replaced_voxel) = maybe_replaced {
                     self.player_info.inventory.reduce_selected_at(index);
@@ -504,7 +529,11 @@ impl VoxelEngine {
 impl Drop for VoxelEngine {
     fn drop(&mut self) {
         save_player_info(self.world.get_world_name(), &self.player_info);
-        let world_metadata = WorldMetadata::new(&self.world_time, &self.voxel_simulator);
+        let world_metadata = WorldMetadata::new(
+            &self.world_time,
+            &self.voxel_simulator,
+            &self.water_simulator,
+        );
         store_world_metadata(world_metadata, self.world.get_world_name());
         write_user_settings_blocking(&self.user_settings);
         self.world.save_all_blocking();

@@ -6,10 +6,7 @@ use macroquad::{
     text::{Font, TextParams, draw_text_ex, measure_text},
 };
 
-use crate::{
-    interface::style::{CLEAR_SCREEN_COLOR, TEXT_COLOR},
-    utils::use_str_buffer,
-};
+use crate::{interface::style::TEXT_COLOR, utils::use_str_buffer};
 
 use super::style::{BORDER_COLOR, SHADOW_COLOR, SHADOW_OFFSET};
 
@@ -25,10 +22,6 @@ pub fn draw_rect_with_shadow(x: f32, y: f32, w: f32, h: f32, color: Color) {
     draw_rectangle(x - SHADOW_OFFSET, y + SHADOW_OFFSET, w, h, SHADOW_COLOR);
     draw_rectangle(x, y, w, h, color);
     draw_rectangle_lines(x, y, w, h, 2.0, BORDER_COLOR);
-}
-
-pub fn darken_background(width: f32, height: f32) {
-    draw_rectangle(0.0, 0.0, width, height, CLEAR_SCREEN_COLOR);
 }
 
 pub fn draw_centered_multiline_text(

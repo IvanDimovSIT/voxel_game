@@ -1,3 +1,4 @@
+use bincode::{Decode, Encode};
 use macroquad::math::{Vec3, vec3};
 
 pub const LOCATION_OFFSET: i32 = 1_000_000;
@@ -29,7 +30,7 @@ impl From<Location> for Vec3 {
     }
 }
 
-#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, Encode, Decode)]
 pub struct InternalLocation {
     pub x: u32,
     pub y: u32,

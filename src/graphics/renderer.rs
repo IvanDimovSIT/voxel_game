@@ -16,6 +16,7 @@ use crate::{
     model::{
         area::{AREA_HEIGHT, AREA_SIZE, AreaLocation},
         location::{InternalLocation, LOCATION_OFFSET, Location},
+        player_info::PlayerInfo,
         user_settings::UserSettings,
         voxel::{MAX_VOXEL_VARIANTS, Voxel},
         world::World,
@@ -335,12 +336,13 @@ impl Renderer {
     pub fn render_voxels(
         &mut self,
         camera: &Camera3D,
-        render_size: u32,
+        player_info: &PlayerInfo,
         world_time: &WorldTime,
         user_settings: &UserSettings,
         world: &World,
         height_map: &mut HeightMap,
     ) -> (usize, usize) {
+        let render_size = user_settings.get_render_distance();
         let normalised_camera = CameraController::normalize_camera_3d(camera);
         set_camera(&normalised_camera);
         let look = (camera.target - camera.position).normalize_or_zero();
@@ -362,8 +364,13 @@ impl Renderer {
             user_settings.has_dynamic_lighting(),
         );
 
-        let visible_voxels =
-            Self::filter_visible_voxels(camera.position, look, &visible_areas, render_size);
+        let visible_voxels = Self::filter_visible_voxels(
+            camera.position,
+            look,
+            &visible_areas,
+            render_size,
+            player_info,
+        );
         let optimised_voxel_meshes = Self::optimise_render_order(&visible_voxels);
 
         let mut faces_visible: usize = 0;
@@ -454,14 +461,16 @@ impl Renderer {
         look: Vec3,
         visible_areas: &'a Vec<(&'a AreaLocation, &'a RenderArea)>,
         render_size: u32,
+        player_info: &PlayerInfo,
     ) -> Vec<(&'a InternalLocation, &'a MeshInfo)> {
         let render_distance = (render_size * AREA_SIZE) as f32;
 
         visible_areas
             .par_iter()
             .flat_map(|(_, y)| &y.mesh_map)
-            .filter(|(location, _mesh_with_face_count)| {
-                Self::is_voxel_visible(location, look, camera_position, render_distance)
+            .filter(|(location, (_face_count, voxel, _mesh))| {
+                !(player_info.is_in_water && Voxel::WATER.contains(voxel))
+                    && Self::is_voxel_visible(location, look, camera_position, render_distance)
             })
             .collect()
     }

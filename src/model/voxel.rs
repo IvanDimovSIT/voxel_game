@@ -20,14 +20,38 @@ pub enum Voxel {
     Lamp,
     Trampoline,
     Cactus,
+    WaterSource,
+    WaterDown,
+    Water1,
+    Water2,
+    Water3,
+    Water4,
     Glass,
 }
 impl Voxel {
     /// voxels that are fully or partially transparent
-    pub const TRANSPARENT: [Self; 2] = [Self::None, Self::Glass];
+    pub const TRANSPARENT: [Self; 8] = [
+        Self::None,
+        Self::Glass,
+        Self::WaterSource,
+        Self::WaterDown,
+        Self::Water1,
+        Self::Water2,
+        Self::Water3,
+        Self::Water4,
+    ];
 
     /// voxels that can fall down
     pub const FALLING: [Self; 3] = [Self::Sand, Self::Dirt, Self::Grass];
+
+    pub const WATER: [Self; 6] = [
+        Self::WaterSource,
+        Self::WaterDown,
+        Self::Water1,
+        Self::Water2,
+        Self::Water3,
+        Self::Water4,
+    ];
 
     pub fn index(self) -> usize {
         let index = self as usize;
@@ -55,7 +79,26 @@ impl Voxel {
             Self::Trampoline => "Trampoline",
             Self::Glass => "Glass",
             Self::Cactus => "Cactus",
+            Self::WaterSource => "Water",
+            Self::WaterDown => "Water (Flowing down)",
+            Self::Water1 => "Water (Level 1)",
+            Self::Water2 => "Water (Level 2)",
+            Self::Water3 => "Water (Level 3)",
+            Self::Water4 => "Water (Level 4)",
         }
+    }
+
+    pub fn is_solid(self) -> bool {
+        !matches!(
+            self,
+            Voxel::None
+                | Voxel::WaterSource
+                | Voxel::WaterDown
+                | Voxel::Water1
+                | Voxel::Water2
+                | Voxel::Water3
+                | Voxel::Water4
+        )
     }
 }
 impl Default for Voxel {

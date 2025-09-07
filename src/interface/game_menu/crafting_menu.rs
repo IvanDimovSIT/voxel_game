@@ -11,14 +11,15 @@ use macroquad::{
 };
 
 use crate::{
+    graphics::screen_effects::darken_background,
     interface::{
         game_menu::game_menu_context::MenuSelection,
         style::{
             BACKGROUND_COLOR, BUTTON_HOVER_COLOR, SECONDARY_TEXT_COLOR, SELECTED_COLOR, TEXT_COLOR,
         },
         util::{
-            darken_background, draw_centered_multiline_text, draw_game_text, draw_item_name,
-            draw_rect_with_shadow, get_text_width, is_point_in_rect,
+            draw_centered_multiline_text, draw_game_text, draw_item_name, draw_rect_with_shadow,
+            get_text_width, is_point_in_rect,
         },
     },
     model::{

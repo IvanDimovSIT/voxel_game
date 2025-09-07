@@ -15,6 +15,11 @@ const STRONG_COLLISION_SPEED: f32 = MAX_FALL_SPEED * 0.2;
 const MAX_LOCATIONS_TO_CHECK: usize = 9;
 const MOVE_CHECKS: usize = 4;
 const MIN_VELOCITY_TO_BOUNCE: f32 = 1.5;
+const MAX_SWIM_SPEED: f32 = -25.0;
+const GAIN_SWIM_SPEED: f32 = -25.0;
+const IN_WATER_FALL_SPEED_MODIFIER: f32 = 0.2;
+const IN_WATER_MAX_FALL_SPEED: f32 = 15.0;
+const IN_WATER_MOVE_SPEED_MODIFIER: f32 = 0.5;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CollisionType {
@@ -44,7 +49,7 @@ pub fn process_collisions(
     world: &mut World,
     delta: f32,
 ) -> CollisionType {
-    player_info.velocity = (player_info.velocity + GRAVITY * delta).min(MAX_FALL_SPEED);
+    player_info.velocity = calculate_fall_velocity(player_info, delta);
 
     let top_position =
         player_info.camera_controller.get_position() + vec3(0.0, 0.0, player_info.velocity * delta);
@@ -57,7 +62,7 @@ pub fn process_collisions(
 
     for down_location in down_locations {
         let voxel_hit = world.get(down_location);
-        if voxel_hit != Voxel::None {
+        if voxel_hit.is_solid() {
             if voxel_hit == Voxel::Trampoline && should_bounce_from_trampoline(player_info) {
                 return CollisionType::Bounce;
             }
@@ -85,6 +90,16 @@ pub fn process_collisions(
     CollisionType::None
 }
 
+fn calculate_fall_velocity(player_info: &PlayerInfo, delta: f32) -> f32 {
+    let (water_modifier, max_fall_speed) = if player_info.is_in_water {
+        (IN_WATER_FALL_SPEED_MODIFIER, IN_WATER_MAX_FALL_SPEED)
+    } else {
+        (1.0, MAX_FALL_SPEED)
+    };
+
+    (player_info.velocity + GRAVITY * delta * water_modifier).min(max_fall_speed)
+}
+
 fn should_bounce_from_trampoline(player_info: &mut PlayerInfo) -> bool {
     if player_info.velocity < MIN_VELOCITY_TO_BOUNCE {
         return false;
@@ -95,6 +110,10 @@ fn should_bounce_from_trampoline(player_info: &mut PlayerInfo) -> bool {
 }
 
 pub fn try_jump(player_info: &mut PlayerInfo, world: &mut World) {
+    if player_info.is_in_water {
+        return;
+    }
+
     let bottom_voxel_position = player_info.camera_controller.get_bottom_position();
     let mut down_locations = StackVec::new();
     find_locations_for_collisions(bottom_voxel_position, player_info.size, &mut down_locations);
@@ -106,6 +125,15 @@ pub fn try_jump(player_info: &mut PlayerInfo, world: &mut World) {
     if is_on_ground {
         player_info.velocity = player_info.jump_velocity;
     }
+}
+
+pub fn try_swim(player_info: &mut PlayerInfo, delta: f32) {
+    if !player_info.is_in_water {
+        return;
+    }
+
+    player_info.velocity += delta * GAIN_SWIM_SPEED;
+    player_info.velocity = player_info.velocity.max(MAX_SWIM_SPEED);
 }
 
 /// checks if the new voxel location will cause a collision with the player
@@ -131,12 +159,14 @@ pub fn try_move(player_info: &mut PlayerInfo, world: &mut World, displacement: V
     let top_position = player_info.camera_controller.get_position();
     let bottom_position =
         player_info.camera_controller.get_bottom_position() - vec3(0.0, 0.0, 0.55);
-    let mut top_displaced = top_position + displacement;
-    let mut bottom_displaced = bottom_position + displacement;
+    let modified_displacement = modify_displacement_in_water(displacement, player_info);
+    let mut top_displaced = top_position + modified_displacement;
+    let mut bottom_displaced = bottom_position + modified_displacement;
     let mut top_locations;
     let mut bottom_locations;
 
-    let delta_displacement = displacement * (displacement.length() / MOVE_CHECKS as f32);
+    let delta_displacement =
+        modified_displacement * (modified_displacement.length() / MOVE_CHECKS as f32);
     for _checks in 0..MOVE_CHECKS {
         top_locations = StackVec::new();
         bottom_locations = StackVec::new();
@@ -158,8 +188,16 @@ pub fn try_move(player_info: &mut PlayerInfo, world: &mut World, displacement: V
     }
 }
 
+fn modify_displacement_in_water(displacement: Vec3, player_info: &PlayerInfo) -> Vec3 {
+    if !player_info.is_in_water {
+        return displacement;
+    }
+
+    displacement * IN_WATER_MOVE_SPEED_MODIFIER
+}
+
 fn is_location_non_empty(location: Location, world: &mut World) -> bool {
-    world.get(location) != Voxel::None
+    world.get(location).is_solid()
 }
 
 /// finds locations around the position that could cause collisions

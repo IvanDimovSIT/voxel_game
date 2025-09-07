@@ -11,10 +11,11 @@ use macroquad::{
 };
 
 use crate::{
+    graphics::screen_effects::darken_background,
     interface::{
         game_menu::game_menu_context::MenuSelection,
         style::{BACKGROUND_COLOR, SHADOW_COLOR, TEXT_COLOR},
-        util::{darken_background, draw_game_text, draw_item_name, draw_rect_with_shadow},
+        util::{draw_game_text, draw_item_name, draw_rect_with_shadow},
     },
     model::{
         inventory::{Inventory, Item, MAX_ITEMS_PER_SLOT},

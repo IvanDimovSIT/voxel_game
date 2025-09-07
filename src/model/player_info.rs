@@ -21,6 +21,7 @@ pub struct PlayerInfo {
     pub size: f32,
     pub velocity: f32,
     pub jump_velocity: f32,
+    pub is_in_water: bool,
 }
 impl PlayerInfo {
     pub fn new(position: Vec3) -> Self {
@@ -33,6 +34,7 @@ impl PlayerInfo {
             size: PLAYER_SIZE,
             voxel_selector: ItemHotbar::new(),
             inventory: Inventory::new(),
+            is_in_water: false,
         }
     }
 
@@ -65,6 +67,7 @@ impl From<PlayerInfoDTO> for PlayerInfo {
             size: PLAYER_SIZE,
             voxel_selector: value.voxel_selector,
             inventory: value.inventory,
+            is_in_water: false,
         }
     }
 }

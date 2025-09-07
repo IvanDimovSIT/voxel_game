@@ -24,6 +24,10 @@ pub fn jump() -> bool {
     is_key_pressed(macroquad::input::KeyCode::Space)
 }
 
+pub fn swim() -> bool {
+    is_key_down(macroquad::input::KeyCode::Space)
+}
+
 pub fn exit_focus() -> bool {
     is_key_released(macroquad::input::KeyCode::Escape)
 }

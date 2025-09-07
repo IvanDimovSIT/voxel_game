@@ -60,6 +60,7 @@ impl Inventory {
         inventory.selected[3] = Item::some(Voxel::Boards, 50);
         inventory.selected[4] = Item::some(Voxel::Cobblestone, 50);
         inventory.selected[5] = Item::some(Voxel::Lamp, 50);
+        inventory.selected[6] = Item::some(Voxel::WaterSource, 50);
 
         inventory
     }

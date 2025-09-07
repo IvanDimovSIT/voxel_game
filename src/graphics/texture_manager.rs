@@ -28,6 +28,7 @@ const TEXTURES: [(Voxel, &str); 14] = [
     (Voxel::Glass, "glass.png"),
     (Voxel::Cactus, "cactus.png"),
 ];
+const WATER_TEXTURE: &str = "water.png";
 const ICON_TEXTURES: [(Voxel, &str); 3] = [
     (Voxel::Grass, "grass-icon.png"),
     (Voxel::Trampoline, "trampoline-icon.png"),
@@ -91,8 +92,26 @@ impl TextureManager {
                 texture_type, texture_path
             );
         }
+        Self::load_water_texture(&mut textures).await;
 
         textures
+    }
+
+    async fn load_water_texture(textures: &mut [Option<Texture2D>]) {
+        let water_voxels = [
+            Voxel::WaterSource,
+            Voxel::WaterDown,
+            Voxel::Water1,
+            Voxel::Water2,
+            Voxel::Water3,
+            Voxel::Water4,
+        ];
+        let texture_path = format!("{BASE_VOXEL_TEXTURES_PATH}{WATER_TEXTURE}");
+        let texture = Self::load_image(&texture_path).await;
+        texture.set_filter(FilterMode::Nearest);
+        for voxel in water_voxels {
+            textures[voxel.index()] = Some(texture.clone());
+        }
     }
 
     async fn load_image(path: &str) -> Texture2D {

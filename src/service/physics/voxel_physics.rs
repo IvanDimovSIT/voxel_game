@@ -8,7 +8,7 @@ use macroquad::{
 use crate::{
     graphics::{mesh_generator::MeshGenerator, renderer::Renderer},
     model::{area::AREA_HEIGHT, location::Location, voxel::Voxel, world::World},
-    service::camera_controller::CameraController,
+    service::{camera_controller::CameraController, physics::water_simulator::WaterSimulator},
     utils::{StackVec, vector_to_location},
 };
 
@@ -106,6 +106,7 @@ impl VoxelSimulator {
         &mut self,
         world: &mut World,
         renderer: &mut Renderer,
+        water_simulator: &mut WaterSimulator,
         location_to_check: Location,
     ) {
         let mut to_check = StackVec::new();
@@ -120,13 +121,14 @@ impl VoxelSimulator {
                 z: location.z + 1,
                 ..location
             };
-            if world.get(lower) != Voxel::None {
+            if world.get(lower).is_solid() {
                 continue;
             }
 
             let position = location.into();
             world.set(location, Voxel::None);
             renderer.update_location(world, location);
+            water_simulator.location_updated(location);
             self.simulated_voxels.push(SimulatedVoxel {
                 voxel_type: voxel,
                 mesh: renderer
@@ -142,13 +144,19 @@ impl VoxelSimulator {
                 ..location
             };
             if up_location.z >= 0 && Voxel::FALLING.contains(&world.get(up_location)) {
-                self.update_voxels(world, renderer, up_location);
+                self.update_voxels(world, renderer, water_simulator, up_location);
             }
         }
     }
 
     /// simulates gravity for falling voxels and places them on the ground
-    pub fn simulate_falling(&mut self, world: &mut World, renderer: &mut Renderer, delta: f32) {
+    pub fn simulate_falling(
+        &mut self,
+        world: &mut World,
+        renderer: &mut Renderer,
+        simulator: &mut WaterSimulator,
+        delta: f32,
+    ) {
         for voxel in &mut self.simulated_voxels {
             voxel.velocity += delta * GRAVITY;
             voxel.velocity = voxel.velocity.min(MAX_FALL_SPEED);
@@ -159,7 +167,7 @@ impl VoxelSimulator {
         }
 
         self.simulated_voxels
-            .retain(|voxel| Self::retain_or_place_voxel(voxel, world, renderer));
+            .retain(|voxel| Self::retain_or_place_voxel(voxel, world, renderer, simulator));
     }
 
     pub fn draw(&self, camera: &Camera3D) {
@@ -195,13 +203,14 @@ impl VoxelSimulator {
         voxel: &SimulatedVoxel,
         world: &mut World,
         renderer: &mut Renderer,
+        simulator: &mut WaterSimulator,
     ) -> bool {
         let location = vector_to_location(voxel.position + vec3(0.0, 0.0, 0.5));
         if location.z >= AREA_HEIGHT as i32 {
             return false;
         }
         let world_voxel = world.get(location);
-        if world_voxel == Voxel::None {
+        if !world_voxel.is_solid() {
             return true;
         }
         if location.z <= 0 {
@@ -212,9 +221,10 @@ impl VoxelSimulator {
             ..location
         };
         let up_voxel = world.get(up_location);
-        if up_voxel == Voxel::None {
+        if !up_voxel.is_solid() {
             world.set(up_location, voxel.voxel_type);
             renderer.update_location(world, up_location);
+            simulator.location_updated(up_location);
         }
 
         false

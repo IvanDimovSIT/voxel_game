@@ -8,11 +8,12 @@ use macroquad::{
 };
 
 use crate::{
+    graphics::screen_effects::darken_background,
     interface::{
         button::draw_button,
         game_menu::crafting_menu::CraftingMenuHandle,
         style::{BACKGROUND_COLOR, BUTTON_COLOR},
-        util::{darken_background, draw_game_text},
+        util::draw_game_text,
     },
     model::{inventory::Item, user_settings::UserSettings},
     service::asset_manager::AssetManager,

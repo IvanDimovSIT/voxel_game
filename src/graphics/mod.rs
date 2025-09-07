@@ -2,6 +2,7 @@ pub mod debug_display;
 pub mod height_map;
 pub mod mesh_generator;
 pub mod renderer;
+pub mod screen_effects;
 pub mod sky;
 pub mod sky_shader;
 pub mod texture_manager;

@@ -2,7 +2,10 @@ use bincode::{Decode, Encode};
 
 use crate::service::{
     persistence::generic_persistence::{create_directory, read_binary_object, write_binary_object},
-    physics::voxel_physics::{SimulatedVoxelDTO, VoxelSimulator},
+    physics::{
+        voxel_physics::{SimulatedVoxelDTO, VoxelSimulator},
+        water_simulator::WaterSimulator,
+    },
     world_time::WorldTime,
 };
 
@@ -12,12 +15,18 @@ const IS_COMPRESSED: bool = false;
 pub struct WorldMetadata {
     pub delta: f32,
     pub simulated_voxels: Vec<SimulatedVoxelDTO>,
+    pub water_simulator: WaterSimulator,
 }
 impl WorldMetadata {
-    pub fn new(world_time: &WorldTime, voxel_simulator: &VoxelSimulator) -> Self {
+    pub fn new(
+        world_time: &WorldTime,
+        voxel_simulator: &VoxelSimulator,
+        water_simulator: &WaterSimulator,
+    ) -> Self {
         Self {
             delta: world_time.get_delta(),
             simulated_voxels: voxel_simulator.create_simulated_voxel_dtos(),
+            water_simulator: water_simulator.clone(),
         }
     }
 }
