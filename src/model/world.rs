@@ -39,19 +39,6 @@ impl World {
         self.areas.insert(area_location, area);
     }
 
-    pub fn unload_area(&mut self, area_location: AreaLocation) {
-        if !self.areas.contains_key(&area_location) {
-            return;
-        }
-        if let Some(unloaded) = self.areas.remove(&area_location) {
-            if unloaded.has_changed {
-                world_persistence::store(unloaded, self.world_name.clone());
-            }
-        } else {
-            error!("Missing loaded {:?}", area_location);
-        }
-    }
-
     pub fn convert_global_to_local_location(location: InternalLocation) -> InternalLocation {
         let local_x = location.x % AREA_SIZE;
         let local_y = location.y % AREA_SIZE;
@@ -203,9 +190,24 @@ impl World {
             .copied()
             .collect();
 
+        self.unload_areas(&areas_to_unload);
+    }
+
+    fn unload_areas(&mut self, areas_to_unload: &[AreaLocation]) {
+        let mut unloaded = Vec::with_capacity(32);
         for area_location in areas_to_unload {
-            self.unload_area(area_location);
+            let area_option = self.areas.remove(area_location);
+            if let Some(area) = area_option {
+                if area.has_changed {
+                    unloaded.push(area);
+                }
+            }
         }
+        if unloaded.is_empty() {
+            return;
+        }
+
+        world_persistence::store(unloaded, self.world_name.clone());
     }
 
     pub fn get_loaded_areas_count(&self) -> usize {

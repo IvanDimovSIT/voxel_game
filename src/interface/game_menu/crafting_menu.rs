@@ -437,7 +437,13 @@ impl CraftingMenuContext {
         let y = menu_y + menu_height - PAGES_COUNTER_OFFSET_Y;
 
         use_str_buffer(|buffer| {
-            write!(buffer, "Page {}/{}", self.current_page + 1, max_page + 1).expect(BUFFER_ERROR);
+            write!(
+                buffer,
+                "Page {}/{} (mouse scroll)",
+                self.current_page + 1,
+                max_page + 1
+            )
+            .expect(BUFFER_ERROR);
             draw_game_text(buffer, x, y, font_size, TEXT_COLOR, font);
         });
     }

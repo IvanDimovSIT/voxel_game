@@ -45,7 +45,7 @@ impl GameState {
     }
 
     async fn handle_running_state(voxel_engine: &mut VoxelEngine) -> Option<GameState> {
-        let delta = get_frame_time().min(0.2);
+        let delta = get_frame_time().min(0.1);
         let raycast_result = voxel_engine.process_input(delta);
         voxel_engine.update_loaded_areas();
         voxel_engine.update_processes(delta);

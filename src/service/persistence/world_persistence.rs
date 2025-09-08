@@ -38,11 +38,13 @@ pub fn store_blocking(area: Area, world_name: &str) {
     let _result = write_binary_object(&filepath, &area_dto, IS_COMPRESSED);
 }
 
-/// stores an area on a background thread
-pub fn store(area: Area, world_name: String) {
-    debug_assert!(area.has_changed);
+/// stores all areas on a background thread
+pub fn store(areas: Vec<Area>, world_name: String) {
+    debug_assert!(areas.iter().all(|area| area.has_changed));
     rayon::spawn(move || {
-        store_blocking(area, &world_name);
+        for area in areas {
+            store_blocking(area, &world_name);
+        }
     });
 }
 
@@ -90,26 +92,30 @@ impl AreaLoader {
 
     /// starts background threads to load areas from disk
     pub fn batch_load(&mut self, areas_to_load: &[AreaLocation], world_name: &str) {
-        let to_load_lock = self.to_load.lock().unwrap();
+        let mut to_load_lock = self.to_load.lock().unwrap();
         let areas_to_load = areas_to_load
             .iter()
             .filter(|area_location| !to_load_lock.contains(area_location))
             .copied()
             .collect::<Vec<_>>();
+        for area_to_load in &areas_to_load {
+            to_load_lock.insert(*area_to_load);
+        }
         drop(to_load_lock);
 
-        for area_to_load in areas_to_load {
-            let to_load = self.to_load.clone();
-            let loaded = self.loaded.clone();
-            let world_name_owned = world_name.to_owned();
-            rayon::spawn(move || {
+        let to_load = self.to_load.clone();
+        let loaded = self.loaded.clone();
+        let world_name_owned = world_name.to_owned();
+
+        rayon::spawn(move || {
+            for area_to_load in areas_to_load {
                 let area = load_blocking(area_to_load, &world_name_owned);
                 let mut to_load_lock = to_load.lock().unwrap();
                 let mut loaded_lock = loaded.lock().unwrap();
                 to_load_lock.remove(&area.get_area_location());
                 loaded_lock.push(area);
-            });
-        }
+            }
+        });
     }
 
     /// returns loaded areas

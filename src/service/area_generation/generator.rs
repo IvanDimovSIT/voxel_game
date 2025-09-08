@@ -6,7 +6,6 @@ use crate::{
     model::{
         area::{AREA_HEIGHT, AREA_SIZE, Area, AreaLocation},
         location::InternalLocation,
-        voxel::Voxel,
     },
     service::area_generation::{
         biome_type::{BiomeType, BiomeTypeGenerator},
