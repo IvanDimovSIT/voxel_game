@@ -8,6 +8,7 @@ use crate::{
     service::area_generation::{
         algorithms::{get_point_on_noise_map_3d, normalise_sample},
         biome_type::BiomeType,
+        generator::ColumnSamples,
     },
 };
 
@@ -32,16 +33,23 @@ impl VoxelTypeGenerator {
         x: u32,
         y: u32,
         z_inverted: u32,
-        height: u32,
-        biome_type: BiomeType,
+        column_samples: &ColumnSamples,
     ) -> Voxel {
-        match biome_type {
-            BiomeType::Dry => {
-                self.calculate_voxel_type_for_dry_biome(area_location, x, y, z_inverted, height)
-            }
-            BiomeType::Wet => {
-                self.calculate_voxel_type_for_wet_biome(area_location, x, y, z_inverted, height)
-            }
+        match column_samples.biome_type {
+            BiomeType::Dry => self.calculate_voxel_type_for_dry_biome(
+                area_location,
+                x,
+                y,
+                z_inverted,
+                column_samples.terrain_height,
+            ),
+            BiomeType::Wet => self.calculate_voxel_type_for_wet_biome(
+                area_location,
+                x,
+                y,
+                z_inverted,
+                column_samples.terrain_height,
+            ),
         }
     }
 

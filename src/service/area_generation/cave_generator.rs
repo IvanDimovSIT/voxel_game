@@ -1,8 +1,11 @@
 use libnoise::{Fbm, Generator, Max, Simplex};
 
 use crate::{
-    model::area::{AREA_HEIGHT, AreaLocation},
-    service::area_generation::algorithms::normalise_sample,
+    model::{
+        area::{AREA_HEIGHT, AreaLocation},
+        voxel::Voxel,
+    },
+    service::area_generation::{algorithms::normalise_sample, generator::ColumnSamples},
 };
 
 use super::algorithms::{get_point_on_noise_map, get_point_on_noise_map_3d};
@@ -33,14 +36,27 @@ impl CaveGenerator {
         }
     }
 
-    pub fn should_be_cave(&self, area_location: AreaLocation, x: u32, y: u32, z: u32) -> bool {
-        if !(MIN_HEIGHT..MAX_HEIGHT).contains(&z) {
+    pub fn is_cave_zone(&self, area_location: AreaLocation, x: u32, y: u32) -> bool {
+        let point2d = get_point_on_noise_map(area_location, x, y);
+        let check_value = normalise_sample(self.check_noise.sample(point2d)) as i32;
+
+        check_value >= SHOULD_CHECK_FOR_CAVES_THRESHOLD
+    }
+
+    pub fn should_be_cave(
+        &self,
+        column_samples: &ColumnSamples,
+        voxel: Voxel,
+        area_location: AreaLocation,
+        x: u32,
+        y: u32,
+        z: u32,
+    ) -> bool {
+        if !column_samples.is_cave_zone || voxel == Voxel::None || voxel == Voxel::WaterSource {
             return false;
         }
 
-        let point2d = get_point_on_noise_map(area_location, x, y);
-        let check_value = normalise_sample(self.check_noise.sample(point2d)) as i32;
-        if check_value < SHOULD_CHECK_FOR_CAVES_THRESHOLD {
+        if !(MIN_HEIGHT..MAX_HEIGHT).contains(&z) {
             return false;
         }
 

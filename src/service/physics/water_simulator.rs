@@ -120,7 +120,12 @@ impl WaterSimulator {
         if voxel == LOWEST_WATER {
             return;
         }
-        if down_voxel.is_none() || Voxel::WATER.contains(&down_voxel.unwrap()) {
+        if down_voxel.is_none() {
+            return;
+        }
+
+        let down_voxel_some = down_voxel.unwrap();
+        if Voxel::NON_SOURCE_WATER.contains(&down_voxel_some) {
             return;
         }
 

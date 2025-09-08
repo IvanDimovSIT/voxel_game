@@ -6,10 +6,12 @@ use crate::{
     model::{
         area::{AREA_HEIGHT, AREA_SIZE, Area, AreaLocation},
         location::InternalLocation,
+        voxel::Voxel,
     },
     service::area_generation::{
-        biome_type::BiomeTypeGenerator,
+        biome_type::{BiomeType, BiomeTypeGenerator},
         cave_generator::CaveGenerator,
+        lake_generator::LakeGenerator,
         terrain_type::TerrainTypeGenerator,
         trees::{TreeType, generate_trees, should_generate_tree},
         voxel_type_generator::VoxelTypeGenerator,
@@ -25,12 +27,20 @@ fn hash_world_name(world_name: &str) -> u64 {
     hasher.finish()
 }
 
+pub struct ColumnSamples {
+    pub terrain_height: u32,
+    pub is_cave_zone: bool,
+    pub lake_depth: u32,
+    pub biome_type: BiomeType,
+}
+
 pub struct AreaGenerator {
     seed: u64,
     height_noise: TerrainTypeGenerator,
     biome_type_noise: BiomeTypeGenerator,
     cave_noise: CaveGenerator,
     voxel_type_generator: VoxelTypeGenerator,
+    lake_generator: LakeGenerator,
     tree_locations: StackVec<(InternalLocation, TreeType), AREA_SURFACE>,
 }
 impl AreaGenerator {
@@ -54,34 +64,65 @@ impl AreaGenerator {
 
     /// generates a single column in an area and marks any potential tree locations
     fn generate_column(&mut self, area: &mut Area, area_location: AreaLocation, x: u32, y: u32) {
-        let height = self.height_noise.sample(area_location, x, y);
-        let biome_type = self.biome_type_noise.sample(area_location, x, y);
+        let column_sample = self.sample_column_characteristics(area_location, x, y);
 
-        for z_inverted in 1..=height {
-            if self
-                .cave_noise
-                .should_be_cave(area_location, x, y, z_inverted)
-            {
-                continue;
-            }
+        for z_inverted in 1..=column_sample.terrain_height {
             let current_voxel = self.voxel_type_generator.calculate_voxel_type(
                 area_location,
                 x,
                 y,
                 z_inverted,
-                height,
-                biome_type,
+                &column_sample,
             );
+            let lake_voxel =
+                LakeGenerator::generate_voxel(&column_sample, z_inverted).unwrap_or(current_voxel);
+            if self.cave_noise.should_be_cave(
+                &column_sample,
+                lake_voxel,
+                area_location,
+                x,
+                y,
+                z_inverted,
+            ) {
+                continue;
+            }
+
             area.set_without_updating_max_height(
                 InternalLocation::new(x, y, AREA_HEIGHT - z_inverted),
-                current_voxel,
+                lake_voxel,
             );
         }
 
-        let local = InternalLocation::new(x, y, AREA_HEIGHT - height);
+        let local = InternalLocation::new(x, y, AREA_HEIGHT - column_sample.terrain_height);
         let tree_type = should_generate_tree(area.get(local), self.seed, area_location, local);
         if tree_type != TreeType::None {
             self.tree_locations.push((local, tree_type));
+        }
+    }
+
+    /// samples shared characteristics for the whole column
+    fn sample_column_characteristics(
+        &self,
+        area_location: AreaLocation,
+        x: u32,
+        y: u32,
+    ) -> ColumnSamples {
+        let terrain_height = self.height_noise.sample(area_location, x, y);
+        let is_cave_zone = self.cave_noise.is_cave_zone(area_location, x, y);
+        let lake_depth = self.lake_generator.sample_lake_depth(
+            is_cave_zone,
+            terrain_height,
+            area_location,
+            x,
+            y,
+        );
+        let biome_type = self.biome_type_noise.sample(area_location, x, y);
+
+        ColumnSamples {
+            terrain_height,
+            is_cave_zone,
+            lake_depth,
+            biome_type,
         }
     }
 
@@ -94,6 +135,7 @@ impl AreaGenerator {
             biome_type_noise: BiomeTypeGenerator::new(seed),
             cave_noise: CaveGenerator::new(seed),
             voxel_type_generator: VoxelTypeGenerator::new(seed),
+            lake_generator: LakeGenerator::new(seed),
             tree_locations: StackVec::new(),
         }
     }

@@ -53,6 +53,14 @@ impl Voxel {
         Self::Water4,
     ];
 
+    pub const NON_SOURCE_WATER: [Self; 5] = [
+        Self::WaterDown,
+        Self::Water1,
+        Self::Water2,
+        Self::Water3,
+        Self::Water4,
+    ];
+
     pub fn index(self) -> usize {
         let index = self as usize;
         debug_assert!(

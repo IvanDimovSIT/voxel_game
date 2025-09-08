@@ -1,7 +1,7 @@
 use macroquad::math::Vec3;
 
 use crate::{
-    model::{area::AREA_HEIGHT, location::Location, world::World},
+    model::{area::AREA_HEIGHT, location::Location, voxel::Voxel, world::World},
     utils::vector_to_location,
 };
 
@@ -18,7 +18,9 @@ pub enum RaycastResult {
 }
 
 fn is_hit(world: &mut World, position: Location) -> bool {
-    world.get(position).is_solid()
+    let voxel = world.get(position);
+
+    voxel != Voxel::None && !Voxel::NON_SOURCE_WATER.contains(&voxel)
 }
 
 /// DDA raycasting
