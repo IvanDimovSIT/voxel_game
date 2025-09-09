@@ -1,6 +1,8 @@
 use bincode::{Decode, Encode};
 use macroquad::math::{Vec3, vec3};
 
+use crate::model::world::World;
+
 pub const LOCATION_OFFSET: i32 = 1_000_000;
 
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
@@ -37,11 +39,11 @@ pub struct InternalLocation {
     pub z: u32,
 }
 impl InternalLocation {
-    pub fn new(x: u32, y: u32, z: u32) -> Self {
+    pub const fn new(x: u32, y: u32, z: u32) -> Self {
         Self { x, y, z }
     }
 
-    pub fn offset_x(self, x: i32) -> Self {
+    pub const fn offset_x(self, x: i32) -> Self {
         Self {
             x: (self.x as i32 + x) as _,
             y: self.y,
@@ -49,7 +51,7 @@ impl InternalLocation {
         }
     }
 
-    pub fn offset_y(self, y: i32) -> Self {
+    pub const fn offset_y(self, y: i32) -> Self {
         Self {
             x: self.x,
             y: (self.y as i32 + y) as _,
@@ -72,5 +74,26 @@ impl From<Location> for InternalLocation {
             y: (value.y + LOCATION_OFFSET) as u32,
             z: value.z as u32,
         }
+    }
+}
+
+#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
+pub struct AreaLocation {
+    pub x: u32,
+    pub y: u32,
+}
+impl AreaLocation {
+    pub const fn new(x: u32, y: u32) -> Self {
+        Self { x, y }
+    }
+}
+impl From<InternalLocation> for AreaLocation {
+    fn from(value: InternalLocation) -> Self {
+        World::convert_global_to_area_location(value)
+    }
+}
+impl From<Location> for AreaLocation {
+    fn from(value: Location) -> Self {
+        World::convert_global_to_area_location(value.into())
     }
 }

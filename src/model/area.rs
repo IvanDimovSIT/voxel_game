@@ -1,37 +1,12 @@
 use bincode::{Decode, Encode};
 
-use crate::graphics::mesh_generator::MeshGenerator;
+use crate::{graphics::mesh_generator::MeshGenerator, model::location::AreaLocation};
 
-use super::{
-    location::{InternalLocation, Location},
-    voxel::Voxel,
-    world::World,
-};
+use super::{location::InternalLocation, voxel::Voxel};
 
 pub const AREA_SIZE: u32 = 16;
 pub const AREA_HEIGHT: u32 = 128;
 pub const VOXELS_IN_AREA: usize = (AREA_SIZE * AREA_SIZE * AREA_HEIGHT) as usize;
-
-#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
-pub struct AreaLocation {
-    pub x: u32,
-    pub y: u32,
-}
-impl AreaLocation {
-    pub fn new(x: u32, y: u32) -> Self {
-        Self { x, y }
-    }
-}
-impl From<InternalLocation> for AreaLocation {
-    fn from(value: InternalLocation) -> Self {
-        World::convert_global_to_area_location(value)
-    }
-}
-impl From<Location> for AreaLocation {
-    fn from(value: Location) -> Self {
-        World::convert_global_to_area_location(value.into())
-    }
-}
 
 #[derive(Debug, Clone)]
 pub struct Area {

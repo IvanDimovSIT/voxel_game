@@ -8,7 +8,10 @@ use macroquad::logging::{error, info};
 use rayon::iter::{IntoParallelIterator, IntoParallelRefIterator, ParallelIterator};
 
 use crate::{
-    model::area::{Area, AreaDTO, AreaLocation},
+    model::{
+        area::{Area, AreaDTO},
+        location::AreaLocation,
+    },
     service::{
         area_generation::generator::AreaGenerator,
         persistence::generic_persistence::{
@@ -103,13 +106,20 @@ impl AreaLoader {
         }
         drop(to_load_lock);
 
+        self.schedule_load(areas_to_load, world_name.to_owned());
+    }
+
+    fn schedule_load(&self, areas_to_load: Vec<AreaLocation>, world_name: String) {
+        if areas_to_load.is_empty() {
+            return;
+        }
+
         let to_load = self.to_load.clone();
         let loaded = self.loaded.clone();
-        let world_name_owned = world_name.to_owned();
 
         rayon::spawn(move || {
             for area_to_load in areas_to_load {
-                let area = load_blocking(area_to_load, &world_name_owned);
+                let area = load_blocking(area_to_load, &world_name);
                 let mut to_load_lock = to_load.lock().unwrap();
                 let mut loaded_lock = loaded.lock().unwrap();
                 to_load_lock.remove(&area.get_area_location());

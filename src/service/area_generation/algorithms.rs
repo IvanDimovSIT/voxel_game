@@ -1,6 +1,6 @@
 use crate::model::{
-    area::{AREA_SIZE, AreaLocation},
-    location::InternalLocation,
+    area::AREA_SIZE,
+    location::{AreaLocation, InternalLocation},
 };
 
 pub fn get_point_on_noise_map(area_location: AreaLocation, x: u32, y: u32) -> [f64; 2] {

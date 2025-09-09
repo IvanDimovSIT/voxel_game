@@ -5,15 +5,13 @@ use macroquad::prelude::{error, info};
 use crate::{
     model::{
         area::{AREA_HEIGHT, Area},
+        location::AreaLocation,
         voxel::Voxel,
     },
     service::persistence::world_persistence::{self, AreaLoader},
 };
 
-use super::{
-    area::{AREA_SIZE, AreaLocation},
-    location::InternalLocation,
-};
+use super::{area::AREA_SIZE, location::InternalLocation};
 
 pub struct World {
     world_name: String,
@@ -164,6 +162,7 @@ impl World {
 
     /// loads all areas at the input locations asynchronously and unloads
     /// all areas not at the input locations asynchronously
+    /// moves any loaded areas into the main area map
     pub fn retain_areas(&mut self, area_locations: &[AreaLocation]) {
         let loaded = self.area_loader.get_loaded();
         for area in loaded {
@@ -248,5 +247,123 @@ impl World {
 
     pub fn get_world_name(&self) -> &str {
         &self.world_name
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::{fs, time::Duration};
+
+    use crate::{
+        model::location::Location, service::persistence::world_persistence::get_world_directory,
+    };
+
+    use super::*;
+
+    #[test]
+    fn test_get_and_set() {
+        let mut world = World::new("test_world_test_get_and_set");
+
+        for i in 0..10 {
+            let x = i * 200;
+            world.set(Location::new(x, 10, 10), Voxel::Brick);
+        }
+
+        for i in 0..10 {
+            let x = i * 200;
+            assert_eq!(world.get(Location::new(x, 10, 10)), Voxel::Brick);
+        }
+    }
+
+    #[test]
+    fn test_get_same_location() {
+        let mut world = World::new("test_world_test_get_same_location");
+
+        let mut voxels = vec![];
+        for i in 0..10 {
+            let x = i * 200;
+            voxels.push(world.get(Location::new(x, 10, 10)));
+        }
+
+        for i in 0..10 {
+            let x = i * 200;
+            assert_eq!(world.get(Location::new(x, 10, 10)), voxels[i as usize]);
+        }
+    }
+
+    #[test]
+    fn test_get_renderable_locations_for_area() {
+        let mut world = World::new("test_world_test_get_renderable_locations_for_area");
+
+        let renderable = world.get_renderable_voxels_for_area(AreaLocation::new(0, 0));
+
+        for (loc, voxel) in renderable {
+            assert_ne!(voxel, Voxel::None);
+            assert!((0..AREA_SIZE).contains(&loc.x));
+            assert!((0..AREA_SIZE).contains(&loc.y));
+            assert!((0..AREA_HEIGHT).contains(&loc.z));
+        }
+    }
+
+    #[test]
+    fn test_retain_areas() {
+        let world_name = "test_world_test_retain_areas";
+        let remove_dir = get_world_directory(world_name);
+        let mut world = World::new(world_name);
+        let initial_areas = [AreaLocation::new(0, 0), AreaLocation::new(1, 0)];
+
+        world.retain_areas(&initial_areas);
+        std::thread::sleep(Duration::from_millis(100));
+        world.retain_areas(&initial_areas);
+
+        assert_eq!(world.areas.len(), initial_areas.len());
+        for area in initial_areas {
+            assert!(world.areas.contains_key(&area));
+        }
+
+        let other_areas = [AreaLocation::new(0, 0), AreaLocation::new(2, 0)];
+
+        world.retain_areas(&other_areas);
+        std::thread::sleep(Duration::from_millis(100));
+        world.retain_areas(&other_areas);
+
+        assert_eq!(world.areas.len(), other_areas.len());
+        for area in other_areas {
+            assert!(world.areas.contains_key(&area));
+        }
+
+        fs::remove_dir_all(&remove_dir).unwrap();
+    }
+
+    #[test]
+    fn test_load_all_blocking() {
+        let world_name = "test_world_test_load_all_blocking";
+        let mut world = World::new(world_name);
+        let areas = [AreaLocation::new(0, 0), AreaLocation::new(1, 0)];
+
+        world.load_all_blocking(&areas);
+
+        assert_eq!(world.areas.len(), areas.len());
+        for area in areas {
+            assert!(world.areas.contains_key(&area));
+        }
+    }
+
+    #[test]
+    fn test_take_and_return_area() {
+        let world_name = "test_take_and_return_area";
+        let mut world = World::new(world_name);
+        let area_location = AreaLocation::new(0, 0);
+        let mut area = Area::new(AreaLocation::new(0, 0));
+        let loc = InternalLocation::new(1, 2, 3);
+        area.set(InternalLocation::new(1, 2, 3), Voxel::Brick);
+
+        world.return_area(area.clone());
+        assert_eq!(world.areas.len(), 1);
+
+        let contained_area = world.take_area(area_location);
+        assert!(world.areas.is_empty());
+
+        assert_eq!(area.get(loc), contained_area.get(loc));
     }
 }

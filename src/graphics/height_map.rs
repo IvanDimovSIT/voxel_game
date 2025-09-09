@@ -6,7 +6,8 @@ use macroquad::{
 
 use crate::{
     model::{
-        area::{AREA_SIZE, AreaLocation},
+        area::AREA_SIZE,
+        location::AreaLocation,
         user_settings::{ShadowType, UserSettings},
         world::World,
     },

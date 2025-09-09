@@ -1,10 +1,7 @@
 use libnoise::{Fbm, Generator, Max, Simplex};
 
 use crate::{
-    model::{
-        area::{AREA_HEIGHT, AreaLocation},
-        voxel::Voxel,
-    },
+    model::{area::AREA_HEIGHT, location::AreaLocation, voxel::Voxel},
     service::area_generation::{algorithms::normalise_sample, generator::ColumnSamples},
 };
 

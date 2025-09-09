@@ -61,6 +61,7 @@ impl Voxel {
         Self::Water4,
     ];
 
+    #[inline(always)]
     pub fn index(self) -> usize {
         let index = self as usize;
         debug_assert!(

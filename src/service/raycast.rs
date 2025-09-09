@@ -128,3 +128,67 @@ pub fn cast_ray(world: &mut World, from: Vec3, to: Vec3, max_distance: f32) -> R
 
     RaycastResult::NoneHit
 }
+
+#[cfg(test)]
+mod tests {
+    use macroquad::math::vec3;
+
+    use crate::model::area::Area;
+
+    use super::*;
+
+    #[test]
+    fn test_cast_ray() {
+        let world_name = "test_world_test_cast_ray";
+        let mut world = World::new(world_name);
+
+        let voxel_location = Location::new(5, 5, 10);
+        let mut area = Area::new(voxel_location.into());
+        area.set(
+            World::convert_global_to_local_location(voxel_location.into()),
+            Voxel::Brick,
+        );
+        world.return_area(area);
+
+        let result1 = cast_ray(&mut world, vec3(5.0, 5.0, 1.0), vec3(5.0, 5.0, 10.0), 9.0);
+        match result1 {
+            RaycastResult::Hit {
+                first_non_empty,
+                last_empty,
+            } => {
+                assert_eq!(first_non_empty, voxel_location);
+                assert_eq!(last_empty, Location::new(5, 5, 9));
+            }
+            _ => panic!("should be hit"),
+        }
+
+        let result2 = cast_ray(&mut world, vec3(5.0, 5.0, 1.0), vec3(5.0, 5.0, 10.0), 5.0);
+        assert!(matches!(result2, RaycastResult::NoneHit));
+
+        let result3 = cast_ray(&mut world, vec3(5.0, 5.0, 1.0), vec3(10.0, 5.0, 10.0), 10.0);
+        assert!(matches!(result3, RaycastResult::NoneHit));
+    }
+
+    #[test]
+    fn test_cast_ray_out_of_height() {
+        let world_name = "test_world_test_cast_ray_out_of_height";
+        let mut world = World::new(world_name);
+
+        let voxel_location = Location::new(5, 5, 10);
+        let area = Area::new(voxel_location.into());
+        world.return_area(area);
+
+        let result1 = cast_ray(&mut world, vec3(5.0, 5.0, 1.0), vec3(5.0, 5.0, 0.0), 5.0);
+
+        assert!(matches!(result1, RaycastResult::NoneHit));
+
+        let result2 = cast_ray(
+            &mut world,
+            vec3(5.0, 5.0, AREA_HEIGHT as f32 - 1.0),
+            vec3(5.0, 5.0, AREA_HEIGHT as f32),
+            10.0,
+        );
+
+        assert!(matches!(result2, RaycastResult::NoneHit));
+    }
+}

@@ -1,4 +1,4 @@
-use crate::model::area::AreaLocation;
+use crate::model::location::AreaLocation;
 
 const INITIAL_LOAD_RENDER_DISTANCE_REDUCTION: u32 = 3;
 const INITIAL_LOAD_MINIMUM_RENDER_DISTANCE: u32 = 8;

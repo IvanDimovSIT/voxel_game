@@ -14,8 +14,8 @@ use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use crate::{
     graphics::height_map::HeightMap,
     model::{
-        area::{AREA_HEIGHT, AREA_SIZE, Area, AreaLocation},
-        location::{InternalLocation, LOCATION_OFFSET, Location},
+        area::{AREA_HEIGHT, AREA_SIZE, Area},
+        location::{AreaLocation, InternalLocation, LOCATION_OFFSET, Location},
         player_info::PlayerInfo,
         user_settings::UserSettings,
         voxel::{MAX_VOXEL_VARIANTS, Voxel},

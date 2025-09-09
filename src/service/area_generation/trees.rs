@@ -1,6 +1,6 @@
 use crate::model::{
-    area::{AREA_HEIGHT, AREA_SIZE, Area, AreaLocation},
-    location::{InternalLocation, Location},
+    area::{AREA_HEIGHT, AREA_SIZE, Area},
+    location::{AreaLocation, InternalLocation, Location},
     voxel::Voxel,
 };
 
