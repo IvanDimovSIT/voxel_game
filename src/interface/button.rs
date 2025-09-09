@@ -1,11 +1,11 @@
 use macroquad::{
     color::BLACK,
     input::{is_mouse_button_released, mouse_position},
-    math::Rect,
+    math::{Rect, Vec2, vec2},
 };
 
 use crate::{
-    interface::util::draw_game_text,
+    interface::text::draw_game_text,
     model::user_settings::UserSettings,
     service::{asset_manager::AssetManager, sound_manager::SoundId},
 };
@@ -14,6 +14,10 @@ use super::{
     style::*,
     util::{draw_rect_with_shadow, is_point_in_rect},
 };
+
+const BACK_BUTTON_SIZE: f32 = 60.0;
+const BACK_BUTTON_FONT_SIZE: u16 = 45;
+const BACK_BUTTON_LOCATION: Vec2 = vec2(10.0, 10.0);
 
 /// draws a button and returns if it is pressed
 pub fn draw_button(
@@ -49,4 +53,20 @@ pub fn draw_button(
     }
 
     is_clicked
+}
+
+/// draws a back button in the top left corner, returns true if pressed
+pub fn draw_back_button(asset_manager: &AssetManager, user_settings: &UserSettings) -> bool {
+    draw_button(
+        Rect {
+            x: BACK_BUTTON_LOCATION.x,
+            y: BACK_BUTTON_LOCATION.y,
+            w: BACK_BUTTON_SIZE,
+            h: BACK_BUTTON_SIZE,
+        },
+        "<",
+        BACK_BUTTON_FONT_SIZE,
+        asset_manager,
+        user_settings,
+    )
 }

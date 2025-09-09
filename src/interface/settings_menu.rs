@@ -10,14 +10,12 @@ use macroquad::{
 use crate::{
     interface::{
         background::draw_background,
-        button::draw_button,
+        button::{draw_back_button, draw_button},
         interface_context::InterfaceScreen,
         style::TEXT_COLOR,
+        text::{draw_centered_multiline_text, draw_game_text, draw_version_number, get_text_width},
         title_screen::TitleScreenContext,
-        util::{
-            draw_centered_multiline_text, draw_game_text, draw_version_number, get_text_width,
-            is_point_in_rect,
-        },
+        util::is_point_in_rect,
     },
     model::user_settings::{ShadowType, UserSettings},
     service::{
@@ -25,8 +23,6 @@ use crate::{
     },
 };
 
-const BACK_BUTTON_SIZE: f32 = 60.0;
-const BACK_BUTTON_FONT_SIZE: u16 = 45;
 const BUTTON_WIDTH: f32 = 380.0;
 const BUTTON_HEIGHT: f32 = 70.0;
 const BUTTON_HEIGHT_OFFSET: f32 = BUTTON_HEIGHT * 1.2;
@@ -69,7 +65,7 @@ impl SettingsContext {
         Self::handle_toggle_dynamic_light(asset_manager, user_settings, x_start, y_start);
         draw_version_number(height, &asset_manager.font);
 
-        let should_exit = Self::draw_back_button(asset_manager, user_settings);
+        let should_exit = draw_back_button(asset_manager, user_settings);
         next_frame().await;
 
         if should_exit {
@@ -285,21 +281,6 @@ impl SettingsContext {
             ShadowType::Soft => user_settings.shadow_type = ShadowType::Hard,
             ShadowType::Hard => user_settings.shadow_type = ShadowType::None,
         }
-    }
-
-    fn draw_back_button(asset_manager: &AssetManager, user_settings: &UserSettings) -> bool {
-        draw_button(
-            Rect {
-                x: 10.0,
-                y: 10.0,
-                w: BACK_BUTTON_SIZE,
-                h: BACK_BUTTON_SIZE,
-            },
-            "<",
-            BACK_BUTTON_FONT_SIZE,
-            asset_manager,
-            user_settings,
-        )
     }
 
     fn draw_description(

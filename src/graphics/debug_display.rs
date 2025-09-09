@@ -12,7 +12,7 @@ use macroquad::{
 use crate::{
     interface::{
         style::{CLEAR_SCREEN_COLOR, TEXT_COLOR},
-        util::draw_game_text,
+        text::draw_game_text,
     },
     model::{
         area::{AREA_HEIGHT, AREA_SIZE, VOXELS_IN_AREA},

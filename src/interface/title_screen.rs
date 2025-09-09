@@ -1,6 +1,10 @@
 use macroquad::{
-    camera::set_default_camera, color::BLACK, input::clear_input_queue, math::Rect,
-    miniquad::window::screen_size, text::Font, window::next_frame,
+    camera::set_default_camera,
+    input::clear_input_queue,
+    math::{Rect, Vec2, vec2},
+    miniquad::window::screen_size,
+    text::Font,
+    window::next_frame,
 };
 
 use crate::{
@@ -10,7 +14,7 @@ use crate::{
         interface_context::InterfaceScreen,
         settings_menu::SettingsContext,
         style::TEXT_COLOR,
-        util::{draw_game_text, draw_version_number, get_text_width},
+        text::{draw_text_with_shadow, draw_version_number, get_text_width},
         world_selection::WorldSelectionContext,
     },
     model::user_settings::UserSettings,
@@ -23,6 +27,12 @@ const BUTTON_TEXT_SIZE: u16 = 40;
 const BUTTON_WIDTH: f32 = 280.0;
 const BUTTON_HEIGHT: f32 = 80.0;
 const BUTTON_HEIGHT_OFFSET: f32 = BUTTON_HEIGHT * 1.2;
+const TITLE_LOCATION_Y: f32 = 0.15;
+const TITLE_BUTTONS_START_LOCATION_Y: f32 = 0.35;
+const TITLE_SHADOW_OFFSET: Vec2 = vec2(3.0, 3.0);
+const PLAY_BUTTON_ORDER: u32 = 0;
+const SETTINGS_BUTTON_ORDER: u32 = 1;
+const EXIT_BUTTON_ORDER: u32 = 2;
 
 #[derive(Clone)]
 pub struct TitleScreenContext {
@@ -64,10 +74,17 @@ impl TitleScreenContext {
     }
 
     fn draw_title(width: f32, height: f32, font: &Font) {
-        let x = (width - get_text_width(TITLE_TEXT, TITLE_SIZE, font)) * 0.5;
-        let y = height * 0.15;
-        draw_game_text("Voxel World", x + 2.0, y + 2.0, TITLE_SIZE, BLACK, font);
-        draw_game_text("Voxel World", x, y, TITLE_SIZE, TEXT_COLOR, font);
+        let x = (width - get_text_width(TITLE_TEXT, TITLE_SIZE, font)) / 2.0;
+        let y = height * TITLE_LOCATION_Y;
+
+        draw_text_with_shadow(
+            "Voxel World",
+            vec2(x, y),
+            TITLE_SHADOW_OFFSET,
+            TITLE_SIZE,
+            TEXT_COLOR,
+            font,
+        );
     }
 
     fn draw_title_screen_button(
@@ -78,8 +95,8 @@ impl TitleScreenContext {
         text: &str,
         order: u32,
     ) -> bool {
-        let x = (width - BUTTON_WIDTH) * 0.5;
-        let y = height * 0.35 + BUTTON_HEIGHT_OFFSET * order as f32;
+        let x = (width - BUTTON_WIDTH) / 2.0;
+        let y = height * TITLE_BUTTONS_START_LOCATION_Y + BUTTON_HEIGHT_OFFSET * order as f32;
         draw_button(
             Rect {
                 x,
@@ -100,7 +117,14 @@ impl TitleScreenContext {
         asset_manager: &AssetManager,
         user_settings: &UserSettings,
     ) -> bool {
-        Self::draw_title_screen_button(width, height, asset_manager, user_settings, "   Play", 0)
+        Self::draw_title_screen_button(
+            width,
+            height,
+            asset_manager,
+            user_settings,
+            "   Play",
+            PLAY_BUTTON_ORDER,
+        )
     }
 
     fn draw_settings_button(
@@ -115,7 +139,7 @@ impl TitleScreenContext {
             asset_manager,
             user_settings,
             "   Settings",
-            1,
+            SETTINGS_BUTTON_ORDER,
         )
     }
 
@@ -125,6 +149,13 @@ impl TitleScreenContext {
         asset_manager: &AssetManager,
         user_settings: &UserSettings,
     ) -> bool {
-        Self::draw_title_screen_button(width, height, asset_manager, user_settings, "   Exit", 2)
+        Self::draw_title_screen_button(
+            width,
+            height,
+            asset_manager,
+            user_settings,
+            "   Exit",
+            EXIT_BUTTON_ORDER,
+        )
     }
 }

@@ -17,10 +17,8 @@ use crate::{
         style::{
             BACKGROUND_COLOR, BUTTON_HOVER_COLOR, SECONDARY_TEXT_COLOR, SELECTED_COLOR, TEXT_COLOR,
         },
-        util::{
-            draw_centered_multiline_text, draw_game_text, draw_item_name, draw_rect_with_shadow,
-            get_text_width, is_point_in_rect,
-        },
+        text::{draw_centered_multiline_text, draw_game_text, get_text_width},
+        util::{draw_item_name_box, draw_rect_with_shadow, is_point_in_rect},
     },
     model::{
         inventory::{AvailableItems, Inventory, Item},
@@ -333,7 +331,7 @@ impl CraftingMenuContext {
         });
 
         if is_point_in_rect(texture_x, y, size, size, mouse_x, mouse_y) {
-            draw_item_name(
+            draw_item_name_box(
                 mouse_x,
                 mouse_y,
                 item.voxel.display_name(),
@@ -395,7 +393,7 @@ impl CraftingMenuContext {
         });
 
         if is_point_in_rect(x, y, size, size, mouse_x, mouse_y) {
-            draw_item_name(
+            draw_item_name_box(
                 mouse_x,
                 mouse_y,
                 item.voxel.display_name(),

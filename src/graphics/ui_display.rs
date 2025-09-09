@@ -12,7 +12,7 @@ use macroquad::{
 use std::fmt::Write;
 
 use crate::{
-    interface::{style::TEXT_COLOR, util::draw_game_text},
+    interface::{style::TEXT_COLOR, text::draw_game_text},
     model::{
         inventory::{Inventory, Item},
         location::Location,

@@ -10,7 +10,7 @@ use macroquad::{
     text::Font,
 };
 
-use crate::interface::util::draw_game_text;
+use crate::interface::text::draw_game_text;
 
 use super::{
     style::*,

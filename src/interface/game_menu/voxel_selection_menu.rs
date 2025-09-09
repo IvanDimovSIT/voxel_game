@@ -15,7 +15,8 @@ use crate::{
     interface::{
         game_menu::game_menu_context::MenuSelection,
         style::{BACKGROUND_COLOR, SHADOW_COLOR, TEXT_COLOR},
-        util::{draw_game_text, draw_item_name, draw_rect_with_shadow},
+        text::draw_game_text,
+        util::{draw_item_name_box, draw_rect_with_shadow},
     },
     model::{
         inventory::{Inventory, Item, MAX_ITEMS_PER_SLOT},
@@ -129,7 +130,7 @@ fn draw_hovered_item_name(
 
         let (x, y) = mouse_position();
         let font_size = voxel_size * 0.5;
-        draw_item_name(x, y, voxel_name, count, font_size, font);
+        draw_item_name_box(x, y, voxel_name, count, font_size, font);
     }
 }
 

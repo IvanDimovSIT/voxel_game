@@ -13,7 +13,7 @@ use crate::{
         button::draw_button,
         game_menu::crafting_menu::CraftingMenuHandle,
         style::{BACKGROUND_COLOR, BUTTON_COLOR},
-        util::draw_game_text,
+        text::draw_game_text,
     },
     model::{inventory::Item, user_settings::UserSettings},
     service::asset_manager::AssetManager,

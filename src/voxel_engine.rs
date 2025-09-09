@@ -26,7 +26,10 @@ use crate::{
     },
     model::{inventory::Item, player_info::PlayerInfo, user_settings::UserSettings, world::World},
     service::{
-        active_zone::{get_load_zone, get_render_zone, get_render_zone_on_world_load},
+        active_zone::{
+            get_load_zone, get_load_zone_on_world_load, get_render_zone,
+            get_render_zone_on_world_load,
+        },
         asset_manager::AssetManager,
         input::{self, ScrollDirection},
         persistence::{
@@ -125,7 +128,7 @@ impl VoxelEngine {
             .camera_controller
             .get_camera_voxel_location();
 
-        let load_zone = get_load_zone(
+        let load_zone = get_load_zone_on_world_load(
             camera_location.into(),
             self.user_settings.get_render_distance(),
         );

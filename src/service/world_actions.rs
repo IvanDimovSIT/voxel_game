@@ -89,6 +89,10 @@ pub fn put_player_on_ground(player_info: &mut PlayerInfo, world: &mut World) {
             player_info
                 .camera_controller
                 .set_position(bottom_position - vec3(0.0, 0.0, 1.0));
+
+            if Voxel::WATER.contains(&voxel) {
+                world.set(bottom_location, Voxel::Stone);
+            }
             return;
         } else {
             player_info

@@ -13,10 +13,11 @@ use macroquad::{
 use crate::{
     interface::{
         background::draw_background,
+        button::draw_back_button,
         interface_context::InterfaceScreen,
         style::TEXT_COLOR,
+        text::{draw_centered_multiline_text, draw_game_text, draw_version_number},
         title_screen::TitleScreenContext,
-        util::{draw_centered_multiline_text, draw_game_text, draw_version_number},
     },
     model::user_settings::UserSettings,
     service::{
@@ -30,7 +31,7 @@ use crate::{
 };
 
 use super::{
-    button::draw_button, list_input::ListInput, text_input::TextInput, util::get_text_width,
+    button::draw_button, list_input::ListInput, text::get_text_width, text_input::TextInput,
 };
 
 const LABEL_FONT_SIZE: f32 = 40.0;
@@ -39,8 +40,6 @@ const TEXT_INPUT_FONT_SIZE: u16 = 36;
 const PLAY_BUTTON_SIZE: Vec2 = vec2(220.0, 50.0);
 const PLAY_BUTTON_FONT_SIZE: u16 = 40;
 const PLAY_BUTTON_Y_COEF: f32 = 0.5;
-const BACK_BUTTON_SIZE: f32 = 60.0;
-const BACK_BUTTON_FONT_SIZE: u16 = 45;
 const NOTIFICATION_TEXT_SIZE: f32 = 35.0;
 const DELETE_BUTTON_SIZE: Vec2 = vec2(220.0, 50.0);
 const DELETE_BUTTON_FONT_SIZE: u16 = 35;
@@ -100,7 +99,7 @@ impl WorldSelectionContext {
         self.handle_world_list(width, height, &asset_manager.font);
         self.handle_play_button(asset_manager, user_settings, width, height);
 
-        let should_go_back = self.draw_back_button(asset_manager, user_settings);
+        let should_go_back = draw_back_button(asset_manager, user_settings);
 
         self.handle_delete_button(asset_manager, user_settings, width, height);
 
@@ -238,25 +237,6 @@ impl WorldSelectionContext {
             },
             "Enter world",
             PLAY_BUTTON_FONT_SIZE,
-            asset_manager,
-            user_settings,
-        )
-    }
-
-    fn draw_back_button(
-        &mut self,
-        asset_manager: &AssetManager,
-        user_settings: &UserSettings,
-    ) -> bool {
-        draw_button(
-            Rect {
-                x: 10.0,
-                y: 10.0,
-                w: BACK_BUTTON_SIZE,
-                h: BACK_BUTTON_SIZE,
-            },
-            "<",
-            BACK_BUTTON_FONT_SIZE,
             asset_manager,
             user_settings,
         )

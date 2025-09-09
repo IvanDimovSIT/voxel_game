@@ -1,9 +1,10 @@
 use crate::model::location::AreaLocation;
 
 const INITIAL_LOAD_RENDER_DISTANCE_REDUCTION: u32 = 3;
-const INITIAL_LOAD_MINIMUM_RENDER_DISTANCE: u32 = 8;
+const INITIAL_LOAD_MINIMUM_RENDER_DISTANCE: u32 = 7;
 const MAX_RENDER_SIZE: u32 = 100;
 const LOAD_EXTRA: u32 = 2;
+const INITIAL_LOAD_EXTRA: u32 = 1;
 
 /// returns a list of areas to generate meshes for
 pub fn get_render_zone(area_location: AreaLocation, render_size: u32) -> Vec<AreaLocation> {
@@ -44,6 +45,14 @@ pub fn get_render_zone_on_world_load(
 /// returns a list of areas to be loaded from disk
 pub fn get_load_zone(area_location: AreaLocation, render_size: u32) -> Vec<AreaLocation> {
     get_render_zone(area_location, render_size + LOAD_EXTRA)
+}
+
+/// returns a list of areas to be loaded from disk upon entering the world
+pub fn get_load_zone_on_world_load(
+    area_location: AreaLocation,
+    render_size: u32,
+) -> Vec<AreaLocation> {
+    get_render_zone(area_location, render_size + INITIAL_LOAD_EXTRA)
 }
 
 #[cfg(test)]
@@ -93,6 +102,30 @@ mod tests {
         for location in load_zone {
             assert!((location.x as i32 - 10).abs() <= 2 + LOAD_EXTRA as i32);
             assert!((location.y as i32 - 10).abs() <= 2 + LOAD_EXTRA as i32);
+        }
+    }
+
+    #[test]
+    fn test_get_load_zone_on_world_load() {
+        let base = AreaLocation::new(10, 10);
+        let render_size = 4;
+
+        let load_zone = get_load_zone_on_world_load(base, render_size);
+
+        let side_of_zone = 1 + 2 * (render_size + INITIAL_LOAD_EXTRA);
+        let area_of_zone = side_of_zone * side_of_zone;
+
+        assert_eq!(load_zone.len(), area_of_zone as usize);
+
+        for location in load_zone {
+            assert!(
+                (location.x as i32 - base.x as i32).abs() as u32
+                    <= render_size + INITIAL_LOAD_EXTRA
+            );
+            assert!(
+                (location.y as i32 - base.y as i32).abs() as u32
+                    <= render_size + INITIAL_LOAD_EXTRA
+            );
         }
     }
 }

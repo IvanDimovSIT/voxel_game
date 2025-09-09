@@ -8,7 +8,7 @@ use macroquad::{
 };
 
 use crate::{
-    interface::util::draw_game_text,
+    interface::text::draw_game_text,
     service::input::{ScrollDirection, get_scroll_direction},
 };
 
