@@ -12,7 +12,7 @@ const BASE_ICON_TEXTURES_PATH: &str = "assets/images/icons/";
 const TITLE_SCREEN_BACKGROUND_PATH: &str = "assets/images/title.png";
 const SUN_PATH: &str = "assets/images/sun.png";
 const MOON_PATH: &str = "assets/images/moon.png";
-const TEXTURES: [(Voxel, &str); 14] = [
+const TEXTURES: [(Voxel, &str); 15] = [
     (Voxel::Stone, "stone.png"),
     (Voxel::Sand, "sand.png"),
     (Voxel::Grass, "grass.png"),
@@ -27,6 +27,7 @@ const TEXTURES: [(Voxel, &str); 14] = [
     (Voxel::Trampoline, "trampoline.png"),
     (Voxel::Glass, "glass.png"),
     (Voxel::Cactus, "cactus.png"),
+    (Voxel::Snow, "snow.png"),
 ];
 const WATER_TEXTURE: &str = "water.png";
 const ICON_TEXTURES: [(Voxel, &str); 3] = [

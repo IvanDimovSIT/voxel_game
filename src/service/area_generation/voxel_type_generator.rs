@@ -11,7 +11,10 @@ use crate::{
 
 const CLAY_THRESHOLD: f64 = 70.0;
 const BASE_STONE_THRESHOLD: f64 = 120.0;
+const BASE_SNOW_THRESHOLD: f64 = 80.0;
 const SAND_HEIGHT: u32 = 3;
+const SNOW_HEIGHT: u32 = 2;
+const SNOW_MOUNTAN_HEIGHT: u32 = (AREA_HEIGHT as f32 * 0.55) as u32;
 
 pub struct VoxelTypeGenerator {
     alternative_voxel_type: Fbm<3, Simplex<3>>,
@@ -59,7 +62,7 @@ impl VoxelTypeGenerator {
         height: u32,
     ) -> Voxel {
         if (z_inverted + SAND_HEIGHT) >= height {
-            let threshold = (1.0 - z_inverted as f64 / AREA_HEIGHT as f64) * BASE_STONE_THRESHOLD;
+            let threshold = Self::calculate_height_mix(z_inverted, BASE_STONE_THRESHOLD);
             if self.should_generate_alternative_voxel(area_location, x, y, z_inverted, threshold) {
                 return Voxel::Stone;
             } else {
@@ -78,6 +81,21 @@ impl VoxelTypeGenerator {
         z_inverted: u32,
         height: u32,
     ) -> Voxel {
+        if z_inverted >= SNOW_MOUNTAN_HEIGHT {
+            if z_inverted + SNOW_HEIGHT < height {
+                return Voxel::Stone;
+            }
+
+            let threshold = Self::calculate_height_mix(z_inverted, BASE_SNOW_THRESHOLD);
+            if self.should_generate_alternative_voxel(area_location, x, y, z_inverted, threshold) {
+                return Voxel::Snow;
+            } else if z_inverted >= height {
+                return Voxel::Dirt;
+            } else {
+                return Voxel::Stone;
+            }
+        }
+
         if z_inverted >= height {
             if self.should_generate_alternative_voxel(
                 area_location,
@@ -121,5 +139,9 @@ impl VoxelTypeGenerator {
         let value = normalise_sample(self.alternative_voxel_type.sample(point));
 
         value >= threshold
+    }
+
+    fn calculate_height_mix(z_inverted: u32, threshold: f64) -> f64 {
+        (1.0 - z_inverted as f64 / AREA_HEIGHT as f64) * threshold
     }
 }

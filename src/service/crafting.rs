@@ -10,7 +10,7 @@ impl Item {
     }
 }
 
-const RECEPES: [CraftingRecipe; 4] = [
+const RECEPES: [CraftingRecipe; 5] = [
     CraftingRecipe::new1(Item::new_c(Voxel::Boards, 3), Item::new_c(Voxel::Wood, 1)),
     CraftingRecipe::new1(Item::new_c(Voxel::Glass, 1), Item::new_c(Voxel::Sand, 4)),
     CraftingRecipe::new1(
@@ -21,6 +21,10 @@ const RECEPES: [CraftingRecipe; 4] = [
         Item::new_c(Voxel::Brick, 4),
         Item::new_c(Voxel::Stone, 3),
         Item::new_c(Voxel::Clay, 1),
+    ),
+    CraftingRecipe::new1(
+        Item::new_c(Voxel::WaterSource, 1),
+        Item::new_c(Voxel::Snow, 2),
     ),
 ];
 

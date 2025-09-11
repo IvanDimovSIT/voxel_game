@@ -3,6 +3,12 @@ use crate::model::{
     location::{AreaLocation, InternalLocation},
 };
 
+#[inline(always)]
+pub fn sample_probability(value: u64, probability: u64) -> bool {
+    value % probability == 0
+}
+
+#[inline(always)]
 pub fn get_point_on_noise_map(area_location: AreaLocation, x: u32, y: u32) -> [f64; 2] {
     [
         (x + area_location.x * AREA_SIZE) as f64,
@@ -10,6 +16,7 @@ pub fn get_point_on_noise_map(area_location: AreaLocation, x: u32, y: u32) -> [f
     ]
 }
 
+#[inline(always)]
 pub fn get_point_on_noise_map_3d(area_location: AreaLocation, x: u32, y: u32, z: u32) -> [f64; 3] {
     [
         (x + area_location.x * AREA_SIZE) as f64,
@@ -48,6 +55,7 @@ pub fn split_mix64(seed: u64) -> u64 {
 }
 
 /// normalises a noise sample value from the range [-1.0, 1.0] to [0.0, 100.0]
+#[inline(always)]
 pub fn normalise_sample(value: f64) -> f64 {
     (value + 1.0) * 50.0
 }

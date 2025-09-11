@@ -6,6 +6,7 @@ use crate::{
     model::{
         area::{AREA_HEIGHT, AREA_SIZE, Area},
         location::{AreaLocation, InternalLocation},
+        voxel::Voxel,
     },
     service::area_generation::{
         biome_type::{BiomeType, BiomeTypeGenerator},
@@ -28,6 +29,7 @@ fn hash_world_name(world_name: &str) -> u64 {
 
 pub struct ColumnSamples {
     pub terrain_height: u32,
+    pub max_generated_height: u32,
     pub is_cave_zone: bool,
     pub lake_depth: u32,
     pub biome_type: BiomeType,
@@ -63,7 +65,7 @@ impl AreaGenerator {
 
     /// generates a single column in an area and marks any potential tree locations
     fn generate_column(&mut self, area: &mut Area, area_location: AreaLocation, x: u32, y: u32) {
-        let column_sample = self.sample_column_characteristics(area_location, x, y);
+        let mut column_sample = self.sample_column_characteristics(area_location, x, y);
 
         for z_inverted in 1..=column_sample.terrain_height {
             let current_voxel = self.voxel_type_generator.calculate_voxel_type(
@@ -86,13 +88,16 @@ impl AreaGenerator {
                 continue;
             }
 
+            if lake_voxel != Voxel::None {
+                column_sample.max_generated_height = z_inverted;
+            }
             area.set_without_updating_max_height(
                 InternalLocation::new(x, y, AREA_HEIGHT - z_inverted),
                 lake_voxel,
             );
         }
 
-        let local = InternalLocation::new(x, y, AREA_HEIGHT - column_sample.terrain_height);
+        let local = InternalLocation::new(x, y, AREA_HEIGHT - column_sample.max_generated_height);
         let tree_type = should_generate_tree(area.get(local), self.seed, area_location, local);
         if tree_type != TreeType::None {
             self.tree_locations.push((local, tree_type));
@@ -122,6 +127,7 @@ impl AreaGenerator {
             is_cave_zone,
             lake_depth,
             biome_type,
+            max_generated_height: 0,
         }
     }
 

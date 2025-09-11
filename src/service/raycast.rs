@@ -20,7 +20,7 @@ pub enum RaycastResult {
 fn is_hit(world: &mut World, position: Location) -> bool {
     let voxel = world.get(position);
 
-    voxel != Voxel::None && !Voxel::NON_SOURCE_WATER.contains(&voxel)
+    voxel != Voxel::None && !Voxel::WATER.contains(&voxel)
 }
 
 /// DDA raycasting

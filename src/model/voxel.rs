@@ -26,6 +26,7 @@ pub enum Voxel {
     Water2,
     Water3,
     Water4,
+    Snow,
     Glass,
 }
 impl Voxel {
@@ -42,7 +43,7 @@ impl Voxel {
     ];
 
     /// voxels that can fall down
-    pub const FALLING: [Self; 3] = [Self::Sand, Self::Dirt, Self::Grass];
+    pub const FALLING: [Self; 4] = [Self::Sand, Self::Dirt, Self::Grass, Self::Snow];
 
     pub const WATER: [Self; 6] = [
         Self::WaterSource,
@@ -94,6 +95,7 @@ impl Voxel {
             Self::Water2 => "Water (Level 2)",
             Self::Water3 => "Water (Level 3)",
             Self::Water4 => "Water (Level 4)",
+            Self::Snow => "Snow",
         }
     }
 

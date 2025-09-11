@@ -119,13 +119,18 @@ mod tests {
         v.push(0);
         v.push(1);
         v.push(2);
-        assert_eq!(v.len(), 3);
 
-        let elements: Vec<_> = v.into_iter().collect();
-        assert_eq!(elements.len(), 3);
-        assert_eq!(elements[0], 0);
-        assert_eq!(elements[1], 1);
-        assert_eq!(elements[2], 2);
+        assert_eq!(v.len(), 3);
+        assert_eq!(v[0], 0);
+        assert_eq!(v[1], 1);
+        assert_eq!(v[2], 2);
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_stack_vec_out_of_bounds() {
+        let v: StackVec<i32, 10> = StackVec::new();
+        v[4];
     }
 
     #[test]
