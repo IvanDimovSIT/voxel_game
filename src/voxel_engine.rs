@@ -1,59 +1,48 @@
 use std::{f32::consts::PI, rc::Rc};
 
 use macroquad::{
-    camera::set_default_camera, math::vec3, miniquad::window::screen_size,
+    camera::set_default_camera, math::vec3, miniquad::window::screen_size, models::draw_mesh,
     prelude::gl_use_default_material, window::next_frame,
 };
 
 use crate::{
-    GameState,
     graphics::{
         debug_display::DebugDisplay,
         height_map::HeightMap,
+        mesh_manager::MeshId,
         renderer::Renderer,
         screen_effects::draw_water_effect,
         sky::Sky,
         ui_display::{draw_crosshair, draw_selected_voxel},
         voxel_particle_system::VoxelParticleSystem,
-    },
-    interface::{
+    }, interface::{
         game_menu::{
             crafting_menu::{CraftingMenuContext, CraftingMenuHandle},
-            game_menu_context::{MenuSelection, MenuState, draw_main_menu, draw_options_menu},
+            game_menu_context::{draw_main_menu, draw_options_menu, MenuSelection, MenuState},
             voxel_selection_menu::draw_voxel_selection_menu,
         },
         interface_context::InterfaceContext,
-    },
-    model::{inventory::Item, player_info::PlayerInfo, user_settings::UserSettings, world::World},
-    service::{
+    }, model::{inventory::Item, player_info::PlayerInfo, user_settings::UserSettings, world::World}, service::{
         active_zone::{
             get_load_zone, get_load_zone_on_world_load, get_render_zone,
             get_render_zone_on_world_load,
-        },
-        asset_manager::AssetManager,
-        input::{self, ScrollDirection},
-        persistence::{
+        }, asset_manager::AssetManager, creatures::creature_manager::CreatureManager, input::{self, ScrollDirection}, persistence::{
             player_persistence::{load_player_info, save_player_info},
             user_settings_persistence::write_user_settings_blocking,
             world_metadata_persistence::{
-                WorldMetadata, load_world_metadata, store_world_metadata,
+                load_world_metadata, store_world_metadata, WorldMetadata
             },
-        },
-        physics::{
+        }, physics::{
             falling_voxel_simulator::FallingVoxelSimulator,
             player_physics::{
                 process_collisions, push_player_up_if_stuck, try_jump, try_move, try_swim,
             },
             voxel_simulator::VoxelSimulator,
             water_simulator::WaterSimulator,
-        },
-        raycast::{RaycastResult, cast_ray},
-        sound_manager::SoundId,
-        world_actions::{
+        }, raycast::{cast_ray, RaycastResult}, sound_manager::SoundId, world_actions::{
             destroy_voxel, place_voxel, put_player_on_ground, replace_voxel, update_player_in_water,
-        },
-        world_time::WorldTime,
-    },
+        }, world_time::WorldTime
+    }, GameState
 };
 
 pub struct VoxelEngine {
@@ -63,6 +52,7 @@ pub struct VoxelEngine {
     debug_display: DebugDisplay,
     voxel_simulator: VoxelSimulator,
     voxel_particles: VoxelParticleSystem,
+    creature_manager: CreatureManager,
     asset_manager: Rc<AssetManager>,
     user_settings: UserSettings,
     menu_state: MenuState,
@@ -112,6 +102,7 @@ impl VoxelEngine {
             sky,
             height_map: HeightMap::new(),
             voxel_particles: VoxelParticleSystem::new(),
+            creature_manager: CreatureManager::new(),
         };
 
         if !successful_load {
@@ -238,6 +229,7 @@ impl VoxelEngine {
         self.world_time.update(delta);
         self.process_physics(delta);
         self.voxel_particles.update(delta);
+        self.creature_manager.update(delta, &self.asset_manager.mesh_manager, &self.player_info, &mut self.world);
         update_player_in_water(&mut self.player_info, &mut self.world);
     }
 
@@ -280,6 +272,7 @@ impl VoxelEngine {
             &self.world,
             &mut self.height_map,
         );
+        self.creature_manager.draw(&camera, &self.user_settings);
         self.voxel_particles.draw();
         self.voxel_simulator.draw(&camera);
         gl_use_default_material();
@@ -433,6 +426,7 @@ impl VoxelEngine {
                     &mut self.world,
                     &mut self.renderer,
                     &mut self.voxel_simulator,
+                    &self.creature_manager
                 );
                 if !has_placed {
                     return;

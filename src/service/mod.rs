@@ -10,3 +10,5 @@ pub mod raycast;
 pub mod sound_manager;
 pub mod world_actions;
 pub mod world_time;
+pub mod creatures;
+pub mod activity_timer;

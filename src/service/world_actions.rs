@@ -5,9 +5,9 @@ use crate::{
     model::{
         area::AREA_HEIGHT, location::Location, player_info::PlayerInfo, voxel::Voxel, world::World,
     },
-    service::physics::{
+    service::{creatures::creature_manager::{self, CreatureManager}, physics::{
         player_physics::will_new_voxel_cause_collision, voxel_simulator::VoxelSimulator,
-    },
+    }},
     utils::vector_to_location,
 };
 
@@ -18,11 +18,13 @@ pub fn place_voxel(
     world: &mut World,
     renderer: &mut Renderer,
     voxel_simulator: &mut VoxelSimulator,
+    creature_manager: &CreatureManager
 ) -> bool {
     debug_assert!(voxel != Voxel::None);
     let unable_to_place_voxel = world.get(location).is_solid()
         || will_new_voxel_cause_collision(player_info, location)
-        || voxel_simulator.location_has_voxel(location);
+        || voxel_simulator.location_has_voxel(location)
+        || !creature_manager.check_can_place_voxel(location);
 
     if unable_to_place_voxel {
         return false;
