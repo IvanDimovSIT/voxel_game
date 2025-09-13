@@ -1,9 +1,11 @@
 use std::f32::consts::TAU;
 
+use bincode::{Decode, Encode, decode_from_slice, encode_to_vec};
 use macroquad::{
     math::{Vec3, vec3},
-    models::{Mesh, draw_mesh},
-    rand::gen_range,
+    models::Mesh,
+    prelude::error,
+    rand::{gen_range, rand},
 };
 
 use crate::{
@@ -11,19 +13,28 @@ use crate::{
     model::{area::AREA_HEIGHT, world::World},
     service::{
         activity_timer::ActivityTimer,
-        creatures::creature_manager::{Creature, CreatureManager},
+        creatures::creature_manager::{Creature, CreatureDTO, CreatureId, CreatureManager},
+        persistence::config::SERIALIZATION_CONFIG,
         physics::player_physics::{GRAVITY, MAX_FALL_SPEED},
     },
 };
 
 const SIZE: Vec3 = vec3(0.8, 0.8, 0.8);
-const SPEED: f32 = 2.0;
-const JUMP: f32 = -15.0;
-const ACTIVITY: f32 = 7.0;
+const SPEED: f32 = 3.0;
+const JUMP: f32 = -12.0;
+const TURN_SPEED: f32 = 2.2;
+const WAIT_ACTIVITY_MAX: f32 = 3.0;
+const MOVE_ACTIVITY_MAX: f32 = 14.0;
+const TURN_ACTIVITY: f32 = 1.5;
+const MIN_ACTIVITY: f32 = 0.5;
 
+const FORWAD_DIRECTION: Vec3 = vec3(0.0, 1.0, 0.0);
+
+#[derive(Debug, Clone, Copy, Encode, Decode)]
 enum Activity {
     Idle,
-    Move(f32),
+    Move,
+    Turn(bool),
 }
 
 pub struct BunnyCreature {
@@ -32,21 +43,24 @@ pub struct BunnyCreature {
     velocity: f32,
     activity: Activity,
     direction: Vec3,
+    rotation: f32,
     mesh: Mesh,
 }
 impl BunnyCreature {
     /// creates a new bunny creature at position with a random rotation
-    pub fn new(position: Vec3, mesh: Mesh) -> Self {
+    pub fn new(position: Vec3, mesh_manager: &MeshManager) -> Self {
+        let mesh = mesh_manager.get_at(CreatureId::Bunny, position);
+        let random_rotation = gen_range(0.0, TAU);
         let mut bunny = Self {
             position,
             velocity: 0.0,
             mesh,
-            activity_timer: ActivityTimer::new(0.0, ACTIVITY),
+            activity_timer: ActivityTimer::new(0.0, gen_range(MIN_ACTIVITY, WAIT_ACTIVITY_MAX)),
             activity: Activity::Idle,
-            direction: vec3(0.0, 1.0, 0.0),
+            direction: FORWAD_DIRECTION,
+            rotation: random_rotation,
         };
 
-        let random_rotation = gen_range(0.0, TAU);
         MeshManager::rotate_around_z(
             &mut bunny.mesh,
             &mut bunny.direction,
@@ -55,6 +69,50 @@ impl BunnyCreature {
         );
 
         bunny
+    }
+
+    pub fn from_dto(
+        creature_dto: CreatureDTO,
+        mesh_manager: &MeshManager,
+    ) -> Option<Box<dyn Creature>> {
+        assert_eq!(creature_dto.id, CreatureId::Bunny);
+        let bunny_dto_result: Result<(BunnyDTO, _), _> =
+            decode_from_slice(&creature_dto.bytes, SERIALIZATION_CONFIG);
+        match bunny_dto_result {
+            Ok((bunny_dto, _)) => {
+                let position = vec3(
+                    bunny_dto.position[0],
+                    bunny_dto.position[1],
+                    bunny_dto.position[2],
+                );
+                let mut mesh = mesh_manager.get_at(CreatureId::Bunny, position);
+                let mut direction = FORWAD_DIRECTION;
+                MeshManager::rotate_around_z(
+                    &mut mesh,
+                    &mut direction,
+                    position,
+                    bunny_dto.rotation,
+                );
+
+                Some(Box::new(Self {
+                    activity_timer: bunny_dto.activity_timer,
+                    position: vec3(
+                        bunny_dto.position[0],
+                        bunny_dto.position[1],
+                        bunny_dto.position[2],
+                    ),
+                    velocity: bunny_dto.velocity,
+                    activity: bunny_dto.activity,
+                    direction,
+                    mesh,
+                    rotation: bunny_dto.rotation,
+                }))
+            }
+            Err(err) => {
+                error!("Error decoding bunny dto {:?}", err);
+                None
+            }
+        }
     }
 
     /// returns true if on the ground
@@ -72,12 +130,8 @@ impl BunnyCreature {
         is_on_ground
     }
 
-    /// returns new move distance
-    fn handle_move(&mut self, delta: f32, world: &mut World, to_move: f32, on_ground: bool) -> f32 {
-        let move_distance = (delta * SPEED).min(to_move);
-        if move_distance <= f32::EPSILON {
-            return 0.0;
-        }
+    fn handle_move(&mut self, delta: f32, world: &mut World, on_ground: bool) {
+        let move_distance = delta * SPEED;
 
         if on_ground {
             self.velocity = JUMP;
@@ -87,11 +141,29 @@ impl BunnyCreature {
         self.position += displacement;
         if CreatureManager::collides(self, world) {
             self.position -= displacement;
+        }
+    }
 
-            return to_move;
+    fn handle_turn(&mut self, delta: f32, clockwise: bool) {
+        let turn_amount = if clockwise {
+            TAU - delta * TURN_SPEED
+        } else {
+            delta * TURN_SPEED
+        };
+
+        self.rotation += turn_amount;
+        if self.rotation > TAU {
+            self.rotation -= TAU;
+        } else if self.rotation < 0.0 {
+            self.rotation += TAU;
         }
 
-        move_distance
+        MeshManager::rotate_around_z(
+            &mut self.mesh,
+            &mut self.direction,
+            self.position,
+            turn_amount,
+        );
     }
 }
 impl Creature for BunnyCreature {
@@ -100,18 +172,30 @@ impl Creature for BunnyCreature {
         debug_assert!(self.position.z < AREA_HEIGHT as f32);
         let old_position = self.position;
         if self.activity_timer.tick(delta) {
-            self.activity = match self.activity {
-                Activity::Idle => Activity::Move(gen_range(1.0, 10.0)),
-                Activity::Move(_) => Activity::Idle,
+            (self.activity, self.activity_timer) = match self.activity {
+                Activity::Idle => (
+                    Activity::Turn(rand() % 2 == 0),
+                    ActivityTimer::new(MIN_ACTIVITY, TURN_ACTIVITY),
+                ),
+                Activity::Move => (
+                    Activity::Idle,
+                    ActivityTimer::new(0.0, gen_range(MIN_ACTIVITY, WAIT_ACTIVITY_MAX)),
+                ),
+                Activity::Turn(_) => (
+                    Activity::Move,
+                    ActivityTimer::new(0.0, gen_range(MIN_ACTIVITY, MOVE_ACTIVITY_MAX)),
+                ),
             }
         }
         let on_ground = self.handle_gravity(delta, world);
 
         match self.activity {
             Activity::Idle => {}
-            Activity::Move(amount) => {
-                let new_amount = self.handle_move(delta, world, amount, on_ground);
-                self.activity = Activity::Move(new_amount);
+            Activity::Move => {
+                self.handle_move(delta, world, on_ground);
+            }
+            Activity::Turn(clockwise) => {
+                self.handle_turn(delta, clockwise);
             }
         }
 
@@ -121,8 +205,8 @@ impl Creature for BunnyCreature {
         }
     }
 
-    fn draw(&self) {
-        draw_mesh(&self.mesh);
+    fn get_mesh_with_index(&self) -> (&Mesh, usize) {
+        (&self.mesh, CreatureId::Bunny.index())
     }
 
     fn get_position(&self) -> Vec3 {
@@ -132,4 +216,34 @@ impl Creature for BunnyCreature {
     fn get_size(&self) -> Vec3 {
         SIZE
     }
+
+    fn create_dto(&self) -> Option<CreatureDTO> {
+        let dto = BunnyDTO {
+            activity_timer: self.activity_timer,
+            position: [self.position.x, self.position.y, self.position.z],
+            velocity: self.velocity,
+            activity: self.activity,
+            rotation: self.rotation,
+        };
+        let result = encode_to_vec(dto, SERIALIZATION_CONFIG);
+        match result {
+            Ok(bytes) => Some(CreatureDTO {
+                id: CreatureId::Bunny,
+                bytes,
+            }),
+            Err(err) => {
+                error!("Failed to serialise bunny {:?}", err);
+                None
+            }
+        }
+    }
+}
+
+#[derive(Debug, Encode, Decode)]
+struct BunnyDTO {
+    activity_timer: ActivityTimer,
+    rotation: f32,
+    position: [f32; 3],
+    velocity: f32,
+    activity: Activity,
 }

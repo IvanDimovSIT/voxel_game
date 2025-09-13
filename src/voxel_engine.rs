@@ -8,7 +8,7 @@ use macroquad::{
 use crate::{
     GameState,
     graphics::{
-        debug_display::DebugDisplay,
+        debug_display::{DebugDisplay, DebugInfo},
         height_map::HeightMap,
         renderer::Renderer,
         screen_effects::draw_water_effect,
@@ -84,15 +84,24 @@ impl VoxelEngine {
             .unwrap_or_else(|| (PlayerInfo::new(vec3(0.0, 0.0, 0.0)), false));
 
         player_info.camera_controller.set_focus(true);
-        let (world_time, simulated_voxels, water_simulator) =
+        let (world_time, simulated_voxels, water_simulator, creature_manager) =
             if let Some(world_metadata) = load_world_metadata(&world_name) {
                 (
                     WorldTime::new(world_metadata.delta),
                     world_metadata.simulated_voxels,
                     world_metadata.water_simulator,
+                    CreatureManager::from_dto(
+                        world_metadata.creature_manager,
+                        &asset_manager.mesh_manager,
+                    ),
                 )
             } else {
-                (WorldTime::new(PI * 0.5), vec![], WaterSimulator::new())
+                (
+                    WorldTime::new(PI * 0.5),
+                    vec![],
+                    WaterSimulator::new(),
+                    CreatureManager::new(),
+                )
             };
 
         let sky = Sky::new(&asset_manager.texture_manager);
@@ -114,7 +123,7 @@ impl VoxelEngine {
             sky,
             height_map: HeightMap::new(),
             voxel_particles: VoxelParticleSystem::new(),
-            creature_manager: CreatureManager::new(),
+            creature_manager,
         };
 
         if !successful_load {
@@ -246,6 +255,7 @@ impl VoxelEngine {
             &self.asset_manager.mesh_manager,
             &self.player_info,
             &mut self.world,
+            &self.user_settings,
         );
         update_player_in_water(&mut self.player_info, &mut self.world);
     }
@@ -289,7 +299,7 @@ impl VoxelEngine {
             &self.world,
             &mut self.height_map,
         );
-        let _creatures_drawn = self.creature_manager.draw(&camera, &self.user_settings);
+        let creatures_drawn = self.creature_manager.draw(&camera, &self.user_settings);
         self.voxel_particles.draw();
         self.voxel_simulator.draw(&camera);
         gl_use_default_material();
@@ -310,13 +320,17 @@ impl VoxelEngine {
         self.player_info
             .voxel_selector
             .draw(&self.player_info.inventory.selected, &self.asset_manager);
-        self.debug_display.draw_debug_display(
-            &self.world,
-            &self.renderer,
-            &camera,
-            rendered,
-            &self.asset_manager.font,
-        );
+
+        let debug_info = DebugInfo {
+            world: &self.world,
+            renderer: &self.renderer,
+            camera: &camera,
+            rendered_areas_faces: rendered,
+            creature_manager: &self.creature_manager,
+            rendered_creatures: creatures_drawn,
+        };
+        self.debug_display
+            .draw_debug_display(debug_info, &self.asset_manager.font);
         let menu_result = self.process_menu();
 
         next_frame().await;
@@ -535,7 +549,11 @@ impl VoxelEngine {
 impl Drop for VoxelEngine {
     fn drop(&mut self) {
         save_player_info(self.world.get_world_name(), &self.player_info);
-        let world_metadata = WorldMetadata::new(&self.world_time, &self.voxel_simulator);
+        let world_metadata = WorldMetadata::new(
+            &self.world_time,
+            &self.voxel_simulator,
+            &self.creature_manager,
+        );
         store_world_metadata(world_metadata, self.world.get_world_name());
         write_user_settings_blocking(&self.user_settings);
         self.world.save_all_blocking();

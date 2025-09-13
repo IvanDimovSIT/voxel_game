@@ -19,7 +19,7 @@ use crate::{
         voxel::Voxel,
         world::World,
     },
-    service::camera_controller::CameraController,
+    service::{camera_controller::CameraController, creatures::creature_manager::CreatureManager},
     utils::vector_to_location,
 };
 
@@ -29,6 +29,15 @@ const KILOBYTE: usize = 1024;
 const MS_IN_SECONDS: f32 = 1000.0;
 const FONT_SIZE: f32 = 30.0;
 const LEFT_MARGIN: f32 = 10.0;
+
+pub struct DebugInfo<'a> {
+    pub world: &'a World,
+    pub renderer: &'a Renderer,
+    pub camera: &'a Camera3D,
+    pub rendered_areas_faces: (usize, usize),
+    pub creature_manager: &'a CreatureManager,
+    pub rendered_creatures: u32,
+}
 
 pub struct DebugDisplay {
     should_display: bool,
@@ -45,28 +54,21 @@ impl DebugDisplay {
         info!("Debug display:{}", self.should_display);
     }
 
-    pub fn draw_debug_display(
-        &self,
-        world: &World,
-        renderer: &Renderer,
-        camera: &Camera3D,
-        rendered_areas_faces: (usize, usize),
-        font: &Font,
-    ) {
+    pub fn draw_debug_display(&self, debug_info: DebugInfo, font: &Font) {
         if !self.should_display {
             return;
         }
 
         let fps = get_fps();
         let frame_time_ms = get_frame_time() * MS_IN_SECONDS;
-        let meshes = renderer.get_voxel_face_count();
-        let camera_location = vector_to_location(camera.position);
-        let look_target = camera.target;
-        let loaded_areas = world.get_loaded_areas_count();
+        let meshes = debug_info.renderer.get_voxel_face_count();
+        let camera_location = vector_to_location(debug_info.camera.position);
+        let look_target = debug_info.camera.target;
+        let loaded_areas = debug_info.world.get_loaded_areas_count();
         let areas_max_height_bytes = loaded_areas * VOXELS_IN_AREA;
         let areas_voxels_bytes = loaded_areas * size_of::<Voxel>() * VOXELS_IN_AREA;
         let areas_memory_kb = (areas_max_height_bytes + areas_voxels_bytes) / KILOBYTE;
-        let waiting_to_be_rendered = renderer.get_areas_waiting_to_be_rendered();
+        let waiting_to_be_rendered = debug_info.renderer.get_areas_waiting_to_be_rendered();
 
         Self::draw_background();
         draw_game_text(
@@ -88,7 +90,7 @@ impl DebugDisplay {
         draw_game_text(
             &format!(
                 "Visible: {} Areas:{} ({waiting_to_be_rendered} waiting)",
-                rendered_areas_faces.1, rendered_areas_faces.0
+                debug_info.rendered_areas_faces.1, debug_info.rendered_areas_faces.0
             ),
             LEFT_MARGIN,
             3.0 * FONT_SIZE,
@@ -107,7 +109,9 @@ impl DebugDisplay {
         draw_game_text(
             &format!(
                 "X:{:.2}, Y:{:.2}, Z:{:.2}",
-                camera.position.x, camera.position.y, camera.position.z
+                debug_info.camera.position.x,
+                debug_info.camera.position.y,
+                debug_info.camera.position.z
             ),
             LEFT_MARGIN,
             5.0 * FONT_SIZE,
@@ -137,6 +141,18 @@ impl DebugDisplay {
             TEXT_COLOR,
             font,
         );
+        draw_game_text(
+            &format!(
+                "Creatures: {} ({} visible)",
+                debug_info.creature_manager.creature_count(),
+                debug_info.rendered_creatures
+            ),
+            LEFT_MARGIN,
+            8.0 * FONT_SIZE,
+            FONT_SIZE,
+            TEXT_COLOR,
+            font,
+        );
     }
 
     pub fn draw_area_border(&self, camera_controller: &CameraController) {
@@ -162,6 +178,6 @@ impl DebugDisplay {
     }
 
     fn draw_background() {
-        draw_rectangle(0.0, 0.0, 530.0, FONT_SIZE * 8.0, CLEAR_SCREEN_COLOR);
+        draw_rectangle(0.0, 0.0, 530.0, FONT_SIZE * 9.0, CLEAR_SCREEN_COLOR);
     }
 }

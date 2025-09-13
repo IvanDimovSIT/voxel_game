@@ -61,6 +61,7 @@ impl Voxel {
         Self::Water3,
         Self::Water4,
     ];
+    pub const HALF_SIZE: f32 = 0.5;
 
     #[inline(always)]
     pub fn index(self) -> usize {

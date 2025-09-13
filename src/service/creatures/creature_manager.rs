@@ -1,6 +1,8 @@
+use bincode::{Decode, Encode};
 use macroquad::{
     camera::Camera3D,
     math::{Vec3, vec3},
+    models::{Mesh, draw_mesh},
     prelude::info,
     rand::gen_range,
 };
@@ -9,27 +11,45 @@ use crate::{
     graphics::mesh_manager::MeshManager,
     model::{
         area::AREA_SIZE, location::Location, player_info::PlayerInfo, user_settings::UserSettings,
-        world::World,
+        voxel::Voxel, world::World,
     },
     service::{activity_timer::ActivityTimer, creatures::bunny_creature::BunnyCreature},
     utils::vector_to_location,
 };
 
-const CHECK_UPDATES_TIME: f32 = 10.0;
-const REMOVE_RANGE: f32 = 300.0;
-const MAX_SPAWN_DISTANCE: f32 = 100.0;
-const MAX_CREATURES: usize = 20;
+const CHECK_UPDATES_TIME: f32 = 5.0;
+const MAX_CREATURES: usize = 10;
+const SPAWN_SIZE_EXTRA_RANGE: f32 = AREA_SIZE as f32 * 0.75;
+const MIN_CULL_DISTANCE: f32 = 3.0;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Encode, Decode)]
 pub enum CreatureId {
     Bunny,
+}
+impl CreatureId {
+    const MAX_ID: usize = 1;
+
+    #[inline(always)]
+    pub fn index(self) -> usize {
+        let index = self as usize;
+        debug_assert!(index <= Self::MAX_ID);
+
+        index
+    }
+}
+
+#[derive(Debug, Clone, Encode, Decode)]
+pub struct CreatureDTO {
+    pub id: CreatureId,
+    pub bytes: Vec<u8>,
 }
 
 pub trait Creature {
     fn update(&mut self, delta: f32, world: &mut World);
-    fn draw(&self);
+    fn get_mesh_with_index(&self) -> (&Mesh, usize);
     fn get_position(&self) -> Vec3;
     fn get_size(&self) -> Vec3;
+    fn create_dto(&self) -> Option<CreatureDTO>;
 }
 
 pub struct CreatureManager {
@@ -44,25 +64,49 @@ impl CreatureManager {
         }
     }
 
+    pub fn from_dto(dto: CreatureManagerDTO, mesh_manager: &MeshManager) -> Self {
+        let creatures = dto
+            .creatures
+            .into_iter()
+            .flat_map(|creature_dto| match creature_dto.id {
+                CreatureId::Bunny => BunnyCreature::from_dto(creature_dto, mesh_manager),
+            })
+            .collect();
+
+        Self {
+            creatures,
+            activity_timer: dto.activity_timer,
+        }
+    }
+
     pub fn update(
         &mut self,
         delta: f32,
         mesh_manager: &MeshManager,
         player_info: &PlayerInfo,
         world: &mut World,
+        user_settings: &UserSettings,
     ) {
+        let creature_spawn_distance =
+            user_settings.get_render_distance() as f32 * AREA_SIZE as f32 + SPAWN_SIZE_EXTRA_RANGE;
         for creature in &mut self.creatures {
             creature.update(delta, world);
         }
+        self.remove_distant_creatures(
+            player_info.camera_controller.get_position(),
+            creature_spawn_distance,
+        );
 
-        if self.activity_timer.tick(delta) {
+        if self.activity_timer.tick(delta) && self.creatures.len() < MAX_CREATURES {
             let camera = player_info.camera_controller.create_camera();
             let camera_look = (camera.target - camera.position).normalize_or_zero();
-            self.remove_distant_creatures(&camera, camera_look);
-            if self.creatures.len() >= MAX_CREATURES {
-                return;
-            }
-            self.add_creature(mesh_manager, world, &camera, camera_look);
+            self.add_creature(
+                mesh_manager,
+                world,
+                &camera,
+                camera_look,
+                creature_spawn_distance,
+            );
         }
     }
 
@@ -88,6 +132,7 @@ impl CreatureManager {
         let draw_cull_range = (user_settings.get_render_distance() * AREA_SIZE) as f32;
 
         let mut drew = 0;
+        let mut mesh_array = vec![vec![]; CreatureId::MAX_ID];
         for creature in &self.creatures {
             let creature_pos = creature.get_position();
             let vec_to_creature = creature_pos - camera.position;
@@ -95,17 +140,27 @@ impl CreatureManager {
             if distance_to_creature > draw_cull_range {
                 continue;
             }
-            if vec_to_creature.normalize_or_zero().dot(camera_look) < 0.0
-                && distance_to_creature > 3.0
+            if distance_to_creature > MIN_CULL_DISTANCE
+                && vec_to_creature.normalize_or_zero().dot(camera_look) < 0.0
             {
                 continue;
             }
 
-            creature.draw();
+            let (mesh, index) = creature.get_mesh_with_index();
+            mesh_array[index].push(mesh);
             drew += 1;
         }
 
+        Self::draw_mesh_array(mesh_array);
+
         drew
+    }
+
+    fn draw_mesh_array(mesh_array: Vec<Vec<&Mesh>>) {
+        let ordered_meshes = mesh_array.into_iter().flatten();
+        for mesh in ordered_meshes {
+            draw_mesh(mesh);
+        }
     }
 
     pub fn collides(creature: &impl Creature, world: &mut World) -> bool {
@@ -155,7 +210,7 @@ impl CreatureManager {
         if !bottom_voxel.is_solid() {
             let top_voxel = world.get_with_cache(top_location, cached_area);
             let result = if top_voxel.is_solid() {
-                top_location.z as f32 + 0.5 + half_z
+                top_location.z as f32 + Voxel::HALF_SIZE + half_z
             } else {
                 position.z
             };
@@ -165,20 +220,37 @@ impl CreatureManager {
         }
 
         world.return_area(area);
-        (bottom_location.z as f32 - 0.5 - half_z, true)
+        (bottom_location.z as f32 - Voxel::HALF_SIZE - half_z, true)
     }
 
-    fn remove_distant_creatures(&mut self, camera: &Camera3D, camera_look: Vec3) {
+    pub fn create_dto(&self) -> CreatureManagerDTO {
+        let creatures = self
+            .creatures
+            .iter()
+            .flat_map(|creature| creature.create_dto())
+            .collect();
+
+        CreatureManagerDTO {
+            creatures,
+            activity_timer: self.activity_timer,
+        }
+    }
+
+    pub fn creature_count(&self) -> usize {
+        self.creatures.len()
+    }
+
+    fn remove_distant_creatures(&mut self, camera_pos: Vec3, creature_spawn_distance: f32) {
+        let creature_count = self.creatures.len();
         self.creatures.retain(|creature| {
             let creature_pos = creature.get_position();
-            let vec_to_creature = creature_pos - camera.position;
-            let distance_to_creature = vec_to_creature.length();
-            if distance_to_creature < REMOVE_RANGE {
-                return true;
-            }
-
-            vec_to_creature.normalize_or_zero().dot(camera_look) < 0.0 && distance_to_creature > 5.0
+            let distance_to_creature = camera_pos.distance(creature_pos);
+            distance_to_creature <= creature_spawn_distance
         });
+        let removed_creatures = creature_count as i32 - self.creatures.len() as i32;
+        if removed_creatures != 0 {
+            info!("Removed {} creature(s)", removed_creatures);
+        }
     }
 
     fn add_creature(
@@ -187,9 +259,10 @@ impl CreatureManager {
         world: &mut World,
         camera: &Camera3D,
         camera_look: Vec3,
+        render_distance: f32,
     ) {
-        let random_x = gen_range(-MAX_SPAWN_DISTANCE, MAX_SPAWN_DISTANCE);
-        let random_y = gen_range(-MAX_SPAWN_DISTANCE, MAX_SPAWN_DISTANCE);
+        let random_x = gen_range(-render_distance, render_distance);
+        let random_y = gen_range(-render_distance, render_distance);
         let location = vector_to_location(vec3(
             camera.position.x + random_x,
             camera.position.y + random_y,
@@ -207,9 +280,14 @@ impl CreatureManager {
             .sample_height(local.x, local.y);
 
         let creature_location = vec3(location.x as f32, location.y as f32, height as f32 - 1.0);
-        let mesh = mesh_manager.get_at(CreatureId::Bunny, creature_location);
-        let creature = BunnyCreature::new(creature_location, mesh);
+        let creature = BunnyCreature::new(creature_location, mesh_manager);
         self.creatures.push(Box::new(creature));
         info!("Added creature at {}", camera_to_location);
     }
+}
+
+#[derive(Debug, Clone, Encode, Decode)]
+pub struct CreatureManagerDTO {
+    creatures: Vec<CreatureDTO>,
+    activity_timer: ActivityTimer,
 }

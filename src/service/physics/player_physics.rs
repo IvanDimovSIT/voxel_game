@@ -8,7 +8,6 @@ use crate::{
     utils::{StackVec, vector_to_location},
 };
 
-const HALF_VOXEL_SIZE: f32 = 0.5;
 pub const GRAVITY: f32 = 25.0;
 pub const MAX_FALL_SPEED: f32 = 60.0;
 const STRONG_COLLISION_SPEED: f32 = MAX_FALL_SPEED * 0.2;
@@ -209,10 +208,10 @@ fn find_locations_for_collisions(
     debug_assert!(locations.is_empty());
     let x_round = position.x.round();
     let y_round = position.y.round();
-    let x_min = x_round - HALF_VOXEL_SIZE;
-    let x_max = x_round + HALF_VOXEL_SIZE;
-    let y_min = y_round - HALF_VOXEL_SIZE;
-    let y_max = y_round + HALF_VOXEL_SIZE;
+    let x_min = x_round - Voxel::HALF_SIZE;
+    let x_max = x_round + Voxel::HALF_SIZE;
+    let y_min = y_round - Voxel::HALF_SIZE;
+    let y_max = y_round + Voxel::HALF_SIZE;
 
     locations.push(vector_to_location(position));
     if position.x + size >= x_max {

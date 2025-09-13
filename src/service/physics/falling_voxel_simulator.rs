@@ -205,7 +205,7 @@ impl FallingVoxelSimulator {
         renderer: &mut Renderer,
         simulator: &mut WaterSimulator,
     ) -> bool {
-        let location = vector_to_location(voxel.position + vec3(0.0, 0.0, 0.5));
+        let location = vector_to_location(voxel.position + vec3(0.0, 0.0, Voxel::HALF_SIZE));
         if location.z >= AREA_HEIGHT as i32 {
             return false;
         }

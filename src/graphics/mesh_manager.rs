@@ -115,18 +115,15 @@ impl MeshManager {
         }
     }
 
-    pub fn get(&self, id: CreatureId) -> Mesh {
-        let mesh = self.models.get(&id).expect("Failed to find mesh");
-
-        Mesh {
-            vertices: mesh.vertices.clone(),
-            indices: mesh.indices.clone(),
-            texture: mesh.texture.clone(),
-        }
-    }
-
     pub fn get_at(&self, id: CreatureId, at: Vec3) -> Mesh {
-        let mut mesh = self.get(id);
+        let mesh_ref = self.models.get(&id).expect("Failed to find mesh");
+
+        let mut mesh = Mesh {
+            vertices: mesh_ref.vertices.clone(),
+            indices: mesh_ref.indices.clone(),
+            texture: mesh_ref.texture.clone(),
+        };
+
         Self::move_mesh(&mut mesh, at);
 
         mesh
@@ -159,5 +156,6 @@ impl MeshManager {
 
         direction.x = dir_x * cos_a - dir_y * sin_a;
         direction.y = dir_x * sin_a + dir_y * cos_a;
+        *direction = direction.normalize_or_zero();
     }
 }
