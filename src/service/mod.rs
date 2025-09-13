@@ -1,8 +1,10 @@
 pub mod active_zone;
+pub mod activity_timer;
 pub mod area_generation;
 pub mod asset_manager;
 pub mod camera_controller;
 pub mod crafting;
+pub mod creatures;
 pub mod input;
 pub mod persistence;
 pub mod physics;

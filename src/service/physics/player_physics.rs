@@ -9,8 +9,8 @@ use crate::{
 };
 
 const HALF_VOXEL_SIZE: f32 = 0.5;
-const GRAVITY: f32 = 25.0;
-const MAX_FALL_SPEED: f32 = 60.0;
+pub const GRAVITY: f32 = 25.0;
+pub const MAX_FALL_SPEED: f32 = 60.0;
 const STRONG_COLLISION_SPEED: f32 = MAX_FALL_SPEED * 0.2;
 const MAX_LOCATIONS_TO_CHECK: usize = 9;
 const MOVE_CHECKS: usize = 4;

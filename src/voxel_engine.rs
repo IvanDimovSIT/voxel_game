@@ -31,6 +31,7 @@ use crate::{
             get_render_zone_on_world_load,
         },
         asset_manager::AssetManager,
+        creatures::creature_manager::CreatureManager,
         input::{self, ScrollDirection},
         persistence::{
             player_persistence::{load_player_info, save_player_info},
@@ -63,6 +64,7 @@ pub struct VoxelEngine {
     debug_display: DebugDisplay,
     voxel_simulator: VoxelSimulator,
     voxel_particles: VoxelParticleSystem,
+    creature_manager: CreatureManager,
     asset_manager: Rc<AssetManager>,
     user_settings: UserSettings,
     menu_state: MenuState,
@@ -112,6 +114,7 @@ impl VoxelEngine {
             sky,
             height_map: HeightMap::new(),
             voxel_particles: VoxelParticleSystem::new(),
+            creature_manager: CreatureManager::new(),
         };
 
         if !successful_load {
@@ -238,6 +241,12 @@ impl VoxelEngine {
         self.world_time.update(delta);
         self.process_physics(delta);
         self.voxel_particles.update(delta);
+        self.creature_manager.update(
+            delta,
+            &self.asset_manager.mesh_manager,
+            &self.player_info,
+            &mut self.world,
+        );
         update_player_in_water(&mut self.player_info, &mut self.world);
     }
 
@@ -280,6 +289,7 @@ impl VoxelEngine {
             &self.world,
             &mut self.height_map,
         );
+        let _creatures_drawn = self.creature_manager.draw(&camera, &self.user_settings);
         self.voxel_particles.draw();
         self.voxel_simulator.draw(&camera);
         gl_use_default_material();
@@ -433,6 +443,7 @@ impl VoxelEngine {
                     &mut self.world,
                     &mut self.renderer,
                     &mut self.voxel_simulator,
+                    &self.creature_manager,
                 );
                 if !has_placed {
                     return;

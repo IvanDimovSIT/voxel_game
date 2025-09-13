@@ -6,6 +6,7 @@ use macroquad::prelude::error;
 use crate::{
     graphics::renderer::Renderer,
     model::{area::AREA_HEIGHT, location::InternalLocation, voxel::Voxel, world::World},
+    service::activity_timer::ActivityTimer,
     utils::StackVec,
 };
 
@@ -16,24 +17,20 @@ const LOWEST_WATER: Voxel = Voxel::Water4;
 #[derive(Debug, Clone, Encode, Decode)]
 pub struct WaterSimulator {
     check_locations: HashSet<InternalLocation>,
-    delta: f32,
+    activity_timer: ActivityTimer,
 }
 impl WaterSimulator {
     pub fn new() -> Self {
         Self {
             check_locations: HashSet::new(),
-            delta: 0.0,
+            activity_timer: ActivityTimer::new(0.0, WATER_SPEED),
         }
     }
 
     pub fn update(&mut self, world: &mut World, renderer: &mut Renderer, delta: f32) {
-        self.delta += delta;
-        if self.delta < WATER_SPEED {
-            return;
+        if self.activity_timer.tick(delta) {
+            self.simulate_voxels(world, renderer);
         }
-
-        self.delta -= WATER_SPEED;
-        self.simulate_voxels(world, renderer);
     }
 
     pub fn location_updated(&mut self, location: impl Into<InternalLocation>) {

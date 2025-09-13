@@ -32,6 +32,16 @@ impl From<Location> for Vec3 {
     }
 }
 
+impl From<Vec3> for Location {
+    fn from(value: Vec3) -> Self {
+        Self {
+            x: value.x.round() as i32,
+            y: value.y.round() as i32,
+            z: value.z.round() as i32,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, Encode, Decode)]
 pub struct InternalLocation {
     pub x: u32,
