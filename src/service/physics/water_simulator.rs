@@ -4,7 +4,10 @@ use bincode::{Decode, Encode};
 use macroquad::prelude::error;
 
 use crate::{
-    graphics::renderer::Renderer, model::{area::AREA_HEIGHT, location::InternalLocation, voxel::Voxel, world::World}, service::activity_timer::ActivityTimer, utils::StackVec
+    graphics::renderer::Renderer,
+    model::{area::AREA_HEIGHT, location::InternalLocation, voxel::Voxel, world::World},
+    service::activity_timer::ActivityTimer,
+    utils::StackVec,
 };
 
 const WATER_SPEED: f32 = 0.5;
@@ -27,7 +30,7 @@ impl WaterSimulator {
     pub fn update(&mut self, world: &mut World, renderer: &mut Renderer, delta: f32) {
         if self.activity_timer.tick(delta) {
             self.simulate_voxels(world, renderer);
-        }    
+        }
     }
 
     pub fn location_updated(&mut self, location: impl Into<InternalLocation>) {

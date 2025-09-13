@@ -1,39 +1,40 @@
-use std::{collections::HashMap};
+use std::collections::HashMap;
 
 use macroquad::{
-    math::{vec2, vec3, vec4, Vec3},
+    math::{Vec3, vec2, vec3, vec4},
     models::Mesh,
+    texture::Texture2D,
     ui::Vertex,
 };
 use tobj::{LoadOptions, Model, load_obj};
 
-use crate::graphics::texture_manager::TextureManager;
+use crate::{
+    graphics::texture_manager::TextureManager, service::creatures::creature_manager::CreatureId,
+};
 
 const BASE_PATH: &str = "assets/models/";
 
-const MODEL_FILES: [(MeshId, &str); 1] = [(MeshId::TestModel, "test.obj")];
+const MODEL_FILES: [(CreatureId, &str); 1] = [(CreatureId::Bunny, "bunny.obj")];
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum MeshId {
-    TestModel,
-}
+const MAX_COORDINATES: f32 = 4.0;
 
 pub struct MeshManager {
-    models: HashMap<MeshId, Mesh>,
+    models: HashMap<CreatureId, Mesh>,
 }
 impl MeshManager {
     pub fn new(texture_manager: &TextureManager) -> Self {
         let mut models = HashMap::new();
         for (id, path) in MODEL_FILES {
             let fullpath = format!("{BASE_PATH}{path}");
-            let mesh = Self::load_mesh(&fullpath, texture_manager);
+            let texture = texture_manager.get_creature_texture(id);
+            let mesh = Self::load_mesh(&fullpath, texture);
             models.insert(id, mesh);
         }
 
         Self { models }
     }
 
-    fn load_mesh(filepath: &str, texture_manager: &TextureManager) -> Mesh {
+    fn load_mesh(filepath: &str, texture: Texture2D) -> Mesh {
         let (loaded_models, _loaded_materials) = load_obj(
             filepath,
             &LoadOptions {
@@ -43,7 +44,7 @@ impl MeshManager {
                 ignore_lines: false,
             },
         )
-        .expect(&format!("Error loading model '{filepath}'"));
+        .unwrap_or_else(|_| panic!("Error loading model '{filepath}'"));
 
         assert_eq!(
             loaded_models.len(),
@@ -51,10 +52,10 @@ impl MeshManager {
             "model files must contain a single model"
         );
         let loaded_model = loaded_models.into_iter().last().unwrap();
-        Self::convert_loaded_model_to_mesh(loaded_model, texture_manager)
+        Self::convert_loaded_model_to_mesh(loaded_model, texture)
     }
 
-    fn convert_loaded_model_to_mesh(loaded_model: Model, texture_manager: &TextureManager) -> Mesh {
+    fn convert_loaded_model_to_mesh(loaded_model: Model, texture: Texture2D) -> Mesh {
         Mesh {
             vertices: Self::construct_vertices(&loaded_model),
             indices: loaded_model
@@ -63,7 +64,7 @@ impl MeshManager {
                 .iter()
                 .map(|x| *x as u16)
                 .collect(),
-            texture: Some(texture_manager.get(crate::model::voxel::Voxel::Boards)),
+            texture: Some(texture),
         }
     }
 
@@ -76,6 +77,9 @@ impl MeshManager {
                 mesh.positions[i * 3 + 1],
                 mesh.positions[i * 3 + 2],
             );
+            debug_assert!(pos.x.abs() < MAX_COORDINATES);
+            debug_assert!(pos.y.abs() < MAX_COORDINATES);
+            debug_assert!(pos.z.abs() < MAX_COORDINATES);
 
             let norm = if !mesh.normals.is_empty() {
                 vec4(
@@ -89,7 +93,7 @@ impl MeshManager {
             };
 
             let uv = if !mesh.texcoords.is_empty() {
-                vec2(mesh.texcoords[i * 2], mesh.texcoords[i * 2 + 1])
+                vec2(mesh.texcoords[i * 2], 1.0 - mesh.texcoords[i * 2 + 1])
             } else {
                 vec2(0.0, 0.0)
             };
@@ -105,13 +109,13 @@ impl MeshManager {
         vertices
     }
 
-    fn move_mesh(mesh: &mut Mesh, by: Vec3) {
+    pub fn move_mesh(mesh: &mut Mesh, by: Vec3) {
         for v in &mut mesh.vertices {
             v.position += by;
         }
     }
 
-    pub fn get(&self, id: MeshId) -> Mesh {
+    pub fn get(&self, id: CreatureId) -> Mesh {
         let mesh = self.models.get(&id).expect("Failed to find mesh");
 
         Mesh {
@@ -121,7 +125,7 @@ impl MeshManager {
         }
     }
 
-    pub fn get_at(&self, id: MeshId, at: Vec3) -> Mesh {
+    pub fn get_at(&self, id: CreatureId, at: Vec3) -> Mesh {
         let mut mesh = self.get(id);
         Self::move_mesh(&mut mesh, at);
 

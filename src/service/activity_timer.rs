@@ -3,7 +3,7 @@ use bincode::{Decode, Encode};
 #[derive(Debug, Clone, Copy, Encode, Decode)]
 pub struct ActivityTimer {
     delta: f32,
-    cooldown: f32
+    cooldown: f32,
 }
 impl ActivityTimer {
     pub fn new(delta: f32, cooldown: f32) -> Self {
@@ -17,10 +17,10 @@ impl ActivityTimer {
 
         if self.delta >= self.cooldown {
             self.delta -= self.cooldown;
-        
+
             true
         } else {
-            false   
+            false
         }
     }
 }
