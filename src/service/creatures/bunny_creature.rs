@@ -1,3 +1,5 @@
+use std::f32::consts::TAU;
+
 use macroquad::{
     math::{Vec3, vec3},
     models::{Mesh, draw_mesh},
@@ -33,15 +35,26 @@ pub struct BunnyCreature {
     mesh: Mesh,
 }
 impl BunnyCreature {
+    /// creates a new bunny creature at position with a random rotation
     pub fn new(position: Vec3, mesh: Mesh) -> Self {
-        Self {
+        let mut bunny = Self {
             position,
             velocity: 0.0,
             mesh,
             activity_timer: ActivityTimer::new(0.0, ACTIVITY),
             activity: Activity::Idle,
             direction: vec3(0.0, 1.0, 0.0),
-        }
+        };
+
+        let random_rotation = gen_range(0.0, TAU);
+        MeshManager::rotate_around_z(
+            &mut bunny.mesh,
+            &mut bunny.direction,
+            bunny.position,
+            random_rotation,
+        );
+
+        bunny
     }
 
     /// returns true if on the ground

@@ -131,4 +131,33 @@ impl MeshManager {
 
         mesh
     }
+
+    /// rotates a mesh and it's direction around z
+    pub fn rotate_around_z(mesh: &mut Mesh, direction: &mut Vec3, origin: Vec3, angle: f32) {
+        debug_assert!(direction.is_normalized());
+        if angle <= f32::EPSILON {
+            return;
+        }
+
+        let (sin_a, cos_a) = angle.sin_cos();
+
+        for v in &mut mesh.vertices {
+            let p = &mut v.position;
+
+            let dx = p.x - origin.x;
+            let dy = p.y - origin.y;
+
+            let new_x = dx * cos_a - dy * sin_a;
+            let new_y = dx * sin_a + dy * cos_a;
+
+            p.x = origin.x + new_x;
+            p.y = origin.y + new_y;
+        }
+
+        let dir_x = direction.x;
+        let dir_y = direction.y;
+
+        direction.x = dir_x * cos_a - dir_y * sin_a;
+        direction.y = dir_x * sin_a + dir_y * cos_a;
+    }
 }

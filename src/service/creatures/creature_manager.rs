@@ -208,8 +208,8 @@ impl CreatureManager {
 
         let creature_location = vec3(location.x as f32, location.y as f32, height as f32 - 1.0);
         let mesh = mesh_manager.get_at(CreatureId::Bunny, creature_location);
-        let creature = Box::new(BunnyCreature::new(creature_location, mesh));
-        self.creatures.push(creature);
+        let creature = BunnyCreature::new(creature_location, mesh);
+        self.creatures.push(Box::new(creature));
         info!("Added creature at {}", camera_to_location);
     }
 }
