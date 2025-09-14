@@ -1,9 +1,11 @@
 use bincode::{Decode, Encode};
-use macroquad::math::{Vec3, vec3};
+use macroquad::math::Vec3;
 
 use crate::{
-    graphics::ui_display::ItemHotbar, model::inventory::Inventory,
+    graphics::ui_display::ItemHotbar,
+    model::inventory::Inventory,
     service::camera_controller::CameraController,
+    utils::{arr_to_vec3, vec3_to_arr},
 };
 
 const PLAYER_MOVE_SPEED: f32 = 10.0;
@@ -42,7 +44,7 @@ impl PlayerInfo {
         let position = self.camera_controller.get_position();
         PlayerInfoDTO {
             velocity: self.velocity,
-            position: [position.x, position.y, position.z],
+            position: vec3_to_arr(position),
             yaw: self.camera_controller.yaw,
             pitch: self.camera_controller.pitch,
             voxel_selector: self.voxel_selector.clone(),
@@ -53,7 +55,7 @@ impl PlayerInfo {
 }
 impl From<PlayerInfoDTO> for PlayerInfo {
     fn from(value: PlayerInfoDTO) -> Self {
-        let position = vec3(value.position[0], value.position[1], value.position[2]);
+        let position = arr_to_vec3(value.position);
         let mut camera_controller = CameraController::new(position);
         camera_controller.yaw = value.yaw;
         camera_controller.pitch = value.pitch;

@@ -167,28 +167,23 @@ impl CreatureManager {
         let pos = creature.get_position();
         let size = creature.get_size();
         let creature_location: Location = pos.into();
-        let area = world.take_area(creature_location.into());
-        let cached_area = Some(&area);
 
-        let has_collision = world
-            .get_with_cache(creature_location, cached_area)
-            .is_solid()
-            || {
-                let positions_to_check = [
-                    pos + vec3(size.x * 0.5, 0.0, 0.0),
-                    pos - vec3(size.x * 0.5, 0.0, 0.0),
-                    pos + vec3(0.0, size.y * 0.5, 0.0),
-                    pos - vec3(0.0, size.y * 0.5, 0.0),
-                ];
+        let has_collision = world.with_cached_area(creature_location, |world, cached_area| {
+            let positions_to_check = [
+                pos,
+                pos + vec3(size.x * 0.5, 0.0, 0.0),
+                pos - vec3(size.x * 0.5, 0.0, 0.0),
+                pos + vec3(0.0, size.y * 0.5, 0.0),
+                pos - vec3(0.0, size.y * 0.5, 0.0),
+            ];
 
-                positions_to_check.into_iter().any(|loc| {
-                    world
-                        .get_with_cache(Into::<Location>::into(loc), cached_area)
-                        .is_solid()
-                })
-            };
+            positions_to_check.into_iter().any(|loc| {
+                world
+                    .get_with_cache(Into::<Location>::into(loc), Some(cached_area))
+                    .is_solid()
+            })
+        });
 
-        world.return_area(area);
         has_collision
     }
 
@@ -203,23 +198,19 @@ impl CreatureManager {
         let bottom_location = vector_to_location(below);
         let top_location = vector_to_location(above);
 
-        let area = world.take_area(bottom_location.into());
-        let cached_area = Some(&area);
-        let bottom_voxel = world.get_with_cache(bottom_location, cached_area);
+        let bottom_voxel = world.get(bottom_location);
 
         if !bottom_voxel.is_solid() {
-            let top_voxel = world.get_with_cache(top_location, cached_area);
+            let top_voxel = world.get(top_location);
             let result = if top_voxel.is_solid() {
                 top_location.z as f32 + Voxel::HALF_SIZE + half_z
             } else {
                 position.z
             };
 
-            world.return_area(area);
             return (result, false);
         }
 
-        world.return_area(area);
         (bottom_location.z as f32 - Voxel::HALF_SIZE - half_z, true)
     }
 

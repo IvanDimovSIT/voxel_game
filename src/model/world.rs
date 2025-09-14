@@ -68,10 +68,19 @@ impl World {
         })
     }
 
-    /// takes ownership of an area removing it from the world
-    pub fn take_area(&mut self, area_location: AreaLocation) -> Area {
+    /// temporarily takes ownership of an area to be used with `get_with_cache`
+    pub fn with_cached_area<L, F, T>(&mut self, location: L, f: F) -> T
+    where
+        L: Into<AreaLocation>,
+        F: FnOnce(&mut World, &Area) -> T,
+    {
+        let area_location = location.into();
         self.load_area(area_location);
-        self.areas.remove(&area_location).expect("Area not loaded")
+        let area = self.areas.remove(&area_location).expect("Area not loaded");
+        let result = f(self, &area);
+        self.return_area(area);
+
+        result
     }
 
     /// returns ownership of an area
@@ -350,8 +359,8 @@ mod tests {
     }
 
     #[test]
-    fn test_take_and_return_area() {
-        let world_name = "test_take_and_return_area";
+    fn test_with_cached_area() {
+        let world_name = "test_world_test_with_cached_area";
         let mut world = World::new(world_name);
         let area_location = AreaLocation::new(0, 0);
         let mut area = Area::new(AreaLocation::new(0, 0));
@@ -361,9 +370,10 @@ mod tests {
         world.return_area(area.clone());
         assert_eq!(world.areas.len(), 1);
 
-        let contained_area = world.take_area(area_location);
-        assert!(world.areas.is_empty());
-
-        assert_eq!(area.get(loc), contained_area.get(loc));
+        world.with_cached_area(area_location, |world, contained_area| {
+            assert!(world.areas.is_empty());
+            assert_eq!(area.get(loc), contained_area.get(loc));
+        });
+        assert_eq!(world.areas.len(), 1);
     }
 }

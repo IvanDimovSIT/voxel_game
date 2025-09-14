@@ -169,6 +169,7 @@ impl Area {
         ) {
             return false;
         }
+        // not using should_generate_top_face - skips unnecessary check
         if MeshGenerator::should_generate_face(
             current_voxel,
             self.get(InternalLocation::new(

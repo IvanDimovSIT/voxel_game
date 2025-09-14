@@ -61,6 +61,8 @@ impl Voxel {
         Self::Water3,
         Self::Water4,
     ];
+
+    pub const PARTIAL_HEIGHT: [Self; 4] = [Self::Water1, Self::Water2, Self::Water3, Self::Water4];
     pub const HALF_SIZE: f32 = 0.5;
 
     #[inline(always)]

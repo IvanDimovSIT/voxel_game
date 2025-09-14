@@ -1,6 +1,6 @@
 use std::{cell::RefCell, mem::MaybeUninit, ops::Deref};
 
-use macroquad::math::Vec3;
+use macroquad::math::{Vec3, vec3};
 
 use crate::model::{area::AREA_HEIGHT, location::Location};
 
@@ -106,6 +106,14 @@ pub fn use_str_buffer(f: impl Fn(&mut String)) {
         empty_buffer.clear();
         f(&mut empty_buffer);
     });
+}
+
+pub const fn vec3_to_arr(vec3: Vec3) -> [f32; 3] {
+    [vec3.x, vec3.y, vec3.z]
+}
+
+pub const fn arr_to_vec3(arr: [f32; 3]) -> Vec3 {
+    vec3(arr[0], arr[1], arr[2])
 }
 
 #[cfg(test)]

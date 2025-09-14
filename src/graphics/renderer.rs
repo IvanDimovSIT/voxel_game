@@ -166,7 +166,7 @@ impl Renderer {
             face_directions.push(FaceDirection::Down);
         }
         if global_location.z > 0
-            && MeshGenerator::should_generate_face(
+            && MeshGenerator::should_generate_top_face(
                 voxel,
                 world.get_with_cache(global_location.offset_z(-1), cached_area),
             )
@@ -308,12 +308,12 @@ impl Renderer {
         }
 
         let voxels = world.get_renderable_voxels_for_area(area_location);
-        let area = world.take_area(area_location);
 
-        for (location, voxel) in voxels {
-            self.update_meshes_for_voxel(world, location, voxel, Some(&area));
-        }
-        world.return_area(area);
+        world.with_cached_area(area_location, |world, area| {
+            for (location, voxel) in voxels {
+                self.update_meshes_for_voxel(world, location, voxel, Some(&area));
+            }
+        });
     }
 
     fn is_area_visible(

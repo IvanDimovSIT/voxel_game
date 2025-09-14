@@ -15,7 +15,7 @@ use crate::{
     service::{camera_controller::CameraController, world_time::WorldTime},
 };
 
-pub const SKY_BRIGHT_COLOR: Color = Color::new(0.92, 0.94, 0.61, 1.0);
+pub const SKY_BRIGHT_COLOR: Color = Color::new(0.75, 0.96, 1.0, 1.0);
 pub const SKY_DARK_COLOR: Color = Color::new(0.12, 0.08, 0.36, 1.0);
 pub const DISTANCE_TO_SKY: f32 = 400.0;
 pub const SUN_AND_MOON_SIZE: f32 = 50.0;

@@ -9,7 +9,7 @@ use crate::{
     graphics::{mesh_generator::MeshGenerator, renderer::Renderer},
     model::{area::AREA_HEIGHT, location::Location, voxel::Voxel, world::World},
     service::{camera_controller::CameraController, physics::water_simulator::WaterSimulator},
-    utils::{StackVec, vector_to_location},
+    utils::{StackVec, arr_to_vec3, vec3_to_arr, vector_to_location},
 };
 
 const MAX_FALL_SPEED: f32 = 3.0;
@@ -24,7 +24,7 @@ struct SimulatedVoxel {
 }
 impl SimulatedVoxel {
     fn from_dto(dto: SimulatedVoxelDTO, mesh_generator: &MeshGenerator) -> Self {
-        let position = vec3(dto.position[0], dto.position[1], dto.position[2]);
+        let position = arr_to_vec3(dto.position);
         let mesh = mesh_generator.generate_mesh_for_falling_voxel(dto.voxel_type, position);
 
         Self {
@@ -38,7 +38,7 @@ impl SimulatedVoxel {
     fn create_dto(&self) -> SimulatedVoxelDTO {
         SimulatedVoxelDTO {
             voxel_type: self.voxel_type,
-            position: [self.position.x, self.position.y, self.position.z],
+            position: vec3_to_arr(self.position),
             velocity: self.velocity,
         }
     }

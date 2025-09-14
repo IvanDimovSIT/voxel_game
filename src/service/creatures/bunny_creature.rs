@@ -17,6 +17,7 @@ use crate::{
         persistence::config::SERIALIZATION_CONFIG,
         physics::player_physics::{GRAVITY, MAX_FALL_SPEED},
     },
+    utils::{arr_to_vec3, vec3_to_arr},
 };
 
 const SIZE: Vec3 = vec3(0.8, 0.8, 0.8);
@@ -80,11 +81,7 @@ impl BunnyCreature {
             decode_from_slice(&creature_dto.bytes, SERIALIZATION_CONFIG);
         match bunny_dto_result {
             Ok((bunny_dto, _)) => {
-                let position = vec3(
-                    bunny_dto.position[0],
-                    bunny_dto.position[1],
-                    bunny_dto.position[2],
-                );
+                let position = arr_to_vec3(bunny_dto.position);
                 let mut mesh = mesh_manager.get_at(CreatureId::Bunny, position);
                 let mut direction = FORWAD_DIRECTION;
                 MeshManager::rotate_around_z(
@@ -96,11 +93,7 @@ impl BunnyCreature {
 
                 Some(Box::new(Self {
                     activity_timer: bunny_dto.activity_timer,
-                    position: vec3(
-                        bunny_dto.position[0],
-                        bunny_dto.position[1],
-                        bunny_dto.position[2],
-                    ),
+                    position,
                     velocity: bunny_dto.velocity,
                     activity: bunny_dto.activity,
                     direction,
@@ -220,7 +213,7 @@ impl Creature for BunnyCreature {
     fn create_dto(&self) -> Option<CreatureDTO> {
         let dto = BunnyDTO {
             activity_timer: self.activity_timer,
-            position: [self.position.x, self.position.y, self.position.z],
+            position: vec3_to_arr(self.position),
             velocity: self.velocity,
             activity: self.activity,
             rotation: self.rotation,
