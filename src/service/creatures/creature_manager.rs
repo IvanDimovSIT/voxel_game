@@ -1,9 +1,9 @@
-use bincode::{Decode, Encode};
+use bincode::{Decode, Encode, decode_from_slice, encode_to_vec};
 use macroquad::{
     camera::Camera3D,
     math::{Vec3, vec3},
     models::{Mesh, draw_mesh},
-    prelude::info,
+    prelude::{error, info},
     rand::gen_range,
 };
 
@@ -13,7 +13,10 @@ use crate::{
         area::AREA_SIZE, location::Location, player_info::PlayerInfo, user_settings::UserSettings,
         voxel::Voxel, world::World,
     },
-    service::{activity_timer::ActivityTimer, creatures::bunny_creature::BunnyCreature},
+    service::{
+        activity_timer::ActivityTimer, creatures::bunny_creature::BunnyCreature,
+        persistence::config::SERIALIZATION_CONFIG,
+    },
     utils::vector_to_location,
 };
 
@@ -168,7 +171,7 @@ impl CreatureManager {
         let size = creature.get_size();
         let creature_location: Location = pos.into();
 
-        let has_collision = world.with_cached_area(creature_location, |world, cached_area| {
+        world.with_cached_area(creature_location, |world, cached_area| {
             let positions_to_check = [
                 pos,
                 pos + vec3(size.x * 0.5, 0.0, 0.0),
@@ -182,9 +185,7 @@ impl CreatureManager {
                     .get_with_cache(Into::<Location>::into(loc), Some(cached_area))
                     .is_solid()
             })
-        });
-
-        has_collision
+        })
     }
 
     /// returns new creature z and if it's on the ground
@@ -229,6 +230,40 @@ impl CreatureManager {
 
     pub fn creature_count(&self) -> usize {
         self.creatures.len()
+    }
+
+    pub fn encode_creature_dto(custom_dto: &impl Encode, id: CreatureId) -> Option<CreatureDTO> {
+        let serialisation_result = encode_to_vec(custom_dto, SERIALIZATION_CONFIG);
+        match serialisation_result {
+            Ok(bytes) => Some(CreatureDTO { id, bytes }),
+            Err(err) => {
+                error!("Error serialising '{:?}': {}", id, err);
+                None
+            }
+        }
+    }
+
+    pub fn decode_creature_dto<T>(creature_dto: CreatureDTO, id: CreatureId) -> Option<T>
+    where
+        T: Decode<()>,
+    {
+        if creature_dto.id != id {
+            error!(
+                "Creature id {:?} doesn't match expected {:?}",
+                creature_dto.id, id
+            );
+            return None;
+        }
+        let decode_result: Result<(T, _), _> =
+            decode_from_slice(&creature_dto.bytes, SERIALIZATION_CONFIG);
+
+        match decode_result {
+            Ok((dto, _size)) => Some(dto),
+            Err(err) => {
+                error!("Error decoding creature {:?}: '{}'", id, err);
+                None
+            }
+        }
     }
 
     fn remove_distant_creatures(&mut self, camera_pos: Vec3, creature_spawn_distance: f32) {

@@ -1,23 +1,21 @@
 use std::f32::consts::TAU;
 
-use bincode::{Decode, Encode, decode_from_slice, encode_to_vec};
+use bincode::{Decode, Encode};
 use macroquad::{
     math::{Vec3, vec3},
     models::Mesh,
-    prelude::error,
     rand::{gen_range, rand},
 };
 
 use crate::{
     graphics::mesh_manager::MeshManager,
-    model::{area::AREA_HEIGHT, world::World},
+    model::{area::AREA_HEIGHT, voxel::Voxel, world::World},
     service::{
         activity_timer::ActivityTimer,
         creatures::creature_manager::{Creature, CreatureDTO, CreatureId, CreatureManager},
-        persistence::config::SERIALIZATION_CONFIG,
         physics::player_physics::{GRAVITY, MAX_FALL_SPEED},
     },
-    utils::{arr_to_vec3, vec3_to_arr},
+    utils::{arr_to_vec3, vec3_to_arr, vector_to_location},
 };
 
 const SIZE: Vec3 = vec3(0.8, 0.8, 0.8);
@@ -28,6 +26,9 @@ const WAIT_ACTIVITY_MAX: f32 = 3.0;
 const MOVE_ACTIVITY_MAX: f32 = 14.0;
 const TURN_ACTIVITY: f32 = 1.5;
 const MIN_ACTIVITY: f32 = 0.5;
+
+const SWIM_SPEED: f32 = -30.0;
+const MAX_SWIM: f32 = -8.0;
 
 const FORWAD_DIRECTION: Vec3 = vec3(0.0, 1.0, 0.0);
 
@@ -76,36 +77,23 @@ impl BunnyCreature {
         creature_dto: CreatureDTO,
         mesh_manager: &MeshManager,
     ) -> Option<Box<dyn Creature>> {
-        assert_eq!(creature_dto.id, CreatureId::Bunny);
-        let bunny_dto_result: Result<(BunnyDTO, _), _> =
-            decode_from_slice(&creature_dto.bytes, SERIALIZATION_CONFIG);
-        match bunny_dto_result {
-            Ok((bunny_dto, _)) => {
-                let position = arr_to_vec3(bunny_dto.position);
-                let mut mesh = mesh_manager.get_at(CreatureId::Bunny, position);
-                let mut direction = FORWAD_DIRECTION;
-                MeshManager::rotate_around_z(
-                    &mut mesh,
-                    &mut direction,
-                    position,
-                    bunny_dto.rotation,
-                );
+        let bunny_dto: BunnyDTO =
+            CreatureManager::decode_creature_dto(creature_dto, CreatureId::Bunny)?;
 
-                Some(Box::new(Self {
-                    activity_timer: bunny_dto.activity_timer,
-                    position,
-                    velocity: bunny_dto.velocity,
-                    activity: bunny_dto.activity,
-                    direction,
-                    mesh,
-                    rotation: bunny_dto.rotation,
-                }))
-            }
-            Err(err) => {
-                error!("Error decoding bunny dto {:?}", err);
-                None
-            }
-        }
+        let position = arr_to_vec3(bunny_dto.position);
+        let mut mesh = mesh_manager.get_at(CreatureId::Bunny, position);
+        let mut direction = FORWAD_DIRECTION;
+        MeshManager::rotate_around_z(&mut mesh, &mut direction, position, bunny_dto.rotation);
+
+        Some(Box::new(Self {
+            activity_timer: bunny_dto.activity_timer,
+            position,
+            velocity: bunny_dto.velocity,
+            activity: bunny_dto.activity,
+            direction,
+            mesh,
+            rotation: bunny_dto.rotation,
+        }))
     }
 
     /// returns true if on the ground
@@ -158,6 +146,16 @@ impl BunnyCreature {
             turn_amount,
         );
     }
+
+    fn swim_if_in_water(&mut self, delta: f32, world: &mut World) {
+        let voxel = world.get(vector_to_location(self.position));
+        if !Voxel::WATER.contains(&voxel) {
+            return;
+        }
+
+        self.velocity += delta * SWIM_SPEED;
+        self.velocity = self.velocity.max(MAX_SWIM);
+    }
 }
 impl Creature for BunnyCreature {
     fn update(&mut self, delta: f32, world: &mut World) {
@@ -181,6 +179,7 @@ impl Creature for BunnyCreature {
             }
         }
         let on_ground = self.handle_gravity(delta, world);
+        self.swim_if_in_water(delta, world);
 
         match self.activity {
             Activity::Idle => {}
@@ -218,17 +217,8 @@ impl Creature for BunnyCreature {
             activity: self.activity,
             rotation: self.rotation,
         };
-        let result = encode_to_vec(dto, SERIALIZATION_CONFIG);
-        match result {
-            Ok(bytes) => Some(CreatureDTO {
-                id: CreatureId::Bunny,
-                bytes,
-            }),
-            Err(err) => {
-                error!("Failed to serialise bunny {:?}", err);
-                None
-            }
-        }
+
+        CreatureManager::encode_creature_dto(&dto, CreatureId::Bunny)
     }
 }
 

@@ -311,7 +311,7 @@ impl Renderer {
 
         world.with_cached_area(area_location, |world, area| {
             for (location, voxel) in voxels {
-                self.update_meshes_for_voxel(world, location, voxel, Some(&area));
+                self.update_meshes_for_voxel(world, location, voxel, Some(area));
             }
         });
     }
