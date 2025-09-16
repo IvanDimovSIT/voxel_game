@@ -10,7 +10,7 @@ pub struct TerrainTypeGenerator {
     height_modifier: Fbm<2, Simplex<2>>,
 }
 impl TerrainTypeGenerator {
-    const HEIGHT_SCALE: f64 = 0.5;
+    const HEIGHT_SCALE: f64 = 0.55;
 
     pub fn new(seed: u64) -> Self {
         let noise1 = Simplex::new(seed).fbm(6, 0.008, 1.8, 0.45);

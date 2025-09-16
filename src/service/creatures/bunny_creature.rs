@@ -8,7 +8,7 @@ use macroquad::{
 };
 
 use crate::{
-    graphics::mesh_manager::MeshManager,
+    graphics::mesh_manager::{MeshId, MeshManager},
     model::{area::AREA_HEIGHT, voxel::Voxel, world::World},
     service::{
         activity_timer::ActivityTimer,
@@ -51,7 +51,7 @@ pub struct BunnyCreature {
 impl BunnyCreature {
     /// creates a new bunny creature at position with a random rotation
     pub fn new(position: Vec3, mesh_manager: &MeshManager) -> Self {
-        let mesh = mesh_manager.get_at(CreatureId::Bunny, position);
+        let mesh = mesh_manager.get_at(MeshId::Bunny, position);
         let random_rotation = gen_range(0.0, TAU);
         let mut bunny = Self {
             position,
@@ -63,7 +63,7 @@ impl BunnyCreature {
             rotation: random_rotation,
         };
 
-        MeshManager::rotate_around_z(
+        MeshManager::rotate_around_z_with_direction(
             &mut bunny.mesh,
             &mut bunny.direction,
             bunny.position,
@@ -71,29 +71,6 @@ impl BunnyCreature {
         );
 
         bunny
-    }
-
-    pub fn from_dto(
-        creature_dto: CreatureDTO,
-        mesh_manager: &MeshManager,
-    ) -> Option<Box<dyn Creature>> {
-        let bunny_dto: BunnyDTO =
-            CreatureManager::decode_creature_dto(creature_dto, CreatureId::Bunny)?;
-
-        let position = arr_to_vec3(bunny_dto.position);
-        let mut mesh = mesh_manager.get_at(CreatureId::Bunny, position);
-        let mut direction = FORWAD_DIRECTION;
-        MeshManager::rotate_around_z(&mut mesh, &mut direction, position, bunny_dto.rotation);
-
-        Some(Box::new(Self {
-            activity_timer: bunny_dto.activity_timer,
-            position,
-            velocity: bunny_dto.velocity,
-            activity: bunny_dto.activity,
-            direction,
-            mesh,
-            rotation: bunny_dto.rotation,
-        }))
     }
 
     /// returns true if on the ground
@@ -139,7 +116,7 @@ impl BunnyCreature {
             self.rotation += TAU;
         }
 
-        MeshManager::rotate_around_z(
+        MeshManager::rotate_around_z_with_direction(
             &mut self.mesh,
             &mut self.direction,
             self.position,
@@ -198,7 +175,7 @@ impl Creature for BunnyCreature {
     }
 
     fn get_mesh_with_index(&self) -> (&Mesh, usize) {
-        (&self.mesh, CreatureId::Bunny.index())
+        (&self.mesh, MeshId::Bunny.index())
     }
 
     fn get_position(&self) -> Vec3 {
@@ -219,6 +196,34 @@ impl Creature for BunnyCreature {
         };
 
         CreatureManager::encode_creature_dto(&dto, CreatureId::Bunny)
+    }
+
+    fn from_dto(
+        creature_dto: CreatureDTO,
+        mesh_manager: &MeshManager,
+    ) -> Option<Box<dyn Creature>> {
+        let bunny_dto: BunnyDTO =
+            CreatureManager::decode_creature_dto(creature_dto, CreatureId::Bunny)?;
+
+        let position = arr_to_vec3(bunny_dto.position);
+        let mut mesh = mesh_manager.get_at(MeshId::Bunny, position);
+        let mut direction = FORWAD_DIRECTION;
+        MeshManager::rotate_around_z_with_direction(
+            &mut mesh,
+            &mut direction,
+            position,
+            bunny_dto.rotation,
+        );
+
+        Some(Box::new(Self {
+            activity_timer: bunny_dto.activity_timer,
+            position,
+            velocity: bunny_dto.velocity,
+            activity: bunny_dto.activity,
+            direction,
+            mesh,
+            rotation: bunny_dto.rotation,
+        }))
     }
 }
 

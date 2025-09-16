@@ -57,6 +57,9 @@ impl Area {
 
     #[inline(always)]
     fn convert_to_index(local_location: InternalLocation) -> usize {
+        debug_assert!(local_location.x < AREA_SIZE);
+        debug_assert!(local_location.y < AREA_SIZE);
+        debug_assert!(local_location.z < AREA_HEIGHT);
         (local_location.x + local_location.y * AREA_SIZE + local_location.z * AREA_SIZE * AREA_SIZE)
             as usize
     }

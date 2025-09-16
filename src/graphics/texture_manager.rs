@@ -6,8 +6,8 @@ use macroquad::{
 };
 
 use crate::{
+    graphics::mesh_manager::MeshId,
     model::voxel::{MAX_VOXEL_VARIANTS, Voxel},
-    service::creatures::creature_manager::CreatureId,
 };
 
 const BASE_CREATURE_TEXTURES_PATH: &str = "assets/images/";
@@ -39,12 +39,16 @@ const ICON_TEXTURES: [(Voxel, &str); 3] = [
     (Voxel::Trampoline, "trampoline-icon.png"),
     (Voxel::Wood, "wood-icon.png"),
 ];
-const CREATURE_TEXTURES: [(CreatureId, &str); 1] = [(CreatureId::Bunny, "bunny_texture.png")];
+const MESH_TEXTURES: [(MeshId, &str); MeshId::VARIANTS] = [
+    (MeshId::Bunny, "bunny_texture.png"),
+    (MeshId::ButterflyDown, "butterfly_texture.png"),
+    (MeshId::ButterflyUp, "butterfly_texture.png"),
+];
 const MAX_TEXTURE_COUNT: usize = MAX_VOXEL_VARIANTS;
 
 pub struct TextureManager {
     textures: Vec<Option<Texture2D>>,
-    creature_textures: HashMap<CreatureId, Texture2D>,
+    mesh_textures: HashMap<MeshId, Texture2D>,
     title_screen_background: Texture2D,
     sun_texture: Texture2D,
     moon_texture: Texture2D,
@@ -61,7 +65,7 @@ impl TextureManager {
         let sun_texture = Self::load_image(SUN_PATH).await;
         let moon_texture = Self::load_image(MOON_PATH).await;
         let voxel_icons = Self::load_voxel_icon_textures().await;
-        let creature_textures = Self::load_creature_textures().await;
+        let mesh_textures = Self::load_mesh_textures().await;
 
         Self {
             textures,
@@ -69,7 +73,7 @@ impl TextureManager {
             voxel_icons,
             sun_texture,
             moon_texture,
-            creature_textures,
+            mesh_textures,
         }
     }
 
@@ -167,16 +171,16 @@ impl TextureManager {
         self.moon_texture.weak_clone()
     }
 
-    pub fn get_creature_texture(&self, id: CreatureId) -> Texture2D {
-        self.creature_textures
+    pub fn get_mesh_texture(&self, id: MeshId) -> Texture2D {
+        self.mesh_textures
             .get(&id)
             .expect("Creature texture not loaded")
             .weak_clone()
     }
 
-    async fn load_creature_textures() -> HashMap<CreatureId, Texture2D> {
+    async fn load_mesh_textures() -> HashMap<MeshId, Texture2D> {
         let mut textures = HashMap::new();
-        for (id, file) in CREATURE_TEXTURES {
+        for (id, file) in MESH_TEXTURES {
             let fullpath = format!("{BASE_CREATURE_TEXTURES_PATH}{file}");
             let texture = load_texture(&fullpath)
                 .await

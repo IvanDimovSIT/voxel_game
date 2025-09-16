@@ -1,7 +1,7 @@
 use bincode::{Decode, Encode};
 use macroquad::math::{Vec3, vec3};
 
-use crate::model::world::World;
+use crate::{model::world::World, utils::vector_to_location};
 
 pub const LOCATION_OFFSET: i32 = 1_000_000;
 
@@ -34,11 +34,7 @@ impl From<Location> for Vec3 {
 
 impl From<Vec3> for Location {
     fn from(value: Vec3) -> Self {
-        Self {
-            x: value.x.round() as i32,
-            y: value.y.round() as i32,
-            z: value.z.round() as i32,
-        }
+        vector_to_location(value)
     }
 }
 

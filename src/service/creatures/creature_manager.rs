@@ -4,23 +4,24 @@ use macroquad::{
     math::{Vec3, vec3},
     models::{Mesh, draw_mesh},
     prelude::{error, info},
-    rand::gen_range,
+    rand::{gen_range, rand},
 };
 
 use crate::{
-    graphics::mesh_manager::MeshManager,
+    graphics::mesh_manager::{MeshId, MeshManager},
     model::{
         area::AREA_SIZE, location::Location, player_info::PlayerInfo, user_settings::UserSettings,
         voxel::Voxel, world::World,
     },
     service::{
-        activity_timer::ActivityTimer, creatures::bunny_creature::BunnyCreature,
+        activity_timer::ActivityTimer,
+        creatures::{bunny_creature::BunnyCreature, butterfly_creature::ButterflyCreature},
         persistence::config::SERIALIZATION_CONFIG,
     },
     utils::vector_to_location,
 };
 
-const CHECK_UPDATES_TIME: f32 = 5.0;
+const CHECK_UPDATES_TIME: f32 = 3.0;
 const MAX_CREATURES: usize = 10;
 const SPAWN_SIZE_EXTRA_RANGE: f32 = AREA_SIZE as f32 * 0.75;
 const MIN_CULL_DISTANCE: f32 = 3.0;
@@ -28,16 +29,18 @@ const MIN_CULL_DISTANCE: f32 = 3.0;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Encode, Decode)]
 pub enum CreatureId {
     Bunny,
+    Butterfly,
 }
 impl CreatureId {
-    const MAX_ID: usize = 1;
-
-    #[inline(always)]
-    pub fn index(self) -> usize {
-        let index = self as usize;
-        debug_assert!(index <= Self::MAX_ID);
-
-        index
+    pub const VARIANTS: usize = 2;
+}
+impl From<u32> for CreatureId {
+    fn from(value: u32) -> Self {
+        match value {
+            0 => Self::Bunny,
+            1 => Self::Butterfly,
+            _ => panic!("Invalid index for CreatureId"),
+        }
     }
 }
 
@@ -53,6 +56,9 @@ pub trait Creature {
     fn get_position(&self) -> Vec3;
     fn get_size(&self) -> Vec3;
     fn create_dto(&self) -> Option<CreatureDTO>;
+    fn from_dto(creature_dto: CreatureDTO, mesh_manager: &MeshManager) -> Option<Box<dyn Creature>>
+    where
+        Self: Sized;
 }
 
 pub struct CreatureManager {
@@ -73,12 +79,13 @@ impl CreatureManager {
             .into_iter()
             .flat_map(|creature_dto| match creature_dto.id {
                 CreatureId::Bunny => BunnyCreature::from_dto(creature_dto, mesh_manager),
+                CreatureId::Butterfly => ButterflyCreature::from_dto(creature_dto, mesh_manager),
             })
             .collect();
 
         Self {
             creatures,
-            activity_timer: dto.activity_timer,
+            activity_timer: ActivityTimer::new(dto.activity_delta, CHECK_UPDATES_TIME),
         }
     }
 
@@ -135,7 +142,7 @@ impl CreatureManager {
         let draw_cull_range = (user_settings.get_render_distance() * AREA_SIZE) as f32;
 
         let mut drew = 0;
-        let mut mesh_array = vec![vec![]; CreatureId::MAX_ID];
+        let mut mesh_array = vec![vec![]; MeshId::VARIANTS];
         for creature in &self.creatures {
             let creature_pos = creature.get_position();
             let vec_to_creature = creature_pos - camera.position;
@@ -224,7 +231,7 @@ impl CreatureManager {
 
         CreatureManagerDTO {
             creatures,
-            activity_timer: self.activity_timer,
+            activity_delta: self.activity_timer.get_delta(),
         }
     }
 
@@ -294,26 +301,42 @@ impl CreatureManager {
             camera.position.y + random_y,
             0.0,
         ));
+        let height = world.get_height(location);
+        let location = Location {
+            z: height as i32,
+            ..location
+        };
         let camera_to_location = Into::<Vec3>::into(location) - camera.position;
         if camera_to_location.normalize().dot(camera_look) > 0.0 {
             info!("No creatures added");
             return;
         }
 
-        let (area_loc, local) = World::convert_global_to_area_and_local_location(location.into());
-        let height = world
-            .get_area_without_loading(area_loc)
-            .sample_height(local.x, local.y);
-
-        let creature_location = vec3(location.x as f32, location.y as f32, height as f32 - 1.0);
-        let creature = BunnyCreature::new(creature_location, mesh_manager);
-        self.creatures.push(Box::new(creature));
+        let creature_position = vec3(
+            location.x as f32,
+            location.y as f32,
+            (height as f32 - 1.0).max(0.0),
+        );
+        let id = (rand() % CreatureId::VARIANTS as u32).into();
+        let creature = Self::create_creature(id, creature_position, mesh_manager);
+        self.creatures.push(creature);
         info!("Added creature at {}", camera_to_location);
+    }
+
+    fn create_creature(
+        id: CreatureId,
+        position: Vec3,
+        mesh_manager: &MeshManager,
+    ) -> Box<dyn Creature> {
+        match id {
+            CreatureId::Bunny => Box::new(BunnyCreature::new(position, mesh_manager)),
+            CreatureId::Butterfly => Box::new(ButterflyCreature::new(position, mesh_manager)),
+        }
     }
 }
 
 #[derive(Debug, Clone, Encode, Decode)]
 pub struct CreatureManagerDTO {
     creatures: Vec<CreatureDTO>,
-    activity_timer: ActivityTimer,
+    activity_delta: f32,
 }

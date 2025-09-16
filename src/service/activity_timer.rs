@@ -23,4 +23,8 @@ impl ActivityTimer {
             false
         }
     }
+
+    pub fn get_delta(&self) -> f32 {
+        self.delta
+    }
 }
