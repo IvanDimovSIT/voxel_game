@@ -28,3 +28,19 @@ impl ActivityTimer {
         self.delta
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_activity_timer() {
+        let mut timer = ActivityTimer::new(0.0, 1.0);
+
+        assert_eq!(timer.get_delta(), 0.0);
+        assert!(!timer.tick(0.75));
+        assert_eq!(timer.get_delta(), 0.75);
+        assert!(timer.tick(0.75));
+        assert_eq!(timer.get_delta(), 0.5);
+    }
+}

@@ -8,7 +8,7 @@ use macroquad::{
 };
 use tobj::{LoadOptions, Model, load_obj};
 
-use crate::graphics::texture_manager::TextureManager;
+use crate::graphics::{mesh_transformer::move_mesh, texture_manager::TextureManager};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum MeshId {
@@ -128,12 +128,6 @@ impl MeshManager {
         vertices
     }
 
-    pub fn move_mesh(mesh: &mut Mesh, by: Vec3) {
-        for v in &mut mesh.vertices {
-            v.position += by;
-        }
-    }
-
     pub fn get_at(&self, id: MeshId, at: Vec3) -> Mesh {
         let mesh_ref = self.models.get(&id).expect("Failed to find mesh");
 
@@ -143,59 +137,8 @@ impl MeshManager {
             texture: mesh_ref.texture.clone(),
         };
 
-        Self::move_mesh(&mut mesh, at);
+        move_mesh(&mut mesh, at);
 
         mesh
-    }
-
-    /// rotates a mesh and it's direction around z
-    pub fn rotate_around_z_with_direction(
-        mesh: &mut Mesh,
-        direction: &mut Vec3,
-        origin: Vec3,
-        angle: f32,
-    ) {
-        if angle <= f32::EPSILON {
-            return;
-        }
-
-        let (sin_a, cos_a) = angle.sin_cos();
-        Self::rotate_mesh(mesh, origin, sin_a, cos_a);
-        Self::rotate_direction(direction, sin_a, cos_a);
-    }
-
-    /// rotates a mesh around z
-    pub fn rotate_around_z(mesh: &mut Mesh, origin: Vec3, angle: f32) {
-        if angle <= f32::EPSILON {
-            return;
-        }
-
-        let (sin_a, cos_a) = angle.sin_cos();
-        Self::rotate_mesh(mesh, origin, sin_a, cos_a);
-    }
-
-    fn rotate_mesh(mesh: &mut Mesh, origin: Vec3, sin: f32, cos: f32) {
-        for v in &mut mesh.vertices {
-            let p = &mut v.position;
-
-            let dx = p.x - origin.x;
-            let dy = p.y - origin.y;
-
-            let new_x = dx * cos - dy * sin;
-            let new_y = dx * sin + dy * cos;
-
-            p.x = origin.x + new_x;
-            p.y = origin.y + new_y;
-        }
-    }
-
-    fn rotate_direction(direction: &mut Vec3, sin: f32, cos: f32) {
-        debug_assert!(direction.is_normalized());
-        let dir_x = direction.x;
-        let dir_y = direction.y;
-
-        direction.x = dir_x * cos - dir_y * sin;
-        direction.y = dir_x * sin + dir_y * cos;
-        *direction = direction.normalize_or_zero();
     }
 }

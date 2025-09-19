@@ -28,7 +28,8 @@ fn read_icon(path: &str, size: usize) -> Vec<u8> {
 fn set_windows_icon() {
     let mut res = WindowsResource::new();
     res.set_icon(WINDOWS_ICON_PATH);
-    res.compile().unwrap()
+    res.compile()
+        .expect("Error compiling windows icon resource")
 }
 
 fn main() {

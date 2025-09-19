@@ -8,7 +8,10 @@ use macroquad::{
 };
 
 use crate::{
-    graphics::mesh_manager::{MeshId, MeshManager},
+    graphics::{
+        mesh_manager::{MeshId, MeshManager},
+        mesh_transformer::{move_mesh, rotate_around_z, rotate_around_z_with_direction},
+    },
     model::{voxel::Voxel, world::World},
     service::{
         activity_timer::ActivityTimer,
@@ -136,13 +139,13 @@ impl ButterflyCreature {
             self.angle -= TAU;
         }
 
-        MeshManager::rotate_around_z_with_direction(
+        rotate_around_z_with_direction(
             &mut self.mesh_arr[0].0,
             &mut self.direction,
             self.position,
             turn_angle,
         );
-        MeshManager::rotate_around_z(&mut self.mesh_arr[1].0, self.position, turn_angle);
+        rotate_around_z(&mut self.mesh_arr[1].0, self.position, turn_angle);
     }
 }
 impl Creature for ButterflyCreature {
@@ -157,7 +160,7 @@ impl Creature for ButterflyCreature {
         self.position.z = new_z;
         let delta_position = self.position - original_position;
         for (mesh, _id) in &mut self.mesh_arr {
-            MeshManager::move_mesh(mesh, delta_position);
+            move_mesh(mesh, delta_position);
         }
     }
 
@@ -200,8 +203,8 @@ impl Creature for ButterflyCreature {
 
         let mut mesh1 = mesh_manager.get_at(MeshId::ButterflyDown, position);
         let mut mesh2 = mesh_manager.get_at(MeshId::ButterflyUp, position);
-        MeshManager::rotate_around_z_with_direction(&mut mesh1, &mut direction, position, angle);
-        MeshManager::rotate_around_z(&mut mesh2, position, angle);
+        rotate_around_z_with_direction(&mut mesh1, &mut direction, position, angle);
+        rotate_around_z(&mut mesh2, position, angle);
         let mesh_arr = [(mesh1, MeshId::ButterflyDown), (mesh2, MeshId::ButterflyUp)];
 
         let butterfly = Self {

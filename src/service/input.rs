@@ -64,6 +64,50 @@ pub fn is_enter_crafting() -> bool {
     is_key_released(macroquad::input::KeyCode::C)
 }
 
+pub fn get_number_key() -> Option<u8> {
+    if is_key_pressed(macroquad::input::KeyCode::Key0) {
+        return Some(0);
+    }
+
+    if is_key_pressed(macroquad::input::KeyCode::Key1) {
+        return Some(1);
+    }
+
+    if is_key_pressed(macroquad::input::KeyCode::Key2) {
+        return Some(2);
+    }
+
+    if is_key_pressed(macroquad::input::KeyCode::Key3) {
+        return Some(3);
+    }
+
+    if is_key_pressed(macroquad::input::KeyCode::Key4) {
+        return Some(4);
+    }
+
+    if is_key_pressed(macroquad::input::KeyCode::Key5) {
+        return Some(5);
+    }
+
+    if is_key_pressed(macroquad::input::KeyCode::Key6) {
+        return Some(6);
+    }
+
+    if is_key_pressed(macroquad::input::KeyCode::Key7) {
+        return Some(7);
+    }
+
+    if is_key_pressed(macroquad::input::KeyCode::Key8) {
+        return Some(8);
+    }
+
+    if is_key_pressed(macroquad::input::KeyCode::Key9) {
+        return Some(9);
+    }
+
+    None
+}
+
 #[derive(Debug, Clone, Copy)]
 pub enum ScrollDirection {
     Up,

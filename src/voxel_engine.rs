@@ -211,6 +211,11 @@ impl VoxelEngine {
         if input::toggle_debug() {
             self.debug_display.toggle_display();
         }
+        if let Some(number) = input::get_number_key() {
+            self.player_info
+                .voxel_selector
+                .set_selected(number.wrapping_sub(1) as usize);
+        }
         match input::get_scroll_direction() {
             ScrollDirection::Up => self.player_info.voxel_selector.select_next(),
             ScrollDirection::Down => self.player_info.voxel_selector.select_prev(),

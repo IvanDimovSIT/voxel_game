@@ -65,6 +65,12 @@ impl ItemHotbar {
         }
     }
 
+    pub fn set_selected(&mut self, index: usize) {
+        if index < Inventory::SELECTED_SIZE {
+            self.selected = index;
+        }
+    }
+
     /// draws the voxel selection ui
     pub fn draw(
         &self,

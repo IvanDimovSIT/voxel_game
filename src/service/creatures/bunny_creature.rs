@@ -8,7 +8,10 @@ use macroquad::{
 };
 
 use crate::{
-    graphics::mesh_manager::{MeshId, MeshManager},
+    graphics::{
+        mesh_manager::{MeshId, MeshManager},
+        mesh_transformer::{move_mesh, rotate_around_z_with_direction},
+    },
     model::{area::AREA_HEIGHT, voxel::Voxel, world::World},
     service::{
         activity_timer::ActivityTimer,
@@ -63,7 +66,7 @@ impl BunnyCreature {
             rotation: random_rotation,
         };
 
-        MeshManager::rotate_around_z_with_direction(
+        rotate_around_z_with_direction(
             &mut bunny.mesh,
             &mut bunny.direction,
             bunny.position,
@@ -116,7 +119,7 @@ impl BunnyCreature {
             self.rotation += TAU;
         }
 
-        MeshManager::rotate_around_z_with_direction(
+        rotate_around_z_with_direction(
             &mut self.mesh,
             &mut self.direction,
             self.position,
@@ -170,7 +173,7 @@ impl Creature for BunnyCreature {
 
         let delta_position = self.position - old_position;
         if delta_position != Vec3::ZERO {
-            MeshManager::move_mesh(&mut self.mesh, delta_position);
+            move_mesh(&mut self.mesh, delta_position);
         }
     }
 
@@ -208,12 +211,7 @@ impl Creature for BunnyCreature {
         let position = arr_to_vec3(bunny_dto.position);
         let mut mesh = mesh_manager.get_at(MeshId::Bunny, position);
         let mut direction = FORWAD_DIRECTION;
-        MeshManager::rotate_around_z_with_direction(
-            &mut mesh,
-            &mut direction,
-            position,
-            bunny_dto.rotation,
-        );
+        rotate_around_z_with_direction(&mut mesh, &mut direction, position, bunny_dto.rotation);
 
         Some(Box::new(Self {
             activity_timer: bunny_dto.activity_timer,

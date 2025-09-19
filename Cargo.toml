@@ -18,6 +18,4 @@ path = "src/main.rs"
 
 [build-dependencies]
 png = "0.18"
-
-[target.'cfg(windows)'.build-dependencies]
 winres = "0.1"

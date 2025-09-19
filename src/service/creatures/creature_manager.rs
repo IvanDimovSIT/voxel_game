@@ -15,7 +15,7 @@ use crate::{
     },
     service::{
         activity_timer::ActivityTimer,
-        creatures::{bunny_creature::BunnyCreature, butterfly_creature::ButterflyCreature},
+        creatures::creature_factory::{create_creature, create_creature_from_dto},
         persistence::config::SERIALIZATION_CONFIG,
     },
     utils::vector_to_location,
@@ -25,6 +25,7 @@ const CHECK_UPDATES_TIME: f32 = 3.0;
 const MAX_CREATURES: usize = 10;
 const SPAWN_SIZE_EXTRA_RANGE: f32 = AREA_SIZE as f32 * 0.75;
 const MIN_CULL_DISTANCE: f32 = 3.0;
+const SPAWN_CREATURES_MAX_FOV: f32 = 0.15;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Encode, Decode)]
 pub enum CreatureId {
@@ -33,6 +34,11 @@ pub enum CreatureId {
 }
 impl CreatureId {
     pub const VARIANTS: usize = 2;
+}
+impl CreatureId {
+    fn random() -> Self {
+        (rand() % CreatureId::VARIANTS as u32).into()
+    }
 }
 impl From<u32> for CreatureId {
     fn from(value: u32) -> Self {
@@ -77,10 +83,7 @@ impl CreatureManager {
         let creatures = dto
             .creatures
             .into_iter()
-            .flat_map(|creature_dto| match creature_dto.id {
-                CreatureId::Bunny => BunnyCreature::from_dto(creature_dto, mesh_manager),
-                CreatureId::Butterfly => ButterflyCreature::from_dto(creature_dto, mesh_manager),
-            })
+            .flat_map(|creature_dto| create_creature_from_dto(creature_dto, mesh_manager))
             .collect();
 
         Self {
@@ -307,7 +310,7 @@ impl CreatureManager {
             ..location
         };
         let camera_to_location = Into::<Vec3>::into(location) - camera.position;
-        if camera_to_location.normalize().dot(camera_look) > 0.0 {
+        if camera_to_location.normalize().dot(camera_look) > SPAWN_CREATURES_MAX_FOV {
             info!("No creatures added");
             return;
         }
@@ -317,21 +320,10 @@ impl CreatureManager {
             location.y as f32,
             (height as f32 - 1.0).max(0.0),
         );
-        let id = (rand() % CreatureId::VARIANTS as u32).into();
-        let creature = Self::create_creature(id, creature_position, mesh_manager);
+
+        let creature = create_creature(CreatureId::random(), creature_position, mesh_manager);
         self.creatures.push(creature);
         info!("Added creature at {}", camera_to_location);
-    }
-
-    fn create_creature(
-        id: CreatureId,
-        position: Vec3,
-        mesh_manager: &MeshManager,
-    ) -> Box<dyn Creature> {
-        match id {
-            CreatureId::Bunny => Box::new(BunnyCreature::new(position, mesh_manager)),
-            CreatureId::Butterfly => Box::new(ButterflyCreature::new(position, mesh_manager)),
-        }
     }
 }
 

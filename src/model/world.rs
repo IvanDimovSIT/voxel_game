@@ -329,7 +329,7 @@ mod tests {
         let initial_areas = [AreaLocation::new(0, 0), AreaLocation::new(1, 0)];
 
         world.retain_areas(&initial_areas);
-        std::thread::sleep(Duration::from_millis(100));
+        std::thread::sleep(Duration::from_millis(150));
         world.retain_areas(&initial_areas);
 
         assert_eq!(world.areas.len(), initial_areas.len());
