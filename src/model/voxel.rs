@@ -27,11 +27,12 @@ pub enum Voxel {
     Water3,
     Water4,
     Snow,
+    Ice,
     Glass,
 }
 impl Voxel {
     /// voxels that are fully or partially transparent
-    pub const TRANSPARENT: [Self; 8] = [
+    pub const TRANSPARENT: [Self; 9] = [
         Self::None,
         Self::Glass,
         Self::WaterSource,
@@ -40,6 +41,7 @@ impl Voxel {
         Self::Water2,
         Self::Water3,
         Self::Water4,
+        Self::Ice,
     ];
 
     /// voxels that can fall down
@@ -99,6 +101,7 @@ impl Voxel {
             Self::Water3 => "Water (Level 3)",
             Self::Water4 => "Water (Level 4)",
             Self::Snow => "Snow",
+            Self::Ice => "Ice",
         }
     }
 

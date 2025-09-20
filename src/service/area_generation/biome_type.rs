@@ -5,10 +5,11 @@ use crate::{
     service::area_generation::algorithms::{get_point_on_noise_map, normalise_sample},
 };
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BiomeType {
     Dry,
     Wet,
+    Cold,
 }
 
 pub struct BiomeTypeGenerator {
@@ -17,7 +18,7 @@ pub struct BiomeTypeGenerator {
 impl BiomeTypeGenerator {
     pub fn new(seed: u64) -> Self {
         Self {
-            noise: Simplex::new(seed).fbm(2, 0.002, 1.5, 0.3),
+            noise: Simplex::new(seed).fbm(2, 0.0015, 1.5, 0.3),
         }
     }
 
@@ -26,8 +27,9 @@ impl BiomeTypeGenerator {
         let value = normalise_sample(self.noise.sample(point)) as i32;
 
         match value {
-            0..70 => BiomeType::Wet,
-            _ => BiomeType::Dry,
+            0..20 => BiomeType::Dry,
+            20..80 => BiomeType::Wet,
+            _ => BiomeType::Cold,
         }
     }
 }

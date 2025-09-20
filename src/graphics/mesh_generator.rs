@@ -502,11 +502,9 @@ impl MeshGenerator {
         neighbour_voxel == Voxel::None
             || (!Voxel::TRANSPARENT.contains(&current_voxel)
                 && Voxel::TRANSPARENT.contains(&neighbour_voxel))
-            || (Voxel::WATER.contains(&current_voxel)
-                && Voxel::WATER.contains(&neighbour_voxel)
+            || (Voxel::TRANSPARENT.contains(&current_voxel)
+                && Voxel::TRANSPARENT.contains(&neighbour_voxel)
                 && current_voxel != neighbour_voxel)
-            || (Voxel::WATER.contains(&current_voxel) && neighbour_voxel == Voxel::Glass)
-            || (Voxel::WATER.contains(&neighbour_voxel) && current_voxel == Voxel::Glass)
     }
 
     /// checks if the top face should be generated based on the current voxel and its neighbour
@@ -558,6 +556,137 @@ impl MeshGenerator {
             vertices,
             indices: Self::INDECIES.as_slice().to_vec(),
             texture: None,
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_should_generate_face_solid() {
+        assert!(!MeshGenerator::should_generate_face(
+            Voxel::Brick,
+            Voxel::Brick
+        ));
+        assert!(!MeshGenerator::should_generate_face(
+            Voxel::Brick,
+            Voxel::Stone
+        ));
+        assert!(!MeshGenerator::should_generate_face(
+            Voxel::Stone,
+            Voxel::Brick
+        ));
+    }
+
+    #[test]
+    fn test_should_generate_face_air() {
+        assert!(MeshGenerator::should_generate_face(
+            Voxel::Brick,
+            Voxel::None
+        ));
+        assert!(!MeshGenerator::should_generate_face(
+            Voxel::None,
+            Voxel::Stone
+        ));
+    }
+
+    #[test]
+    fn test_should_generate_face_transparent() {
+        assert!(MeshGenerator::should_generate_face(
+            Voxel::Brick,
+            Voxel::Glass
+        ));
+        assert!(!MeshGenerator::should_generate_face(
+            Voxel::Glass,
+            Voxel::Stone
+        ));
+        assert!(MeshGenerator::should_generate_face(
+            Voxel::Ice,
+            Voxel::Glass
+        ));
+        assert!(MeshGenerator::should_generate_face(
+            Voxel::Ice,
+            Voxel::WaterSource
+        ));
+        assert!(MeshGenerator::should_generate_face(
+            Voxel::Glass,
+            Voxel::WaterDown
+        ));
+        assert!(!MeshGenerator::should_generate_face(
+            Voxel::Glass,
+            Voxel::Glass
+        ));
+        assert!(!MeshGenerator::should_generate_face(Voxel::Ice, Voxel::Ice));
+        assert!(!MeshGenerator::should_generate_face(
+            Voxel::WaterSource,
+            Voxel::WaterSource
+        ));
+    }
+
+    #[test]
+    fn test_should_generate_face_water() {
+        assert!(MeshGenerator::should_generate_face(
+            Voxel::WaterSource,
+            Voxel::WaterDown
+        ));
+        assert!(MeshGenerator::should_generate_face(
+            Voxel::WaterDown,
+            Voxel::WaterSource
+        ));
+        assert!(!MeshGenerator::should_generate_face(
+            Voxel::WaterSource,
+            Voxel::Brick
+        ));
+        assert!(MeshGenerator::should_generate_face(
+            Voxel::Brick,
+            Voxel::WaterSource
+        ));
+    }
+
+    #[test]
+    fn test_should_generate_top_face_solid() {
+        assert!(!MeshGenerator::should_generate_top_face(
+            Voxel::Boards,
+            Voxel::Brick
+        ));
+        assert!(!MeshGenerator::should_generate_top_face(
+            Voxel::Boards,
+            Voxel::Boards
+        ));
+    }
+
+    #[test]
+    fn test_should_generate_top_face_air() {
+        assert!(MeshGenerator::should_generate_top_face(
+            Voxel::Boards,
+            Voxel::None
+        ));
+    }
+
+    #[test]
+    fn test_should_generate_top_face_water() {
+        assert!(MeshGenerator::should_generate_top_face(
+            Voxel::Water1,
+            Voxel::Brick
+        ));
+        assert!(!MeshGenerator::should_generate_face(
+            Voxel::Water1,
+            Voxel::Brick
+        ));
+    }
+
+    #[test]
+    fn test_generate_quad_mesh() {
+        let size = 10.0;
+        let mesh = MeshGenerator::generate_quad_mesh(size);
+        assert!(mesh.texture.is_none());
+        
+        for v in mesh.vertices {
+            assert_eq!(v.position.z, 0.0);
+            assert!(v.position.x.abs() <= size/2.0);
+            assert!(v.position.y.abs() <= size/2.0);
         }
     }
 }

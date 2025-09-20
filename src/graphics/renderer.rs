@@ -45,7 +45,7 @@ const INCREASED_AREAS_TO_LOAD_PER_FRAME: usize = 5;
 type MeshInfo = (u8, Voxel, Mesh);
 type Meshes = HashMap<AreaLocation, RenderArea>;
 
-struct RenderArea {
+pub struct RenderArea {
     mesh_map: HashMap<InternalLocation, MeshInfo>,
     lights: HashSet<InternalLocation>,
 }
@@ -355,16 +355,16 @@ impl Renderer {
         groups.into_iter().flatten()
     }
 
-    /// Returns the number of rendered areas and faces
-    pub fn render_voxels(
-        &mut self,
+    /// determies the visible areas and sets the default world shader,
+    /// normalises camera and sets it as the current one
+    pub fn set_voxel_shader_and_find_visible_areas(
+        &self,
         camera: &Camera3D,
-        player_info: &PlayerInfo,
         world_time: &WorldTime,
         user_settings: &UserSettings,
         world: &World,
         height_map: &mut HeightMap,
-    ) -> (usize, usize) {
+    ) -> Vec<(&AreaLocation, &RenderArea)> {
         let render_size = user_settings.get_render_distance();
         let normalised_camera = CameraController::normalize_camera_3d(camera);
         set_camera(&normalised_camera);
@@ -387,10 +387,24 @@ impl Renderer {
             user_settings.has_dynamic_lighting(),
         );
 
+        visible_areas
+    }
+
+    /// returns the number of rendered areas and faces
+    pub fn render_voxels(
+        &self,
+        camera: &Camera3D,
+        player_info: &PlayerInfo,
+        user_settings: &UserSettings,
+        visible_areas: &Vec<(&AreaLocation, &RenderArea)>,
+    ) -> (usize, usize) {
+        let render_size = user_settings.get_render_distance();
+        let look = (camera.target - camera.position).normalize_or_zero();
+
         let visible_voxels = Self::filter_visible_voxels(
             camera.position,
             look,
-            &visible_areas,
+            visible_areas,
             render_size,
             player_info,
         );

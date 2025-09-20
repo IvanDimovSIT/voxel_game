@@ -1,6 +1,6 @@
 use bincode::{Decode, Encode};
 use macroquad::{
-    camera::{Camera3D, set_camera},
+    camera::Camera3D,
     math::{Vec3, vec3},
     models::{Mesh, draw_mesh},
 };
@@ -8,7 +8,7 @@ use macroquad::{
 use crate::{
     graphics::{mesh_generator::MeshGenerator, renderer::Renderer},
     model::{area::AREA_HEIGHT, location::Location, voxel::Voxel, world::World},
-    service::{camera_controller::CameraController, physics::water_simulator::WaterSimulator},
+    service::physics::water_simulator::WaterSimulator,
     utils::{StackVec, arr_to_vec3, vec3_to_arr, vector_to_location},
 };
 
@@ -174,8 +174,6 @@ impl FallingVoxelSimulator {
         if self.simulated_voxels.is_empty() {
             return;
         }
-        let normalised_camera = CameraController::normalize_camera_3d(camera);
-        set_camera(&normalised_camera);
         let look = (camera.target - camera.position).normalize();
         let culled_voxels = Self::cull_voxels(self.simulated_voxels.iter(), look, camera.position);
 

@@ -4,6 +4,7 @@ use crate::{
     model::{area::AREA_HEIGHT, location::AreaLocation, voxel::Voxel},
     service::area_generation::{
         algorithms::{get_point_on_noise_map, normalise_sample},
+        biome_type::BiomeType,
         generator::ColumnSamples,
     },
 };
@@ -62,7 +63,11 @@ impl LakeGenerator {
         let min_water = LAKE_MAX_Z_INVERTED - column_samples.lake_depth;
 
         if z_inverted >= min_water {
-            Some(Voxel::WaterSource)
+            if column_samples.biome_type == BiomeType::Cold && z_inverted == LAKE_MAX_Z_INVERTED {
+                Some(Voxel::Ice)
+            } else {
+                Some(Voxel::WaterSource)
+            }
         } else {
             None
         }

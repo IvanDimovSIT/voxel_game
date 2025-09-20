@@ -57,10 +57,8 @@ impl Inventory {
         inventory.selected[0] = Item::some(Voxel::Brick, 50);
         inventory.selected[1] = Item::some(Voxel::Glass, 50);
         inventory.selected[2] = Item::some(Voxel::Trampoline, 50);
-        inventory.selected[3] = Item::some(Voxel::Boards, 50);
-        inventory.selected[4] = Item::some(Voxel::Cobblestone, 50);
-        inventory.selected[5] = Item::some(Voxel::Lamp, 50);
-        inventory.selected[6] = Item::some(Voxel::WaterSource, 50);
+        inventory.selected[3] = Item::some(Voxel::Lamp, 50);
+        inventory.selected[4] = Item::some(Voxel::WaterSource, 50);
 
         inventory
     }

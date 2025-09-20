@@ -80,7 +80,7 @@ impl VoxelEngine {
     ) -> Self {
         let world_name = world_name.into();
         let (mut player_info, successful_load) = load_player_info(&world_name)
-            .map(|x| (x, true))
+            .map(|info| (info, true))
             .unwrap_or_else(|| (PlayerInfo::new(vec3(0.0, 0.0, 0.0)), false));
 
         player_info.camera_controller.set_focus(true);
@@ -296,9 +296,10 @@ impl VoxelEngine {
         let (width, height) = screen_size();
         let camera = self.player_info.camera_controller.create_camera();
         self.sky.draw_sky(&self.world_time, &camera);
-        let rendered = self.renderer.render_voxels(
+
+        // set 3D camera and voxel shader
+        let visible_areas = self.renderer.set_voxel_shader_and_find_visible_areas(
             &camera,
-            &self.player_info,
             &self.world_time,
             &self.user_settings,
             &self.world,
@@ -307,6 +308,14 @@ impl VoxelEngine {
         let creatures_drawn = self.creature_manager.draw(&camera, &self.user_settings);
         self.voxel_particles.draw();
         self.voxel_simulator.draw(&camera);
+        let rendered = self.renderer.render_voxels(
+            &camera,
+            &self.player_info,
+            &self.user_settings,
+            &visible_areas,
+        );
+
+        // remove shader
         gl_use_default_material();
         if let RaycastResult::Hit {
             first_non_empty,
@@ -317,6 +326,8 @@ impl VoxelEngine {
         }
         self.debug_display
             .draw_area_border(&self.player_info.camera_controller);
+
+        // set 2D camera and draw 2D elements
         set_default_camera();
         if self.player_info.is_in_water {
             draw_water_effect(width, height, &self.asset_manager.texture_manager);
