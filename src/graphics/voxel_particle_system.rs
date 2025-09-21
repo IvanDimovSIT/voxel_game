@@ -6,13 +6,16 @@ use macroquad::{
 
 use crate::{
     graphics::mesh_generator::MeshGenerator,
-    model::{location::Location, voxel::Voxel},
+    model::{location::Location, player_info::PlayerInfo, voxel::Voxel},
+    service::physics::player_physics::CollisionType,
 };
 
 const RANDOM_POSITION_OFFSET: f32 = 0.1;
 const RANDOM_VELOCITY: f32 = 4.5;
 const RANDOM_DESTROYED_COUNT: u32 = 10;
 const MIN_DESTROYED_COUNT: u32 = 10;
+const LANDING_COUNT: u32 = 15;
+const LANDING_Z_OFFSET: f32 = 0.3;
 const PARTICLE_LIFE: f32 = 0.4;
 const GRAVITY: Vec3 = vec3(0.0, 0.0, 15.0);
 
@@ -54,6 +57,22 @@ impl VoxelParticleSystem {
     pub fn new() -> Self {
         Self {
             particles: Vec::with_capacity(32),
+        }
+    }
+
+    pub fn add_particles_for_collision(
+        &mut self,
+        player_info: &PlayerInfo,
+        collision: CollisionType,
+        mesh_generator: &MeshGenerator,
+    ) {
+        match collision {
+            CollisionType::Strong { voxel } => {
+                let mut position = player_info.camera_controller.get_bottom_position();
+                position.z += LANDING_Z_OFFSET;
+                self.add_particles(voxel, position, LANDING_COUNT, mesh_generator);
+            }
+            _ => {}
         }
     }
 

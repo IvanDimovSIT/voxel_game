@@ -272,6 +272,12 @@ impl VoxelEngine {
             .sound_manager
             .play_sound_for_collision(collision_type, &self.user_settings);
 
+        self.voxel_particles.add_particles_for_collision(
+            &self.player_info,
+            collision_type,
+            self.renderer.get_mesh_generator(),
+        );
+
         push_player_up_if_stuck(&mut self.player_info, &mut self.world);
         self.voxel_simulator
             .update(&mut self.world, &mut self.renderer, delta);

@@ -682,11 +682,11 @@ mod tests {
         let size = 10.0;
         let mesh = MeshGenerator::generate_quad_mesh(size);
         assert!(mesh.texture.is_none());
-        
+
         for v in mesh.vertices {
             assert_eq!(v.position.z, 0.0);
-            assert!(v.position.x.abs() <= size/2.0);
-            assert!(v.position.y.abs() <= size/2.0);
+            assert!(v.position.x.abs() <= size / 2.0);
+            assert!(v.position.y.abs() <= size / 2.0);
         }
     }
 }

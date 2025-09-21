@@ -63,7 +63,7 @@ impl SoundManager {
     ) {
         match collision_type {
             CollisionType::Bounce => self.play_sound(SoundId::Bounce, user_settings),
-            CollisionType::Strong => self.play_sound(SoundId::Fall, user_settings),
+            CollisionType::Strong { voxel: _ } => self.play_sound(SoundId::Fall, user_settings),
             _ => {}
         }
     }

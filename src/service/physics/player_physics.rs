@@ -24,7 +24,7 @@ const IN_WATER_MOVE_SPEED_MODIFIER: f32 = 0.5;
 pub enum CollisionType {
     None,
     Weak,
-    Strong,
+    Strong { voxel: Voxel },
     Bounce,
 }
 
@@ -68,7 +68,7 @@ pub fn process_collisions(
 
             let mut collision_type = CollisionType::Weak;
             if player_info.velocity >= STRONG_COLLISION_SPEED {
-                collision_type = CollisionType::Strong;
+                collision_type = CollisionType::Strong { voxel: voxel_hit };
             }
             player_info.velocity = 0.0;
             player_info.camera_controller.set_position(
