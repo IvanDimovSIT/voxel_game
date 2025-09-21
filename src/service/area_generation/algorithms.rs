@@ -5,7 +5,7 @@ use crate::model::{
 
 #[inline(always)]
 pub fn sample_probability(value: u64, probability: u64) -> bool {
-    value % probability == 0
+    value.is_multiple_of(probability)
 }
 
 #[inline(always)]

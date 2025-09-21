@@ -145,7 +145,7 @@ impl Creature for BunnyCreature {
         if self.activity_timer.tick(delta) {
             (self.activity, self.activity_timer) = match self.activity {
                 Activity::Idle => (
-                    Activity::Turn(rand() % 2 == 0),
+                    Activity::Turn(rand().is_multiple_of(2)),
                     ActivityTimer::new(MIN_ACTIVITY, TURN_ACTIVITY),
                 ),
                 Activity::Move => (
@@ -222,6 +222,13 @@ impl Creature for BunnyCreature {
             mesh,
             rotation: bunny_dto.rotation,
         }))
+    }
+
+    fn get_allowed_spawn_voxels() -> &'static [Voxel]
+    where
+        Self: Sized,
+    {
+        &[Voxel::Grass, Voxel::Dirt, Voxel::Sand, Voxel::Clay]
     }
 }
 

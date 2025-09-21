@@ -66,13 +66,10 @@ impl VoxelParticleSystem {
         collision: CollisionType,
         mesh_generator: &MeshGenerator,
     ) {
-        match collision {
-            CollisionType::Strong { voxel } => {
-                let mut position = player_info.camera_controller.get_bottom_position();
-                position.z += LANDING_Z_OFFSET;
-                self.add_particles(voxel, position, LANDING_COUNT, mesh_generator);
-            }
-            _ => {}
+        if let CollisionType::Strong { voxel } = collision {
+            let mut position = player_info.camera_controller.get_bottom_position();
+            position.z += LANDING_Z_OFFSET;
+            self.add_particles(voxel, position, LANDING_COUNT, mesh_generator);
         }
     }
 

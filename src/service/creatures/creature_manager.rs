@@ -4,7 +4,7 @@ use macroquad::{
     math::{Vec3, vec3},
     models::{Mesh, draw_mesh},
     prelude::{error, info},
-    rand::{gen_range, rand},
+    rand::gen_range,
 };
 
 use crate::{
@@ -15,13 +15,15 @@ use crate::{
     },
     service::{
         activity_timer::ActivityTimer,
-        creatures::creature_factory::{create_creature, create_creature_from_dto},
+        creatures::creature_factory::{
+            create_creature, create_creature_from_dto, random_creature_id_for_voxel,
+        },
         persistence::config::SERIALIZATION_CONFIG,
     },
     utils::vector_to_location,
 };
 
-const CHECK_UPDATES_TIME: f32 = 3.0;
+const CHECK_UPDATES_TIME: f32 = 2.0;
 const MAX_CREATURES: usize = 10;
 const SPAWN_SIZE_EXTRA_RANGE: f32 = AREA_SIZE as f32 * 0.75;
 const MIN_CULL_DISTANCE: f32 = 3.0;
@@ -31,23 +33,7 @@ const SPAWN_CREATURES_MAX_FOV: f32 = 0.15;
 pub enum CreatureId {
     Bunny,
     Butterfly,
-}
-impl CreatureId {
-    pub const VARIANTS: usize = 2;
-}
-impl CreatureId {
-    fn random() -> Self {
-        (rand() % CreatureId::VARIANTS as u32).into()
-    }
-}
-impl From<u32> for CreatureId {
-    fn from(value: u32) -> Self {
-        match value {
-            0 => Self::Bunny,
-            1 => Self::Butterfly,
-            _ => panic!("Invalid index for CreatureId"),
-        }
-    }
+    Penguin,
 }
 
 #[derive(Debug, Clone, Encode, Decode)]
@@ -61,6 +47,9 @@ pub trait Creature {
     fn get_mesh_with_index(&self) -> (&Mesh, usize);
     fn get_position(&self) -> Vec3;
     fn get_size(&self) -> Vec3;
+    fn get_allowed_spawn_voxels() -> &'static [Voxel]
+    where
+        Self: Sized;
     fn create_dto(&self) -> Option<CreatureDTO>;
     fn from_dto(creature_dto: CreatureDTO, mesh_manager: &MeshManager) -> Option<Box<dyn Creature>>
     where
@@ -305,25 +294,37 @@ impl CreatureManager {
             0.0,
         ));
         let height = world.get_height(location);
-        let location = Location {
+        let spawn_location = Location {
             z: height as i32,
             ..location
         };
-        let camera_to_location = Into::<Vec3>::into(location) - camera.position;
+        let camera_to_location = Into::<Vec3>::into(spawn_location) - camera.position;
         if camera_to_location.normalize().dot(camera_look) > SPAWN_CREATURES_MAX_FOV {
             info!("No creatures added");
             return;
         }
 
+        let spawn_voxel = world.get(spawn_location);
+        let option_creature_id = random_creature_id_for_voxel(spawn_voxel);
+        if option_creature_id.is_none() {
+            info!("No creatures added");
+            return;
+        }
+
         let creature_position = vec3(
-            location.x as f32,
-            location.y as f32,
+            spawn_location.x as f32,
+            spawn_location.y as f32,
             (height as f32 - 1.0).max(0.0),
         );
 
-        let creature = create_creature(CreatureId::random(), creature_position, mesh_manager);
+        let creature =
+            create_creature(option_creature_id.unwrap(), creature_position, mesh_manager);
         self.creatures.push(creature);
-        info!("Added creature at {}", camera_to_location);
+        info!(
+            "Added creature '{:?}' at {}",
+            option_creature_id.unwrap(),
+            creature_position
+        );
     }
 }
 

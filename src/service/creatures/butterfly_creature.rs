@@ -119,7 +119,7 @@ impl ButterflyCreature {
             self.turn_direction = match self.turn_direction {
                 TurnDirection::Left | TurnDirection::Right => TurnDirection::Middle,
                 TurnDirection::Middle => {
-                    if rand() % 2 == 0 {
+                    if rand().is_multiple_of(2) {
                         TurnDirection::Left
                     } else {
                         TurnDirection::Right
@@ -220,6 +220,13 @@ impl Creature for ButterflyCreature {
         };
 
         Some(Box::new(butterfly))
+    }
+
+    fn get_allowed_spawn_voxels() -> &'static [Voxel]
+    where
+        Self: Sized,
+    {
+        &[Voxel::Grass, Voxel::Clay, Voxel::Leaves]
     }
 }
 

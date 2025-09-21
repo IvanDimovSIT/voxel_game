@@ -44,6 +44,7 @@ const MESH_TEXTURES: [(MeshId, &str); MeshId::VARIANTS] = [
     (MeshId::Bunny, "bunny_texture.png"),
     (MeshId::ButterflyDown, "butterfly_texture.png"),
     (MeshId::ButterflyUp, "butterfly_texture.png"),
+    (MeshId::Penguin, "penguin_texture.png"),
 ];
 const MAX_TEXTURE_COUNT: usize = MAX_VOXEL_VARIANTS;
 

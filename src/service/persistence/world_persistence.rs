@@ -130,9 +130,7 @@ impl AreaLoader {
 
     /// returns loaded areas
     pub fn get_loaded(&mut self) -> Vec<Area> {
-        let areas = take(self.loaded.lock().unwrap().as_mut());
-
-        areas
+        take(self.loaded.lock().unwrap().as_mut())
     }
 }
 

@@ -15,9 +15,10 @@ pub enum MeshId {
     Bunny,
     ButterflyDown,
     ButterflyUp,
+    Penguin,
 }
 impl MeshId {
-    pub const VARIANTS: usize = 3;
+    pub const VARIANTS: usize = 4;
 
     pub fn index(self) -> usize {
         let index = self as usize;
@@ -33,6 +34,7 @@ const MODEL_FILES: [(MeshId, &str); MeshId::VARIANTS] = [
     (MeshId::Bunny, "bunny.obj"),
     (MeshId::ButterflyDown, "butterfly1.obj"),
     (MeshId::ButterflyUp, "butterfly2.obj"),
+    (MeshId::Penguin, "penguin.obj"),
 ];
 
 const MAX_COORDINATES: f32 = 4.0;

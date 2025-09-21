@@ -148,10 +148,10 @@ impl World {
         let (area_location, local_location) =
             Self::convert_global_to_area_and_local_location(location.into());
 
-        if let Some(area) = cached_area {
-            if area.get_area_location() == area_location {
-                return area.get(local_location);
-            }
+        if let Some(area) = cached_area
+            && area.get_area_location() == area_location
+        {
+            return area.get(local_location);
         }
 
         self.load_area(area_location);
@@ -212,10 +212,10 @@ impl World {
         let mut unloaded = Vec::with_capacity(32);
         for area_location in areas_to_unload {
             let area_option = self.areas.remove(area_location);
-            if let Some(area) = area_option {
-                if area.has_changed {
-                    unloaded.push(area);
-                }
+            if let Some(area) = area_option
+                && area.has_changed
+            {
+                unloaded.push(area);
             }
         }
         if unloaded.is_empty() {
