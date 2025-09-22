@@ -11,6 +11,10 @@ impl ActivityTimer {
         Self { delta, cooldown }
     }
 
+    pub fn reset(&mut self) {
+        self.delta = 0.0;
+    }
+
     /// returns true if the activity is triggered
     pub fn tick(&mut self, delta: f32) -> bool {
         self.delta += delta;

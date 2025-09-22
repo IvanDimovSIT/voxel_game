@@ -4,7 +4,7 @@ use macroquad::math::Vec3;
 use crate::{
     graphics::ui_display::ItemHotbar,
     model::inventory::Inventory,
-    service::camera_controller::CameraController,
+    service::{activity_timer::ActivityTimer, camera_controller::CameraController},
     utils::{arr_to_vec3, vec3_to_arr},
 };
 
@@ -12,9 +12,15 @@ const PLAYER_MOVE_SPEED: f32 = 10.0;
 const PLAYER_SIZE: f32 = 0.3;
 const VOXEL_REACH: f32 = 7.0;
 const JUMP_VELOCITY: f32 = -15.0;
+const DESTROY_VOXEL_DELAY: f32 = 0.25;
+const PLACE_VOXEL_DELAY: f32 = 0.2;
+const REPLACE_VOXEL_DELAY: f32 = 0.1;
 
 #[derive(Debug)]
 pub struct PlayerInfo {
+    pub destroy_progress: ActivityTimer,
+    pub place_progress: ActivityTimer,
+    pub replace_progress: ActivityTimer,
     pub inventory: Inventory,
     pub camera_controller: CameraController,
     pub voxel_selector: ItemHotbar,
@@ -37,6 +43,9 @@ impl PlayerInfo {
             voxel_selector: ItemHotbar::new(),
             inventory: Inventory::new(),
             is_in_water: false,
+            destroy_progress: ActivityTimer::new(0.0, DESTROY_VOXEL_DELAY),
+            place_progress: ActivityTimer::new(0.0, PLACE_VOXEL_DELAY),
+            replace_progress: ActivityTimer::new(0.0, REPLACE_VOXEL_DELAY),
         }
     }
 
@@ -70,6 +79,9 @@ impl From<PlayerInfoDTO> for PlayerInfo {
             voxel_selector: value.voxel_selector,
             inventory: value.inventory,
             is_in_water: false,
+            destroy_progress: ActivityTimer::new(0.0, DESTROY_VOXEL_DELAY),
+            place_progress: ActivityTimer::new(0.0, PLACE_VOXEL_DELAY),
+            replace_progress: ActivityTimer::new(0.0, REPLACE_VOXEL_DELAY),
         }
     }
 }

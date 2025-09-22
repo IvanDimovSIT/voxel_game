@@ -30,6 +30,7 @@ use crate::{
             get_load_zone, get_load_zone_on_world_load, get_render_zone,
             get_render_zone_on_world_load,
         },
+        activity_timer::ActivityTimer,
         asset_manager::AssetManager,
         creatures::creature_manager::CreatureManager,
         input::{self, ScrollDirection},
@@ -181,15 +182,46 @@ impl VoxelEngine {
             self.menu_state =
                 MenuState::Crafting(CraftingMenuContext::new(&self.player_info.inventory));
         }
-        if input::is_place_voxel(&self.player_info.camera_controller) {
+
+        if input::is_start_place_voxel(&self.player_info.camera_controller) {
             self.try_place_voxel(raycast_result);
+        } else if input::is_place_voxel(&self.player_info.camera_controller) {
+            self.continue_world_action_progress(
+                delta,
+                raycast_result,
+                |ve| &mut ve.player_info.place_progress,
+                |ve, res| ve.try_place_voxel(res),
+            );
+        } else {
+            self.player_info.place_progress.reset();
         }
-        if input::is_destroy_voxel(&self.player_info.camera_controller) {
+
+        if input::is_start_destroy_voxel(&self.player_info.camera_controller) {
             self.try_destroy_voxel(raycast_result);
+        } else if input::is_destroy_voxel(&self.player_info.camera_controller) {
+            self.continue_world_action_progress(
+                delta,
+                raycast_result,
+                |ve| &mut ve.player_info.destroy_progress,
+                |ve, res| ve.try_destroy_voxel(res),
+            );
+        } else {
+            self.player_info.destroy_progress.reset();
         }
-        if input::is_replace_voxel(&self.player_info.camera_controller) {
+
+        if input::is_start_replace_voxel(&self.player_info.camera_controller) {
             self.try_replace_voxel(raycast_result);
+        } else if input::is_replace_voxel(&self.player_info.camera_controller) {
+            self.continue_world_action_progress(
+                delta,
+                raycast_result,
+                |ve| &mut ve.player_info.replace_progress,
+                |ve, res| ve.try_replace_voxel(res),
+            );
+        } else {
+            self.player_info.replace_progress.reset();
         }
+
         if input::jump() {
             try_jump(&mut self.player_info, &mut self.world);
         }
@@ -547,6 +579,32 @@ impl VoxelEngine {
                     self.asset_manager
                         .sound_manager
                         .play_sound(SoundId::Destroy, &self.user_settings);
+                }
+            }
+        }
+    }
+
+    /// performs a world action (place, destroy, break) based on an activity timer
+    fn continue_world_action_progress<G, A>(
+        &mut self,
+        delta: f32,
+        raycast_result: RaycastResult,
+        get_activity_timer: G,
+        world_action: A,
+    ) where
+        G: FnOnce(&mut VoxelEngine) -> &mut ActivityTimer,
+        A: FnOnce(&mut VoxelEngine, RaycastResult),
+    {
+        match raycast_result {
+            RaycastResult::NoneHit => {
+                get_activity_timer(self).reset();
+            }
+            RaycastResult::Hit {
+                first_non_empty: _,
+                last_empty: _,
+            } => {
+                if get_activity_timer(self).tick(delta) {
+                    world_action(self, raycast_result);
                 }
             }
         }

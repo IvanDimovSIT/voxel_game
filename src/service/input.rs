@@ -1,5 +1,6 @@
 use macroquad::input::{
-    is_key_down, is_key_pressed, is_key_released, is_mouse_button_pressed, mouse_wheel,
+    is_key_down, is_key_pressed, is_key_released, is_mouse_button_down, is_mouse_button_pressed,
+    mouse_wheel,
 };
 
 use super::camera_controller::CameraController;
@@ -36,16 +37,28 @@ pub fn toggle_debug() -> bool {
     is_key_released(macroquad::input::KeyCode::GraveAccent)
 }
 
-pub fn is_place_voxel(camera_controller: &CameraController) -> bool {
+pub fn is_start_place_voxel(camera_controller: &CameraController) -> bool {
     camera_controller.is_focused() && is_mouse_button_pressed(macroquad::input::MouseButton::Right)
 }
 
-pub fn is_replace_voxel(camera_controller: &CameraController) -> bool {
+pub fn is_place_voxel(camera_controller: &CameraController) -> bool {
+    camera_controller.is_focused() && is_mouse_button_down(macroquad::input::MouseButton::Right)
+}
+
+pub fn is_start_replace_voxel(camera_controller: &CameraController) -> bool {
     camera_controller.is_focused() && is_mouse_button_pressed(macroquad::input::MouseButton::Middle)
 }
 
-pub fn is_destroy_voxel(camera_controller: &CameraController) -> bool {
+pub fn is_replace_voxel(camera_controller: &CameraController) -> bool {
+    camera_controller.is_focused() && is_mouse_button_down(macroquad::input::MouseButton::Middle)
+}
+
+pub fn is_start_destroy_voxel(camera_controller: &CameraController) -> bool {
     camera_controller.is_focused() && is_mouse_button_pressed(macroquad::input::MouseButton::Left)
+}
+
+pub fn is_destroy_voxel(camera_controller: &CameraController) -> bool {
+    camera_controller.is_focused() && is_mouse_button_down(macroquad::input::MouseButton::Left)
 }
 
 pub fn increase_render_distance() -> bool {
