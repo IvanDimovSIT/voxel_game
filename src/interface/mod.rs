@@ -1,6 +1,7 @@
 pub mod background;
 pub mod button;
 pub mod game_menu;
+pub mod help_menu;
 pub mod interface_context;
 pub mod list_input;
 pub mod settings_menu;

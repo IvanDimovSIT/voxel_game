@@ -21,7 +21,7 @@ use crate::{
     utils::{arr_to_vec3, vec3_to_arr, vector_to_location},
 };
 
-const SIZE: Vec3 = vec3(1.0, 1.0, 1.0);
+const SIZE: Vec3 = vec3(0.8, 0.8, 1.0);
 const FORWAD_DIRECTION: Vec3 = vec3(0.0, 1.0, 0.0);
 const TURN_SPEED: f32 = 0.4;
 const IDLE_ACTIVITY_TIME: f32 = 2.0;

@@ -79,3 +79,24 @@ pub fn draw_text_with_shadow(
     );
     draw_game_text(text, pos.x, pos.y, font_size, color, font);
 }
+
+pub fn draw_multiline_left_text(
+    text: &[&str],
+    y: f32,
+    width: f32,
+    font_size: f32,
+    color: Color,
+    font: &Font,
+) {
+    let max_width = text
+        .iter()
+        .map(|s| get_text_width(s, font_size, font) as i32)
+        .max()
+        .unwrap_or(0) as f32;
+
+    let x = (width - max_width) / 2.0;
+    for (ind, s) in text.iter().enumerate() {
+        let y_text = font_size * ind as f32 + y;
+        draw_game_text(*s, x, y_text, font_size, color, font);
+    }
+}

@@ -12,7 +12,7 @@ use crate::{
         background::draw_background,
         button::{draw_back_button, draw_button},
         interface_context::InterfaceScreen,
-        style::TEXT_COLOR,
+        style::{MENU_TITLE_FONT_SIZE, TEXT_COLOR},
         text::{draw_centered_multiline_text, draw_game_text, draw_version_number, get_text_width},
         title_screen::TitleScreenContext,
         util::is_point_in_rect,
@@ -28,7 +28,6 @@ const BUTTON_HEIGHT: f32 = 70.0;
 const BUTTON_HEIGHT_OFFSET: f32 = BUTTON_HEIGHT * 1.2;
 const BUTTON_TEXT_SIZE: f32 = 30.0;
 const RENDER_DISTANCE_TEXT_WIDTH: f32 = 320.0;
-const SETTINGS_TEXT_WIDTH: f32 = 80.0;
 const SMALL_BUTTON_TEXT_SIZE: u16 = 50;
 const DESCRIPTION_FONT_SIZE: f32 = 34.0;
 
@@ -46,7 +45,7 @@ const TOGGLE_LIGHTS_DESCRIPTION: [&str; 2] = [
 pub struct SettingsContext;
 
 impl SettingsContext {
-    /// returns true if the settings menu should be closed
+    /// returns the new screen
     pub async fn draw(
         &mut self,
         asset_manager: &AssetManager,
@@ -78,11 +77,11 @@ impl SettingsContext {
 
     fn draw_settings_title(width: f32, height: f32, font: &Font) {
         let settings_text = "Settings";
-        let text_width = get_text_width(settings_text, SETTINGS_TEXT_WIDTH, font);
+        let text_width = get_text_width(settings_text, MENU_TITLE_FONT_SIZE, font);
         let x = (width - text_width) * 0.5;
         let y = height * 0.1;
 
-        draw_game_text(settings_text, x, y, SETTINGS_TEXT_WIDTH, TEXT_COLOR, font);
+        draw_game_text(settings_text, x, y, MENU_TITLE_FONT_SIZE, TEXT_COLOR, font);
     }
 
     fn handle_render_distance(

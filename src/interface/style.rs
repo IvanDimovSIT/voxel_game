@@ -11,3 +11,4 @@ pub const SELECTED_COLOR: Color = BLUE;
 pub const SHADOW_COLOR: Color = CLEAR_SCREEN_COLOR;
 pub const SHADOW_OFFSET: f32 = 3.0;
 pub const MARGIN: f32 = 5.0;
+pub const MENU_TITLE_FONT_SIZE: f32 = 80.0;

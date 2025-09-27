@@ -2,8 +2,8 @@ use std::rc::Rc;
 
 use crate::{
     interface::{
-        settings_menu::SettingsContext, title_screen::TitleScreenContext,
-        world_selection::WorldSelectionContext,
+        help_menu::HelpMenuContext, settings_menu::SettingsContext,
+        title_screen::TitleScreenContext, world_selection::WorldSelectionContext,
     },
     model::user_settings::UserSettings,
     service::asset_manager::AssetManager,
@@ -14,6 +14,7 @@ pub enum InterfaceScreen {
     WorldSelection(WorldSelectionContext),
     TitleScreen(TitleScreenContext),
     Settings(SettingsContext),
+    Help(HelpMenuContext),
 }
 
 pub struct InterfaceContext {
@@ -73,6 +74,14 @@ impl InterfaceContext {
                     .draw(&self.asset_manager, &mut self.user_settings)
                     .await;
                 self.current_screen = new_screen;
+            }
+            InterfaceScreen::Help(help_menu_context) => {
+                if let Some(new_screen) = help_menu_context
+                    .draw(&self.asset_manager, &self.user_settings)
+                    .await
+                {
+                    self.current_screen = new_screen;
+                }
             }
         }
     }

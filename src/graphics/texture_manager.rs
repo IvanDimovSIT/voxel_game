@@ -14,6 +14,7 @@ const BASE_CREATURE_TEXTURES_PATH: &str = "assets/images/";
 const BASE_VOXEL_TEXTURES_PATH: &str = "assets/images/voxels/";
 const BASE_ICON_TEXTURES_PATH: &str = "assets/images/icons/";
 const TITLE_SCREEN_BACKGROUND_PATH: &str = "assets/images/title.png";
+const CONTROLS_GRAPHIC_PATH: &str = "assets/images/controls.png";
 const SUN_PATH: &str = "assets/images/sun.png";
 const MOON_PATH: &str = "assets/images/moon.png";
 const TEXTURES: [(Voxel, &str); 16] = [
@@ -52,6 +53,7 @@ pub struct TextureManager {
     textures: Vec<Option<Texture2D>>,
     mesh_textures: HashMap<MeshId, Texture2D>,
     title_screen_background: Texture2D,
+    controls_image: Texture2D,
     sun_texture: Texture2D,
     moon_texture: Texture2D,
     voxel_icons: HashMap<Voxel, Texture2D>,
@@ -68,6 +70,8 @@ impl TextureManager {
         let moon_texture = Self::load_image(MOON_PATH).await;
         let voxel_icons = Self::load_voxel_icon_textures().await;
         let mesh_textures = Self::load_mesh_textures().await;
+        let controls_image = Self::load_image(CONTROLS_GRAPHIC_PATH).await;
+        controls_image.set_filter(FilterMode::Nearest);
 
         Self {
             textures,
@@ -76,6 +80,7 @@ impl TextureManager {
             sun_texture,
             moon_texture,
             mesh_textures,
+            controls_image,
         }
     }
 
@@ -163,6 +168,10 @@ impl TextureManager {
 
     pub fn get_title_screen_background(&self) -> Texture2D {
         self.title_screen_background.weak_clone()
+    }
+
+    pub fn get_controls_image(&self) -> Texture2D {
+        self.controls_image.weak_clone()
     }
 
     pub fn get_sun_texture(&self) -> Texture2D {
