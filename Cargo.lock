@@ -620,7 +620,7 @@ checksum = "051eb1abcf10076295e815102942cc58f9d5e3b4560e46e53c21e8ff6f3af7b1"
 
 [[package]]
 name = "voxel_game"
-version = "1.4.0"
+version = "1.5.0"
 dependencies = [
  "bincode",
  "libnoise",

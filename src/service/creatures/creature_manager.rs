@@ -1,8 +1,9 @@
 use bincode::{Decode, Encode, decode_from_slice, encode_to_vec};
 use macroquad::{
     camera::Camera3D,
+    color::WHITE,
     math::{Vec3, vec3},
-    models::{Mesh, draw_mesh},
+    models::{Mesh, draw_cube_wires, draw_mesh},
     prelude::{error, info},
     rand::gen_range,
 };
@@ -11,12 +12,15 @@ use crate::{
     graphics::mesh_manager::{MeshId, MeshManager},
     model::{
         area::AREA_SIZE, location::Location, player_info::PlayerInfo, user_settings::UserSettings,
-        voxel::Voxel, world::World,
+        world::World,
     },
     service::{
         activity_timer::ActivityTimer,
-        creatures::creature_factory::{
-            create_creature, create_creature_from_dto, random_creature_id_for_voxel,
+        creatures::{
+            creature::Creature,
+            creature_factory::{
+                create_creature, create_creature_from_dto, random_creature_id_for_voxel,
+            },
         },
         persistence::config::SERIALIZATION_CONFIG,
     },
@@ -40,20 +44,6 @@ pub enum CreatureId {
 pub struct CreatureDTO {
     pub id: CreatureId,
     pub bytes: Vec<u8>,
-}
-
-pub trait Creature {
-    fn update(&mut self, delta: f32, world: &mut World);
-    fn get_mesh_with_index(&self) -> (&Mesh, usize);
-    fn get_position(&self) -> Vec3;
-    fn get_size(&self) -> Vec3;
-    fn get_allowed_spawn_voxels() -> &'static [Voxel]
-    where
-        Self: Sized;
-    fn create_dto(&self) -> Option<CreatureDTO>;
-    fn from_dto(creature_dto: CreatureDTO, mesh_manager: &MeshManager) -> Option<Box<dyn Creature>>
-    where
-        Self: Sized;
 }
 
 pub struct CreatureManager {
@@ -92,7 +82,7 @@ impl CreatureManager {
         let creature_spawn_distance =
             user_settings.get_render_distance() as f32 * AREA_SIZE as f32 + SPAWN_SIZE_EXTRA_RANGE;
         for creature in &mut self.creatures {
-            creature.update(delta, world);
+            creature.update(delta, world, player_info);
         }
         self.remove_distant_creatures(
             player_info.camera_controller.get_position(),
@@ -158,60 +148,20 @@ impl CreatureManager {
         drew
     }
 
+    pub fn draw_bounding_boxes(&self, camera: &Camera3D) {
+        for creature in &self.creatures {
+            let position = creature.get_position() - camera.position;
+            let size = creature.get_size();
+
+            draw_cube_wires(position, size, WHITE);
+        }
+    }
+
     fn draw_mesh_array(mesh_array: Vec<Vec<&Mesh>>) {
         let ordered_meshes = mesh_array.into_iter().flatten();
         for mesh in ordered_meshes {
             draw_mesh(mesh);
         }
-    }
-
-    pub fn collides(creature: &impl Creature, world: &mut World) -> bool {
-        let pos = creature.get_position();
-        let size = creature.get_size();
-        let creature_location: Location = pos.into();
-
-        world.with_cached_area(creature_location, |world, cached_area| {
-            let positions_to_check = [
-                pos,
-                pos + vec3(size.x * 0.5, 0.0, 0.0),
-                pos - vec3(size.x * 0.5, 0.0, 0.0),
-                pos + vec3(0.0, size.y * 0.5, 0.0),
-                pos - vec3(0.0, size.y * 0.5, 0.0),
-            ];
-
-            positions_to_check.into_iter().any(|loc| {
-                world
-                    .get_with_cache(Into::<Location>::into(loc), Some(cached_area))
-                    .is_solid()
-            })
-        })
-    }
-
-    /// returns new creature z and if it's on the ground
-    pub fn collides_with_ground(creature: &impl Creature, world: &mut World) -> (f32, bool) {
-        let position = creature.get_position();
-        let size = creature.get_size();
-        let half_z = size.z * 0.5;
-        let below = vec3(position.x, position.y, position.z + half_z);
-        let above = vec3(position.x, position.y, position.z - half_z);
-
-        let bottom_location = vector_to_location(below);
-        let top_location = vector_to_location(above);
-
-        let bottom_voxel = world.get(bottom_location);
-
-        if !bottom_voxel.is_solid() {
-            let top_voxel = world.get(top_location);
-            let result = if top_voxel.is_solid() {
-                top_location.z as f32 + Voxel::HALF_SIZE + half_z
-            } else {
-                position.z
-            };
-
-            return (result, false);
-        }
-
-        (bottom_location.z as f32 - Voxel::HALF_SIZE - half_z, true)
     }
 
     pub fn create_dto(&self) -> CreatureManagerDTO {

@@ -364,6 +364,8 @@ impl VoxelEngine {
         }
         self.debug_display
             .draw_area_border(&self.player_info.camera_controller);
+        self.debug_display
+            .draw_creature_bounding_boxes(&self.creature_manager, &camera);
 
         // set 2D camera and draw 2D elements
         set_default_camera();

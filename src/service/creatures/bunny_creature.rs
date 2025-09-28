@@ -12,10 +12,16 @@ use crate::{
         mesh_manager::{MeshId, MeshManager},
         mesh_transformer::{move_mesh, rotate_around_z_with_direction},
     },
-    model::{area::AREA_HEIGHT, voxel::Voxel, world::World},
+    model::{area::AREA_HEIGHT, player_info::PlayerInfo, voxel::Voxel, world::World},
     service::{
         activity_timer::ActivityTimer,
-        creatures::creature_manager::{Creature, CreatureDTO, CreatureId, CreatureManager},
+        creatures::{
+            creature::{
+                Creature, collides, collides_with_ground, collides_with_player,
+                perform_static_collisions, push_away_from,
+            },
+            creature_manager::{CreatureDTO, CreatureId, CreatureManager},
+        },
         physics::player_physics::{GRAVITY, MAX_FALL_SPEED},
     },
     utils::{arr_to_vec3, vec3_to_arr, vector_to_location},
@@ -81,7 +87,7 @@ impl BunnyCreature {
         self.velocity += delta * GRAVITY;
         self.velocity = self.velocity.min(MAX_FALL_SPEED);
         self.position.z += self.velocity * delta;
-        let (new_z, is_on_ground) = CreatureManager::collides_with_ground(self, world);
+        let (new_z, is_on_ground) = collides_with_ground(self, world);
 
         if new_z > self.position.z || is_on_ground {
             self.velocity = 0.0;
@@ -100,7 +106,8 @@ impl BunnyCreature {
 
         let displacement = self.direction * move_distance;
         self.position += displacement;
-        if CreatureManager::collides(self, world) {
+        let collision = collides(self, world);
+        if collision.is_some() {
             self.position -= displacement;
         }
     }
@@ -136,9 +143,22 @@ impl BunnyCreature {
         self.velocity += delta * SWIM_SPEED;
         self.velocity = self.velocity.max(MAX_SWIM);
     }
+
+    fn collide_with_player(&mut self, delta: f32, world: &mut World, player_info: &PlayerInfo) {
+        if !collides_with_player(self, player_info) {
+            return;
+        }
+
+        let displacement =
+            push_away_from(self, player_info.camera_controller.get_position(), delta);
+        self.position += displacement;
+        if collides(self, world).is_some() {
+            self.position -= displacement;
+        }
+    }
 }
 impl Creature for BunnyCreature {
-    fn update(&mut self, delta: f32, world: &mut World) {
+    fn update(&mut self, delta: f32, world: &mut World, player_info: &PlayerInfo) {
         debug_assert!(self.position.z >= 0.0);
         debug_assert!(self.position.z < AREA_HEIGHT as f32);
         let old_position = self.position;
@@ -170,6 +190,8 @@ impl Creature for BunnyCreature {
                 self.handle_turn(delta, clockwise);
             }
         }
+        self.collide_with_player(delta, world, player_info);
+        self.position += perform_static_collisions(self, delta, world, old_position);
 
         let delta_position = self.position - old_position;
         if delta_position != Vec3::ZERO {

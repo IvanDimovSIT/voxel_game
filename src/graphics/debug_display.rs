@@ -177,6 +177,18 @@ impl DebugDisplay {
         draw_cube_wires(position, vec3(size, size, height), WHITE);
     }
 
+    pub fn draw_creature_bounding_boxes(
+        &self,
+        creature_manager: &CreatureManager,
+        camera: &Camera3D,
+    ) {
+        if !self.should_display {
+            return;
+        }
+
+        creature_manager.draw_bounding_boxes(camera);
+    }
+
     fn draw_background() {
         draw_rectangle(0.0, 0.0, 530.0, FONT_SIZE * 9.0, CLEAR_SCREEN_COLOR);
     }

@@ -12,10 +12,13 @@ use crate::{
         mesh_manager::{MeshId, MeshManager},
         mesh_transformer::{move_mesh, rotate_around_z, rotate_around_z_with_direction},
     },
-    model::{voxel::Voxel, world::World},
+    model::{player_info::PlayerInfo, voxel::Voxel, world::World},
     service::{
         activity_timer::ActivityTimer,
-        creatures::creature_manager::{Creature, CreatureDTO, CreatureId, CreatureManager},
+        creatures::{
+            creature::{Creature, collides, collides_with_ground, push_away_from},
+            creature_manager::{CreatureDTO, CreatureId, CreatureManager},
+        },
     },
     utils::{arr_to_vec3, vec3_to_arr, vector_to_location},
 };
@@ -81,10 +84,12 @@ impl ButterflyCreature {
 
         self.position.z += self.velocity * delta;
 
-        let dispacement = self.direction * HORIZONTAL_SPEED * delta;
-        self.position += dispacement;
-        if CreatureManager::collides(self, world) {
-            self.position -= dispacement;
+        let displacement = self.direction * HORIZONTAL_SPEED * delta;
+        self.position += displacement;
+        let collision = collides(self, world);
+        if let Some(point) = collision {
+            self.position -= displacement;
+            self.position += push_away_from(self, point, delta);
         }
     }
 
@@ -149,11 +154,11 @@ impl ButterflyCreature {
     }
 }
 impl Creature for ButterflyCreature {
-    fn update(&mut self, delta: f32, world: &mut World) {
+    fn update(&mut self, delta: f32, world: &mut World, _player_info: &PlayerInfo) {
         let original_position = self.position;
         self.turn(delta);
         self.fly(delta, world);
-        let (new_z, _is_on_ground) = CreatureManager::collides_with_ground(self, world);
+        let (new_z, _is_on_ground) = collides_with_ground(self, world);
 
         self.animate(delta);
 

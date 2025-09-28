@@ -95,8 +95,8 @@ pub fn draw_multiline_left_text(
         .unwrap_or(0) as f32;
 
     let x = (width - max_width) / 2.0;
-    for (ind, s) in text.iter().enumerate() {
-        let y_text = font_size * ind as f32 + y;
-        draw_game_text(*s, x, y_text, font_size, color, font);
+    for (index, s) in text.iter().enumerate() {
+        let y_text = font_size * index as f32 + y;
+        draw_game_text(s, x, y_text, font_size, color, font);
     }
 }

@@ -8,7 +8,8 @@ use crate::{
     service::creatures::{
         bunny_creature::BunnyCreature,
         butterfly_creature::ButterflyCreature,
-        creature_manager::{Creature, CreatureDTO, CreatureId},
+        creature::Creature,
+        creature_manager::{CreatureDTO, CreatureId},
         penguin_creature::PenguinCreature,
     },
 };

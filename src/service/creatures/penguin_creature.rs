@@ -12,10 +12,16 @@ use crate::{
         mesh_manager::{MeshId, MeshManager},
         mesh_transformer::{move_mesh, rotate_around_z_with_direction},
     },
-    model::{voxel::Voxel, world::World},
+    model::{player_info::PlayerInfo, voxel::Voxel, world::World},
     service::{
         activity_timer::ActivityTimer,
-        creatures::creature_manager::{Creature, CreatureDTO, CreatureId, CreatureManager},
+        creatures::{
+            creature::{
+                Creature, collides, collides_with_ground, collides_with_player,
+                perform_static_collisions, push_away_from,
+            },
+            creature_manager::{CreatureDTO, CreatureId, CreatureManager},
+        },
         physics::player_physics::{GRAVITY, MAX_FALL_SPEED},
     },
     utils::{arr_to_vec3, vec3_to_arr, vector_to_location},
@@ -105,7 +111,7 @@ impl PenguinCreature {
         self.velocity += delta * GRAVITY;
         self.velocity = self.velocity.min(MAX_FALL_SPEED);
         self.position.z += self.velocity * delta;
-        let (new_z, is_on_ground) = CreatureManager::collides_with_ground(self, world);
+        let (new_z, is_on_ground) = collides_with_ground(self, world);
 
         if new_z > self.position.z || is_on_ground {
             self.velocity = 0.0;
@@ -125,7 +131,8 @@ impl PenguinCreature {
 
         self.position += displacement;
 
-        if CreatureManager::collides(self, world) {
+        let collision = collides(self, world);
+        if collision.is_some() {
             self.position -= displacement;
             if on_ground {
                 self.velocity = JUMP;
@@ -187,9 +194,22 @@ impl PenguinCreature {
 
         turn
     }
+
+    fn collide_with_player(&mut self, delta: f32, world: &mut World, player_info: &PlayerInfo) {
+        if !collides_with_player(self, player_info) {
+            return;
+        }
+
+        let displacement =
+            push_away_from(self, player_info.camera_controller.get_position(), delta);
+        self.position += displacement;
+        if collides(self, world).is_some() {
+            self.position -= displacement;
+        }
+    }
 }
 impl Creature for PenguinCreature {
-    fn update(&mut self, delta: f32, world: &mut World) {
+    fn update(&mut self, delta: f32, world: &mut World, player_info: &PlayerInfo) {
         let start_position = self.position;
         let mut turn_amount = 0.0;
         if self.activity_timer.tick(delta) {
@@ -216,6 +236,8 @@ impl Creature for PenguinCreature {
         turn_amount += self.handle_turn(delta);
         turn_amount += self.animate(delta);
         self.swim_if_in_water(delta, world);
+        self.collide_with_player(delta, world, player_info);
+        self.position += perform_static_collisions(self, delta, world, start_position);
 
         let delta_position = self.position - start_position;
         move_mesh(&mut self.mesh, delta_position);
