@@ -2,6 +2,7 @@ use bincode::{Decode, Encode};
 
 const MIN_RENDER_DISTANCE: u32 = 3;
 const MAX_RENDER_DISTANCE: u32 = 16;
+const DEFAULT_RENDER_DISTANCE: u32 = 8;
 
 #[derive(Debug, Clone, Copy, Encode, Decode)]
 pub enum ShadowType {
@@ -47,7 +48,7 @@ impl UserSettings {
 impl Default for UserSettings {
     fn default() -> Self {
         Self {
-            render_distance: 7,
+            render_distance: DEFAULT_RENDER_DISTANCE,
             has_sound: true,
             is_fullscreen: false,
             shadow_type: ShadowType::Soft,

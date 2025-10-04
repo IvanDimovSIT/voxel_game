@@ -8,7 +8,7 @@ use crate::{
     utils::{arr_to_vec3, vec3_to_arr},
 };
 
-const PLAYER_MOVE_SPEED: f32 = 10.0;
+const PLAYER_MOVE_SPEED: f32 = 9.0;
 const PLAYER_SIZE: f32 = 0.3;
 const VOXEL_REACH: f32 = 7.0;
 const JUMP_VELOCITY: f32 = -15.0;
