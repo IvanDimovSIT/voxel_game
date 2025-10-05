@@ -17,6 +17,7 @@ const TITLE_SCREEN_BACKGROUND_PATH: &str = "assets/images/title.png";
 const CONTROLS_GRAPHIC_PATH: &str = "assets/images/controls.png";
 const SUN_PATH: &str = "assets/images/sun.png";
 const MOON_PATH: &str = "assets/images/moon.png";
+const CLOUDS_PATH: &str = "assets/images/clouds.png";
 const TEXTURES: [(Voxel, &str); 16] = [
     (Voxel::Stone, "stone.png"),
     (Voxel::Sand, "sand.png"),
@@ -56,6 +57,7 @@ pub struct TextureManager {
     controls_image: Texture2D,
     sun_texture: Texture2D,
     moon_texture: Texture2D,
+    clouds_texture: Texture2D,
     voxel_icons: HashMap<Voxel, Texture2D>,
 }
 impl TextureManager {
@@ -68,6 +70,8 @@ impl TextureManager {
         let title_screen_background = Self::load_image(TITLE_SCREEN_BACKGROUND_PATH).await;
         let sun_texture = Self::load_image(SUN_PATH).await;
         let moon_texture = Self::load_image(MOON_PATH).await;
+        let clouds_texture = Self::load_image(CLOUDS_PATH).await;
+        clouds_texture.set_filter(FilterMode::Nearest);
         let voxel_icons = Self::load_voxel_icon_textures().await;
         let mesh_textures = Self::load_mesh_textures().await;
         let controls_image = Self::load_image(CONTROLS_GRAPHIC_PATH).await;
@@ -81,6 +85,7 @@ impl TextureManager {
             moon_texture,
             mesh_textures,
             controls_image,
+            clouds_texture,
         }
     }
 
@@ -180,6 +185,10 @@ impl TextureManager {
 
     pub fn get_moon_texture(&self) -> Texture2D {
         self.moon_texture.weak_clone()
+    }
+
+    pub fn get_clouds_texture(&self) -> Texture2D {
+        self.clouds_texture.weak_clone()
     }
 
     pub fn get_mesh_texture(&self, id: MeshId) -> Texture2D {

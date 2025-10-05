@@ -85,7 +85,7 @@ impl VoxelEngine {
             .unwrap_or_else(|| (PlayerInfo::new(vec3(0.0, 0.0, 0.0)), false));
 
         player_info.camera_controller.set_focus(true);
-        let (world_time, simulated_voxels, water_simulator, creature_manager) =
+        let (world_time, simulated_voxels, water_simulator, creature_manager, sky) =
             if let Some(world_metadata) = load_world_metadata(&world_name) {
                 (
                     WorldTime::new(world_metadata.delta),
@@ -95,6 +95,7 @@ impl VoxelEngine {
                         world_metadata.creature_manager,
                         &asset_manager.mesh_manager,
                     ),
+                    Sky::from_dto(&asset_manager.texture_manager, world_metadata.sky_dto),
                 )
             } else {
                 (
@@ -102,10 +103,10 @@ impl VoxelEngine {
                     vec![],
                     WaterSimulator::new(),
                     CreatureManager::new(),
+                    Sky::new(&asset_manager.texture_manager),
                 )
             };
 
-        let sky = Sky::new(&asset_manager.texture_manager);
         let renderer = Renderer::new(asset_manager.clone());
         let falling_voxel_simulator =
             FallingVoxelSimulator::new(simulated_voxels, renderer.get_mesh_generator());
@@ -285,6 +286,7 @@ impl VoxelEngine {
             return;
         }
         self.world_time.update(delta);
+        self.sky.update(delta);
         self.process_physics(delta);
         self.voxel_particles.update(delta);
         self.creature_manager.update(
@@ -635,6 +637,7 @@ impl Drop for VoxelEngine {
             &self.world_time,
             &self.voxel_simulator,
             &self.creature_manager,
+            &self.sky,
         );
         store_world_metadata(world_metadata, self.world.get_world_name());
         write_user_settings_blocking(&self.user_settings);

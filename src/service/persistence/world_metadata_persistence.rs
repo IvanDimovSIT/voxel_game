@@ -1,13 +1,18 @@
 use bincode::{Decode, Encode};
 
-use crate::service::{
-    creatures::creature_manager::{CreatureManager, CreatureManagerDTO},
-    persistence::generic_persistence::{create_directory, read_binary_object, write_binary_object},
-    physics::{
-        falling_voxel_simulator::SimulatedVoxelDTO, voxel_simulator::VoxelSimulator,
-        water_simulator::WaterSimulator,
+use crate::{
+    graphics::sky::{Sky, SkyDTO},
+    service::{
+        creatures::creature_manager::{CreatureManager, CreatureManagerDTO},
+        persistence::generic_persistence::{
+            create_directory, read_binary_object, write_binary_object,
+        },
+        physics::{
+            falling_voxel_simulator::SimulatedVoxelDTO, voxel_simulator::VoxelSimulator,
+            water_simulator::WaterSimulator,
+        },
+        world_time::WorldTime,
     },
-    world_time::WorldTime,
 };
 
 const IS_COMPRESSED: bool = false;
@@ -18,12 +23,14 @@ pub struct WorldMetadata {
     pub simulated_voxels: Vec<SimulatedVoxelDTO>,
     pub water_simulator: WaterSimulator,
     pub creature_manager: CreatureManagerDTO,
+    pub sky_dto: SkyDTO,
 }
 impl WorldMetadata {
     pub fn new(
         world_time: &WorldTime,
         voxel_simulator: &VoxelSimulator,
         creature_manager: &CreatureManager,
+        sky: &Sky,
     ) -> Self {
         let (simulated_voxels, water_simulator) = voxel_simulator.create_dtos();
         Self {
@@ -31,6 +38,7 @@ impl WorldMetadata {
             simulated_voxels,
             water_simulator,
             creature_manager: creature_manager.create_dto(),
+            sky_dto: sky.create_dto(),
         }
     }
 }
