@@ -1,8 +1,8 @@
-use std::{f32::consts::PI, rc::Rc};
+use std::rc::Rc;
 
 use macroquad::{
-    camera::set_default_camera, math::vec3, miniquad::window::screen_size,
-    prelude::gl_use_default_material, window::next_frame,
+    camera::set_default_camera, miniquad::window::screen_size, prelude::gl_use_default_material,
+    window::next_frame,
 };
 
 use crate::{
@@ -35,24 +35,21 @@ use crate::{
         creatures::creature_manager::CreatureManager,
         input::{self, ScrollDirection},
         persistence::{
-            player_persistence::{load_player_info, save_player_info},
+            player_persistence::save_player_info,
             user_settings_persistence::write_user_settings_blocking,
-            world_metadata_persistence::{
-                WorldMetadata, load_world_metadata, store_world_metadata,
-            },
+            world_metadata_persistence::{WorldMetadata, store_world_metadata},
         },
         physics::{
-            falling_voxel_simulator::FallingVoxelSimulator,
             player_physics::{
                 process_collisions, push_player_up_if_stuck, try_jump, try_move, try_swim,
             },
             voxel_simulator::VoxelSimulator,
-            water_simulator::WaterSimulator,
         },
         raycast::{RaycastResult, cast_ray},
         sound_manager::SoundId,
         world_actions::{
-            destroy_voxel, place_voxel, put_player_on_ground, replace_voxel, update_player_in_water,
+            destroy_voxel, initialise_world_systems, place_voxel, replace_voxel,
+            update_player_in_water,
         },
         world_time::WorldTime,
     },
@@ -79,60 +76,23 @@ impl VoxelEngine {
         asset_manager: Rc<AssetManager>,
         user_settings: UserSettings,
     ) -> Self {
-        let world_name = world_name.into();
-        let (mut player_info, successful_load) = load_player_info(&world_name)
-            .map(|info| (info, true))
-            .unwrap_or_else(|| (PlayerInfo::new(vec3(0.0, 0.0, 0.0)), false));
+        let world_systems = initialise_world_systems(world_name, asset_manager.clone());
 
-        player_info.camera_controller.set_focus(true);
-        let (world_time, simulated_voxels, water_simulator, creature_manager, sky) =
-            if let Some(world_metadata) = load_world_metadata(&world_name) {
-                (
-                    WorldTime::new(world_metadata.delta),
-                    world_metadata.simulated_voxels,
-                    world_metadata.water_simulator,
-                    CreatureManager::from_dto(
-                        world_metadata.creature_manager,
-                        &asset_manager.mesh_manager,
-                    ),
-                    Sky::from_dto(&asset_manager.texture_manager, world_metadata.sky_dto),
-                )
-            } else {
-                (
-                    WorldTime::new(PI * 0.5),
-                    vec![],
-                    WaterSimulator::new(),
-                    CreatureManager::new(),
-                    Sky::new(&asset_manager.texture_manager),
-                )
-            };
-
-        let renderer = Renderer::new(asset_manager.clone());
-        let falling_voxel_simulator =
-            FallingVoxelSimulator::new(simulated_voxels, renderer.get_mesh_generator());
-        let voxel_simulator = VoxelSimulator::new(water_simulator, falling_voxel_simulator);
-
-        let mut engine = Self {
-            world: World::new(world_name),
-            renderer,
-            player_info,
+        Self {
+            world: world_systems.world,
+            renderer: world_systems.renderer,
+            player_info: world_systems.player_info,
             debug_display: DebugDisplay::new(),
             user_settings,
-            voxel_simulator,
-            asset_manager,
+            voxel_simulator: world_systems.voxel_simulator,
+            asset_manager: asset_manager,
             menu_state: MenuState::Hidden,
-            world_time,
-            sky,
+            world_time: world_systems.world_time,
+            sky: world_systems.sky,
             height_map: HeightMap::new(),
             voxel_particles: VoxelParticleSystem::new(),
-            creature_manager,
-        };
-
-        if !successful_load {
-            put_player_on_ground(&mut engine.player_info, &mut engine.world);
+            creature_manager: world_systems.creature_manager,
         }
-
-        engine
     }
 
     /// loads the world upon entering

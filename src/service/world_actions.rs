@@ -1,15 +1,24 @@
+use std::rc::Rc;
+
 use macroquad::math::vec3;
 
 use crate::{
-    graphics::{renderer::Renderer, voxel_particle_system::VoxelParticleSystem},
+    graphics::{renderer::Renderer, sky::Sky, voxel_particle_system::VoxelParticleSystem},
     model::{
         area::AREA_HEIGHT, location::Location, player_info::PlayerInfo, voxel::Voxel, world::World,
     },
     service::{
+        asset_manager::AssetManager,
         creatures::creature_manager::CreatureManager,
-        physics::{
-            player_physics::will_new_voxel_cause_collision, voxel_simulator::VoxelSimulator,
+        persistence::{
+            player_persistence::load_player_info, world_metadata_persistence::load_world_metadata,
         },
+        physics::{
+            falling_voxel_simulator::FallingVoxelSimulator,
+            player_physics::will_new_voxel_cause_collision, voxel_simulator::VoxelSimulator,
+            water_simulator::WaterSimulator,
+        },
+        world_time::WorldTime,
     },
     utils::vector_to_location,
 };
@@ -81,7 +90,77 @@ pub fn destroy_voxel(
     Some(voxel)
 }
 
-pub fn put_player_on_ground(player_info: &mut PlayerInfo, world: &mut World) {
+pub fn update_player_in_water(player_info: &mut PlayerInfo, world: &mut World) {
+    let player_location = player_info.camera_controller.get_camera_voxel_location();
+    player_info.is_in_water = Voxel::WATER.contains(&world.get(player_location));
+}
+
+/// struct containing the loaded systems for the voxel engine
+pub struct WorldSystems {
+    pub world_time: WorldTime,
+    pub renderer: Renderer,
+    pub world: World,
+    pub voxel_simulator: VoxelSimulator,
+    pub creature_manager: CreatureManager,
+    pub player_info: PlayerInfo,
+    pub sky: Sky,
+}
+
+/// loads the saved world data or initialises it if not saved
+pub fn initialise_world_systems(
+    world_name: impl Into<String>,
+    asset_manager: Rc<AssetManager>,
+) -> WorldSystems {
+    let world_name = world_name.into();
+    let (mut player_info, successful_load) = load_player_info(&world_name)
+        .map(|info| (info, true))
+        .unwrap_or_else(|| (PlayerInfo::new(vec3(0.0, 0.0, 0.0)), false));
+
+    player_info.camera_controller.set_focus(true);
+    let (world_time, simulated_voxels, water_simulator, creature_manager, sky) =
+        if let Some(world_metadata) = load_world_metadata(&world_name) {
+            (
+                WorldTime::new(world_metadata.delta),
+                world_metadata.simulated_voxels,
+                world_metadata.water_simulator,
+                CreatureManager::from_dto(
+                    world_metadata.creature_manager,
+                    &asset_manager.mesh_manager,
+                ),
+                Sky::from_dto(&asset_manager.texture_manager, world_metadata.sky_dto),
+            )
+        } else {
+            (
+                WorldTime::new(std::f32::consts::PI * 0.5),
+                vec![],
+                WaterSimulator::new(),
+                CreatureManager::new(),
+                Sky::new(&asset_manager.texture_manager),
+            )
+        };
+
+    let renderer = Renderer::new(asset_manager.clone());
+    let falling_voxel_simulator =
+        FallingVoxelSimulator::new(simulated_voxels, renderer.get_mesh_generator());
+    let voxel_simulator = VoxelSimulator::new(water_simulator, falling_voxel_simulator);
+    let mut world = World::new(world_name);
+
+    if !successful_load {
+        put_player_on_ground(&mut player_info, &mut world);
+    }
+
+    WorldSystems {
+        world_time,
+        renderer,
+        world,
+        voxel_simulator,
+        creature_manager,
+        sky,
+        player_info,
+    }
+}
+
+fn put_player_on_ground(player_info: &mut PlayerInfo, world: &mut World) {
     loop {
         let bottom_position = player_info.camera_controller.get_bottom_position();
         let bottom_location = vector_to_location(bottom_position);
@@ -105,9 +184,4 @@ pub fn put_player_on_ground(player_info: &mut PlayerInfo, world: &mut World) {
                 .set_position(bottom_position + vec3(0.0, 0.0, 1.0));
         }
     }
-}
-
-pub fn update_player_in_water(player_info: &mut PlayerInfo, world: &mut World) {
-    let player_location = player_info.camera_controller.get_camera_voxel_location();
-    player_info.is_in_water = Voxel::WATER.contains(&world.get(player_location));
 }
