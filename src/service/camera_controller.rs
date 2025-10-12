@@ -6,7 +6,10 @@ use macroquad::{
     math::{Vec2, Vec3, vec3},
 };
 
-use crate::{model::location::Location, utils::vector_to_location};
+use crate::{
+    model::{location::Location, user_settings::UserSettings},
+    utils::vector_to_location,
+};
 
 const LOOK_SPEED: f32 = 0.1;
 
@@ -109,6 +112,53 @@ impl CameraController {
             position: self.position,
             up: self.up,
             target: self.position + self.front,
+            ..Default::default()
+        }
+    }
+
+    /// create a top-down camera
+    pub fn create_map_camera(&self, user_settings: &UserSettings) -> Camera3D {
+        let render_distance = user_settings.get_render_distance() as f32;
+
+        const CAMERA_HEIGHT: f32 = -120.0;
+        const Z_DISTANCE: f32 = 20.0;
+        const ANGLE_FACTOR: f32 = std::f32::consts::FRAC_1_SQRT_2;
+        const WORLD_VIEW_SIZE: f32 = 100.0;
+        const BASE_MAP_FOV: f32 = 0.7;
+        const MAP_FOV_MOD: f32 = 0.07;
+
+        let map_fov = BASE_MAP_FOV + render_distance * MAP_FOV_MOD;
+
+        let player_pos = self.position;
+        let player_x = player_pos.x;
+        let player_y = player_pos.y;
+
+        let target_pos = vec3(player_x, player_y, player_pos.z - Z_DISTANCE);
+
+        let x_offset = CAMERA_HEIGHT * ANGLE_FACTOR;
+        let y_offset = CAMERA_HEIGHT * ANGLE_FACTOR;
+
+        let compensation_factor = 0.5;
+        let comp_x = WORLD_VIEW_SIZE * compensation_factor * ANGLE_FACTOR;
+        let comp_y = WORLD_VIEW_SIZE * compensation_factor * ANGLE_FACTOR;
+
+        let camera_pos = vec3(
+            player_x + comp_x + x_offset,
+            player_y + comp_y + y_offset,
+            player_pos.z + CAMERA_HEIGHT,
+        );
+
+        let front = (target_pos - camera_pos).normalize();
+        let world_up = vec3(0.0, 0.0, -1.0);
+        let right = front.cross(world_up).normalize();
+        let up = right.cross(front).normalize();
+
+        Camera3D {
+            position: camera_pos,
+            target: target_pos,
+            up,
+            projection: macroquad::camera::Projection::Orthographics,
+            fovy: WORLD_VIEW_SIZE * map_fov,
             ..Default::default()
         }
     }

@@ -70,7 +70,7 @@ impl Sky {
     }
 
     pub fn draw_sky(&self, world_time: &WorldTime, camera: &Camera3D) {
-        let light_level = world_time.get_ligth_level();
+        let light_level = world_time.get_light_level();
         let dark_level = 1.0 - light_level;
         let sky_color = Color::new(
             SKY_BRIGHT_COLOR.r * light_level + SKY_DARK_COLOR.r * dark_level,

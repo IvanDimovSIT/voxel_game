@@ -23,7 +23,7 @@ use crate::{
     service::asset_manager::AssetManager,
 };
 
-const FONT_SIZE_COEF: f32 = 0.06;
+const FONT_SIZE_COEF: f32 = 0.055;
 const TITLE_TEXT_Y_COEF: f32 = 0.1;
 const HELP_TEXT_Y_COEF: f32 = 0.45;
 
@@ -107,6 +107,7 @@ impl HelpMenuContext {
             "E - Inventory",
             "C - Crafting",
             "Escape - Game menu",
+            "M - Hold to show a top-down persperctive of the world",
         ];
         draw_multiline_left_text(
             &help_text,

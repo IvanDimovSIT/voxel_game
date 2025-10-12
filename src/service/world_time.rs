@@ -8,6 +8,9 @@ pub struct WorldTime {
     light: f32,
 }
 impl WorldTime {
+    pub const MAX_LIGHT_LEVEL: f32 = 1.0;
+    const MIN_LIGHT_LEVEL: f32 = 0.1;
+
     pub fn new(delta: f32) -> Self {
         Self {
             delta,
@@ -25,12 +28,12 @@ impl WorldTime {
         self.delta
     }
 
-    pub fn get_ligth_level(&self) -> f32 {
+    pub fn get_light_level(&self) -> f32 {
         self.light
     }
 
     fn to_light_level(delta: f32) -> f32 {
-        sigmoid(delta.sin(), LIGHT_LEVEL_COEF).clamp(0.1, 1.0)
+        sigmoid(delta.sin(), LIGHT_LEVEL_COEF).clamp(Self::MIN_LIGHT_LEVEL, Self::MAX_LIGHT_LEVEL)
     }
 }
 
@@ -64,7 +67,7 @@ mod tests {
 
     fn assert_in_range(world_time: &WorldTime) {
         let delta = world_time.get_delta();
-        let light = world_time.get_ligth_level();
+        let light = world_time.get_light_level();
 
         assert!(delta >= 0.0);
         assert!(delta <= PI);

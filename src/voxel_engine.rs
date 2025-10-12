@@ -33,7 +33,7 @@ use crate::{
         activity_timer::ActivityTimer,
         asset_manager::AssetManager,
         creatures::creature_manager::CreatureManager,
-        input::{self, ScrollDirection},
+        input::{self, ScrollDirection, is_show_map},
         persistence::{
             player_persistence::save_player_info,
             user_settings_persistence::write_user_settings_blocking,
@@ -85,7 +85,7 @@ impl VoxelEngine {
             debug_display: DebugDisplay::new(),
             user_settings,
             voxel_simulator: world_systems.voxel_simulator,
-            asset_manager: asset_manager,
+            asset_manager,
             menu_state: MenuState::Hidden,
             world_time: world_systems.world_time,
             sky: world_systems.sky,
@@ -294,7 +294,15 @@ impl VoxelEngine {
     /// draws the current frame, return the new context if changed
     pub async fn draw_scene(&mut self, raycast_result: RaycastResult) -> Option<GameState> {
         let (width, height) = screen_size();
-        let camera = self.player_info.camera_controller.create_camera();
+        let should_show_map = is_show_map();
+        let camera = if should_show_map {
+            self.player_info
+                .camera_controller
+                .create_map_camera(&self.user_settings)
+        } else {
+            self.player_info.camera_controller.create_camera()
+        };
+
         self.sky.draw_sky(&self.world_time, &camera);
 
         // set 3D camera and voxel shader
@@ -304,6 +312,7 @@ impl VoxelEngine {
             &self.user_settings,
             &self.world,
             &mut self.height_map,
+            should_show_map,
         );
         let creatures_drawn = self.creature_manager.draw(&camera, &self.user_settings);
         self.voxel_particles.draw();
@@ -313,42 +322,45 @@ impl VoxelEngine {
             &self.player_info,
             &self.user_settings,
             &visible_areas,
+            should_show_map,
         );
 
         // remove shader
         gl_use_default_material();
-        if let RaycastResult::Hit {
-            first_non_empty,
-            last_empty: _,
-        } = raycast_result
-        {
-            draw_selected_voxel(first_non_empty, &camera);
-        }
-        self.debug_display
-            .draw_area_border(&self.player_info.camera_controller);
-        self.debug_display
-            .draw_creature_bounding_boxes(&self.creature_manager, &camera);
+        if !should_show_map {
+            if let RaycastResult::Hit {
+                first_non_empty,
+                last_empty: _,
+            } = raycast_result
+            {
+                draw_selected_voxel(first_non_empty, &camera);
+            }
+            self.debug_display
+                .draw_area_border(&self.player_info.camera_controller);
+            self.debug_display
+                .draw_creature_bounding_boxes(&self.creature_manager, &camera);
 
-        // set 2D camera and draw 2D elements
-        set_default_camera();
-        if self.player_info.is_in_water {
-            draw_water_effect(width, height, &self.asset_manager.texture_manager);
-        }
-        draw_crosshair(width, height);
-        self.player_info
-            .voxel_selector
-            .draw(&self.player_info.inventory.selected, &self.asset_manager);
+            // set 2D camera and draw 2D elements
+            set_default_camera();
+            if self.player_info.is_in_water {
+                draw_water_effect(width, height, &self.asset_manager.texture_manager);
+            }
+            draw_crosshair(width, height);
+            self.player_info
+                .voxel_selector
+                .draw(&self.player_info.inventory.selected, &self.asset_manager);
 
-        let debug_info = DebugInfo {
-            world: &self.world,
-            renderer: &self.renderer,
-            camera: &camera,
-            rendered_areas_faces: rendered,
-            creature_manager: &self.creature_manager,
-            rendered_creatures: creatures_drawn,
-        };
-        self.debug_display
-            .draw_debug_display(debug_info, &self.asset_manager.font);
+            let debug_info = DebugInfo {
+                world: &self.world,
+                renderer: &self.renderer,
+                camera: &camera,
+                rendered_areas_faces: rendered,
+                creature_manager: &self.creature_manager,
+                rendered_creatures: creatures_drawn,
+            };
+            self.debug_display
+                .draw_debug_display(debug_info, &self.asset_manager.font);
+        }
         let menu_result = self.process_menu();
 
         next_frame().await;

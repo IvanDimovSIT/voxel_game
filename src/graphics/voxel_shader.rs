@@ -15,7 +15,6 @@ use crate::{
         area::AREA_SIZE,
         location::{InternalLocation, Location},
     },
-    service::world_time::WorldTime,
 };
 
 const MAX_LIGHTS: usize = 64;
@@ -103,7 +102,7 @@ impl VoxelShader {
         &self,
         camera: &Camera3D,
         render_size: u32,
-        world_time: &WorldTime,
+        light_level: f32,
         lights: &[InternalLocation],
         height_map: Texture2D,
         has_dynamic_lighting: bool,
@@ -122,7 +121,7 @@ impl VoxelShader {
         self.voxel_material.set_uniform(FOG_NEAR_UNIFORM, fog_near);
         self.voxel_material.set_uniform(FOG_FAR_UNIFORM, fog_far);
         self.voxel_material
-            .set_uniform(LIGHT_LEVEL_UNIFORM, world_time.get_ligth_level());
+            .set_uniform(LIGHT_LEVEL_UNIFORM, light_level);
         self.voxel_material.set_uniform(
             FOG_BASE_COLOR_LIGHT_UNIFORM,
             SKY_BRIGHT_COLOR.to_vec().xyz(),

@@ -121,6 +121,10 @@ pub fn get_number_key() -> Option<u8> {
     None
 }
 
+pub fn is_show_map() -> bool {
+    is_key_down(macroquad::input::KeyCode::M)
+}
+
 #[derive(Debug, Clone, Copy)]
 pub enum ScrollDirection {
     Up,

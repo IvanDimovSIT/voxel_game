@@ -364,13 +364,23 @@ impl Renderer {
         user_settings: &UserSettings,
         world: &World,
         height_map: &mut HeightMap,
+        should_show_map: bool,
     ) -> Vec<(&AreaLocation, &RenderArea)> {
-        let render_size = user_settings.get_render_distance();
+        const MAX_RENDER_SIZE: u32 = 100;
+        let render_size = if should_show_map {
+            MAX_RENDER_SIZE
+        } else {
+            user_settings.get_render_distance()
+        };
         let normalised_camera = CameraController::normalize_camera_3d(camera);
         set_camera(&normalised_camera);
         let look = (camera.target - camera.position).normalize_or_zero();
 
-        let visible_areas = self.prepare_visible_areas(camera, look, render_size);
+        let visible_areas = if should_show_map {
+            self.meshes.iter().collect()
+        } else {
+            self.prepare_visible_areas(camera, look, render_size)
+        };
         let height_map = if user_settings.has_dynamic_lighting() {
             let visible_areas_iter = visible_areas.iter().map(|(l, _)| **l);
             height_map.generate_height_map(world, visible_areas_iter, camera, user_settings)
@@ -378,10 +388,16 @@ impl Renderer {
             height_map.get_empty_height_map()
         };
         let lights = Self::prepare_lights(&visible_areas, user_settings);
+        let light_level = if should_show_map {
+            WorldTime::MAX_LIGHT_LEVEL
+        } else {
+            world_time.get_light_level()
+        };
+
         self.shader.set_voxel_material(
             camera,
             render_size,
-            world_time,
+            light_level,
             &lights,
             height_map,
             user_settings.has_dynamic_lighting(),
@@ -397,17 +413,25 @@ impl Renderer {
         player_info: &PlayerInfo,
         user_settings: &UserSettings,
         visible_areas: &Vec<(&AreaLocation, &RenderArea)>,
+        should_show_map: bool,
     ) -> (usize, usize) {
         let render_size = user_settings.get_render_distance();
         let look = (camera.target - camera.position).normalize_or_zero();
 
-        let visible_voxels = Self::filter_visible_voxels(
-            camera.position,
-            look,
-            visible_areas,
-            render_size,
-            player_info,
-        );
+        let visible_voxels = if should_show_map {
+            visible_areas
+                .iter()
+                .flat_map(|(_, y)| &y.mesh_map)
+                .collect()
+        } else {
+            Self::filter_visible_voxels(
+                camera.position,
+                look,
+                visible_areas,
+                render_size,
+                player_info,
+            )
+        };
         let optimised_voxel_meshes = Self::optimise_render_order(&visible_voxels);
 
         let mut faces_visible: usize = 0;
