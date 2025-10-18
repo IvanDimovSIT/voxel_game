@@ -107,7 +107,7 @@ impl HelpMenuContext {
             "E - Inventory",
             "C - Crafting",
             "Escape - Game menu",
-            "M - Hold to show a top-down persperctive of the world",
+            "M - Toggles a map of the world",
         ];
         draw_multiline_left_text(
             &help_text,

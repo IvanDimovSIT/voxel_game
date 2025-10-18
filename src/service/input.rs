@@ -122,7 +122,7 @@ pub fn get_number_key() -> Option<u8> {
 }
 
 pub fn is_show_map() -> bool {
-    is_key_down(macroquad::input::KeyCode::M)
+    is_key_released(macroquad::input::KeyCode::M)
 }
 
 #[derive(Debug, Clone, Copy)]

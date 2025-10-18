@@ -11,3 +11,4 @@ pub mod texture_manager;
 pub mod ui_display;
 pub mod voxel_particle_system;
 pub mod voxel_shader;
+pub mod world_map;

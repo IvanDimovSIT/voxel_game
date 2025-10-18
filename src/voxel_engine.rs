@@ -15,6 +15,7 @@ use crate::{
         sky::Sky,
         ui_display::{draw_crosshair, draw_selected_voxel},
         voxel_particle_system::VoxelParticleSystem,
+        world_map::WorldMap,
     },
     interface::{
         game_menu::{
@@ -33,7 +34,7 @@ use crate::{
         activity_timer::ActivityTimer,
         asset_manager::AssetManager,
         creatures::creature_manager::CreatureManager,
-        input::{self, ScrollDirection, is_show_map},
+        input::{self, ScrollDirection},
         persistence::{
             player_persistence::save_player_info,
             user_settings_persistence::write_user_settings_blocking,
@@ -69,6 +70,7 @@ pub struct VoxelEngine {
     world_time: WorldTime,
     sky: Sky,
     height_map: HeightMap,
+    world_map: WorldMap,
 }
 impl VoxelEngine {
     pub fn new(
@@ -92,6 +94,7 @@ impl VoxelEngine {
             height_map: HeightMap::new(),
             voxel_particles: VoxelParticleSystem::new(),
             creature_manager: world_systems.creature_manager,
+            world_map: WorldMap::new(),
         }
     }
 
@@ -130,6 +133,14 @@ impl VoxelEngine {
 
         let raycast_result = self.process_mouse_input(delta);
         if self.menu_state.is_in_menu() {
+            return raycast_result;
+        }
+        if input::is_show_map() {
+            self.world_map.active = !self.world_map.active;
+        }
+        if self.world_map.active {
+            self.process_map_input(delta);
+
             return raycast_result;
         }
 
@@ -218,6 +229,14 @@ impl VoxelEngine {
         raycast_result
     }
 
+    fn process_map_input(&mut self, delta: f32) {
+        match input::get_scroll_direction() {
+            ScrollDirection::Up => self.world_map.decrease_zoom(delta),
+            ScrollDirection::Down => self.world_map.increase_zoom(delta),
+            ScrollDirection::None => {}
+        }
+    }
+
     fn process_mouse_input(&mut self, delta: f32) -> RaycastResult {
         self.player_info.camera_controller.update_look(delta);
         let camera = self.player_info.camera_controller.create_camera();
@@ -294,11 +313,8 @@ impl VoxelEngine {
     /// draws the current frame, return the new context if changed
     pub async fn draw_scene(&mut self, raycast_result: RaycastResult) -> Option<GameState> {
         let (width, height) = screen_size();
-        let should_show_map = is_show_map();
-        let camera = if should_show_map {
-            self.player_info
-                .camera_controller
-                .create_map_camera(&self.user_settings)
+        let camera = if self.world_map.active {
+            self.world_map.create_map_camera(&self.player_info)
         } else {
             self.player_info.camera_controller.create_camera()
         };
@@ -312,7 +328,7 @@ impl VoxelEngine {
             &self.user_settings,
             &self.world,
             &mut self.height_map,
-            should_show_map,
+            self.world_map.active,
         );
         let creatures_drawn = self.creature_manager.draw(&camera, &self.user_settings);
         self.voxel_particles.draw();
@@ -322,12 +338,12 @@ impl VoxelEngine {
             &self.player_info,
             &self.user_settings,
             &visible_areas,
-            should_show_map,
+            self.world_map.active,
         );
 
         // remove shader
         gl_use_default_material();
-        if !should_show_map {
+        if !self.world_map.active {
             if let RaycastResult::Hit {
                 first_non_empty,
                 last_empty: _,
