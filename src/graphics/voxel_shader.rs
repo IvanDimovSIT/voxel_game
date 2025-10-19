@@ -36,6 +36,17 @@ const FOG_BASE_COLOR_DARK_UNIFORM: &str = "fogBaseColorDark";
 const LIGHTS_COUNT_UNIFORM: &str = "lightsCount";
 const LIGHTS_UNIFORM: &str = "lights";
 const HAS_DYNAMIC_SHADOWS_UNIFORM: &str = "hasDynamicShadows";
+const SHOW_DROP_SHADOW_UNIFORM: &str = "showDropShadow";
+
+pub struct VoxelUniformParams<'a> {
+    pub camera: &'a Camera3D,
+    pub render_size: u32,
+    pub light_level: f32,
+    pub lights: &'a [InternalLocation],
+    pub height_map: Texture2D,
+    pub has_dynamic_lighting: bool,
+    pub show_map: bool,
+}
 
 /// default 3D material shader for voxels
 pub struct VoxelShader {
@@ -69,6 +80,8 @@ impl VoxelShader {
             UniformDesc::new(LIGHTS_UNIFORM, UniformType::Float3).array(MAX_LIGHTS);
         let has_dynamic_shadows_uniform =
             UniformDesc::new(HAS_DYNAMIC_SHADOWS_UNIFORM, UniformType::Int1);
+        let show_drop_shadow_uniform =
+            UniformDesc::new(SHOW_DROP_SHADOW_UNIFORM, UniformType::Int1);
 
         let voxel_material = load_material(
             ShaderSource::Glsl {
@@ -88,6 +101,7 @@ impl VoxelShader {
                     lights_count_uniform,
                     lights_uniform,
                     has_dynamic_shadows_uniform,
+                    show_drop_shadow_uniform,
                 ],
                 textures: vec![HEIGHT_MAP_TEXTURE_NAME.to_owned()],
             },
@@ -98,41 +112,50 @@ impl VoxelShader {
     }
 
     /// sets the current OpenGL shader to render the world voxels
-    pub fn set_voxel_material(
-        &self,
-        camera: &Camera3D,
-        render_size: u32,
-        light_level: f32,
-        lights: &[InternalLocation],
-        height_map: Texture2D,
-        has_dynamic_lighting: bool,
-    ) {
+    pub fn set_voxel_material(&self, uniform_params: VoxelUniformParams) {
+        let camera = uniform_params.camera;
+
         self.voxel_material
-            .set_texture(HEIGHT_MAP_TEXTURE_NAME, height_map);
+            .set_texture(HEIGHT_MAP_TEXTURE_NAME, uniform_params.height_map);
+
         self.voxel_material.set_uniform(
             CAMERA_POSITION_UNIFORM,
             [camera.position.x, camera.position.y, camera.position.z],
         );
+
         self.voxel_material.set_uniform(
             CAMERA_TARGET_UNIFORM,
             [camera.target.x, camera.target.y, camera.target.z],
         );
-        let (fog_near, fog_far) = Self::calulate_fog_distances(render_size);
+
+        let (fog_near, fog_far) = Self::calulate_fog_distances(uniform_params.render_size);
         self.voxel_material.set_uniform(FOG_NEAR_UNIFORM, fog_near);
         self.voxel_material.set_uniform(FOG_FAR_UNIFORM, fog_far);
+
         self.voxel_material
-            .set_uniform(LIGHT_LEVEL_UNIFORM, light_level);
+            .set_uniform(LIGHT_LEVEL_UNIFORM, uniform_params.light_level);
+
         self.voxel_material.set_uniform(
             FOG_BASE_COLOR_LIGHT_UNIFORM,
             SKY_BRIGHT_COLOR.to_vec().xyz(),
         );
+
         self.voxel_material
             .set_uniform(FOG_BASE_COLOR_DARK_UNIFORM, SKY_DARK_COLOR.to_vec().xyz());
 
-        let has_dynamic_shadows = if has_dynamic_lighting { TRUE } else { FALSE };
+        let has_dynamic_shadows = if uniform_params.has_dynamic_lighting {
+            TRUE
+        } else {
+            FALSE
+        };
         self.voxel_material
             .set_uniform(HAS_DYNAMIC_SHADOWS_UNIFORM, has_dynamic_shadows);
-        self.set_lights(lights, camera);
+
+        let show_drop_shadow = if uniform_params.show_map { FALSE } else { TRUE };
+        self.voxel_material
+            .set_uniform(SHOW_DROP_SHADOW_UNIFORM, show_drop_shadow);
+
+        self.set_lights(uniform_params.lights, camera);
 
         gl_use_material(&self.voxel_material);
     }

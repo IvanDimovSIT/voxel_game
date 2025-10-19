@@ -1,7 +1,9 @@
 use std::rc::Rc;
 
 use macroquad::{
-    camera::set_default_camera, miniquad::window::screen_size, prelude::gl_use_default_material,
+    camera::{Camera3D, set_default_camera},
+    miniquad::window::screen_size,
+    prelude::gl_use_default_material,
     window::next_frame,
 };
 
@@ -34,7 +36,7 @@ use crate::{
         activity_timer::ActivityTimer,
         asset_manager::AssetManager,
         creatures::creature_manager::CreatureManager,
-        input::{self, ScrollDirection},
+        input::{self, ScrollDirection, move_right},
         persistence::{
             player_persistence::save_player_info,
             user_settings_persistence::write_user_settings_blocking,
@@ -235,6 +237,17 @@ impl VoxelEngine {
             ScrollDirection::Down => self.world_map.increase_zoom(delta),
             ScrollDirection::None => {}
         }
+
+        if input::move_forward() {
+            self.world_map.increase_up_down_angle(delta);
+        } else if input::move_back() {
+            self.world_map.decrease_up_down_angle(delta);
+        }
+        if input::move_left() {
+            self.world_map.increase_left_right_angle(delta);
+        } else if move_right() {
+            self.world_map.decrease_left_right_angle(delta);
+        }
     }
 
     fn process_mouse_input(&mut self, delta: f32) -> RaycastResult {
@@ -261,7 +274,7 @@ impl VoxelEngine {
 
     /// updates time dependent processes
     pub fn update_processes(&mut self, delta: f32) {
-        if self.menu_state.is_in_menu() {
+        if self.menu_state.is_in_menu() || self.world_map.active {
             return;
         }
         self.world_time.update(delta);
@@ -319,7 +332,11 @@ impl VoxelEngine {
             self.player_info.camera_controller.create_camera()
         };
 
-        self.sky.draw_sky(&self.world_time, &camera);
+        if self.world_map.active {
+            self.world_map.draw_background();
+        } else {
+            self.sky.draw_sky(&self.world_time, &camera);
+        }
 
         // set 3D camera and voxel shader
         let visible_areas = self.renderer.set_voxel_shader_and_find_visible_areas(
@@ -344,43 +361,62 @@ impl VoxelEngine {
         // remove shader
         gl_use_default_material();
         if !self.world_map.active {
-            if let RaycastResult::Hit {
-                first_non_empty,
-                last_empty: _,
-            } = raycast_result
-            {
-                draw_selected_voxel(first_non_empty, &camera);
-            }
-            self.debug_display
-                .draw_area_border(&self.player_info.camera_controller);
-            self.debug_display
-                .draw_creature_bounding_boxes(&self.creature_manager, &camera);
-
-            // set 2D camera and draw 2D elements
-            set_default_camera();
-            if self.player_info.is_in_water {
-                draw_water_effect(width, height, &self.asset_manager.texture_manager);
-            }
-            draw_crosshair(width, height);
-            self.player_info
-                .voxel_selector
-                .draw(&self.player_info.inventory.selected, &self.asset_manager);
-
-            let debug_info = DebugInfo {
-                world: &self.world,
-                renderer: &self.renderer,
-                camera: &camera,
-                rendered_areas_faces: rendered,
-                creature_manager: &self.creature_manager,
-                rendered_creatures: creatures_drawn,
-            };
-            self.debug_display
-                .draw_debug_display(debug_info, &self.asset_manager.font);
+            self.draw_in_game_ui_elements(
+                width,
+                height,
+                &camera,
+                raycast_result,
+                rendered,
+                creatures_drawn,
+            );
         }
         let menu_result = self.process_menu();
 
         next_frame().await;
         menu_result
+    }
+
+    fn draw_in_game_ui_elements(
+        &self,
+        width: f32,
+        height: f32,
+        camera: &Camera3D,
+        raycast_result: RaycastResult,
+        rendered: (usize, usize),
+        creatures_drawn: u32,
+    ) {
+        if let RaycastResult::Hit {
+            first_non_empty,
+            last_empty: _,
+        } = raycast_result
+        {
+            draw_selected_voxel(first_non_empty, camera);
+        }
+        self.debug_display
+            .draw_area_border(&self.player_info.camera_controller);
+        self.debug_display
+            .draw_creature_bounding_boxes(&self.creature_manager, camera);
+
+        // set 2D camera and draw 2D elements
+        set_default_camera();
+        if self.player_info.is_in_water {
+            draw_water_effect(width, height, &self.asset_manager.texture_manager);
+        }
+        draw_crosshair(width, height);
+        self.player_info
+            .voxel_selector
+            .draw(&self.player_info.inventory.selected, &self.asset_manager);
+
+        let debug_info = DebugInfo {
+            world: &self.world,
+            renderer: &self.renderer,
+            camera,
+            rendered_areas_faces: rendered,
+            creature_manager: &self.creature_manager,
+            rendered_creatures: creatures_drawn,
+        };
+        self.debug_display
+            .draw_debug_display(debug_info, &self.asset_manager.font);
     }
 
     /// returns the new game context only if changed

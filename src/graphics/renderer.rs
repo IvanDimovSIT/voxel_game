@@ -12,7 +12,7 @@ use macroquad::{
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 
 use crate::{
-    graphics::height_map::HeightMap,
+    graphics::{height_map::HeightMap, voxel_shader::VoxelUniformParams},
     model::{
         area::{AREA_HEIGHT, AREA_SIZE, Area},
         location::{AreaLocation, InternalLocation, LOCATION_OFFSET, Location},
@@ -394,14 +394,15 @@ impl Renderer {
             world_time.get_light_level()
         };
 
-        self.shader.set_voxel_material(
+        self.shader.set_voxel_material(VoxelUniformParams {
             camera,
             render_size,
             light_level,
-            &lights,
+            lights: &lights,
             height_map,
-            user_settings.has_dynamic_lighting(),
-        );
+            has_dynamic_lighting: user_settings.has_dynamic_lighting(),
+            show_map: should_show_map,
+        });
 
         visible_areas
     }

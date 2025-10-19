@@ -21,6 +21,7 @@ uniform int lightsCount;
 uniform vec3 lights[64];
 
 uniform int hasDynamicShadows;
+uniform int showDropShadow;
 
 // static world lighting
 const vec3 lightDir = normalize(vec3(0.2, 0.8, -1.0));
@@ -47,8 +48,10 @@ const float maxAreasInShadowPerAxis = 32.0;
 float calculateDiffuseLight(vec3 normal, float shadowedLightLevel) {
     float diffuse = max(dot(normal, lightDir), 0.0);
 
-    if (facePosition.z > 0.0 && 
-        distance(vec2(0.0, 0.0), vec2(facePosition.x, facePosition.y)) < dropShadowRadius) {
+    bool shouldDrawDropShadow = showDropShadow == 1 && 
+        facePosition.z > 0.0 && 
+        distance(vec2(0.0, 0.0), vec2(facePosition.x, facePosition.y)) < dropShadowRadius; 
+    if (shouldDrawDropShadow) {
         diffuse = dropShadowLight * shadowedLightLevel;
     }
 
