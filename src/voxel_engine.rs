@@ -379,8 +379,7 @@ impl VoxelEngine {
             );
         } else {
             set_default_camera();
-            self.tutorial_messages
-                .draw(width, height, &self.asset_manager);
+            self.tutorial_messages.draw(height, &self.asset_manager);
         }
 
         let menu_result = self.process_menu();
@@ -416,8 +415,7 @@ impl VoxelEngine {
             draw_water_effect(width, height, &self.asset_manager.texture_manager);
         }
         draw_crosshair(width, height);
-        self.tutorial_messages
-            .draw(width, height, &self.asset_manager);
+        self.tutorial_messages.draw(height, &self.asset_manager);
         self.player_info
             .voxel_selector
             .draw(&self.player_info.inventory.selected, &self.asset_manager);
@@ -566,6 +564,8 @@ impl VoxelEngine {
                 self.asset_manager
                     .sound_manager
                     .play_sound(SoundId::Place, &self.user_settings);
+
+                self.tutorial_messages.show(TutorialMessage::Replacing);
             }
         }
     }
@@ -585,11 +585,15 @@ impl VoxelEngine {
                     &mut self.voxel_particles,
                 );
                 if let Some(destroyed) = maybe_destroyed {
-                    self.tutorial_messages.show(TutorialMessage::Crafting);
                     self.player_info.inventory.add_item(Item::new(destroyed, 1));
                     self.asset_manager
                         .sound_manager
                         .play_sound(SoundId::Destroy, &self.user_settings);
+
+                    self.tutorial_messages.show(TutorialMessage::Destroy);
+                    if self.player_info.inventory.is_hotbar_full() {
+                        self.tutorial_messages.show(TutorialMessage::Inventory);
+                    }
                 }
             }
         }

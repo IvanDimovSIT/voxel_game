@@ -10,24 +10,38 @@ use crate::{interface::style::SHADOW_COLOR, service::asset_manager::AssetManager
 const DISPLAY_MESSAGE_DURATION: f32 = 5.0;
 const FONT_COEF: f32 = 0.05;
 const MESSAGE_X: f32 = 20.0;
-const Y_COEF: f32 = 0.6;
+const Y_COEF: f32 = 0.8;
 const MARGIN: f32 = 5.0;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum TutorialMessage {
     Initial,
     Map,
-    Crafting,
+    Destroy,
+    Replacing,
+    Inventory,
 }
 impl TutorialMessage {
     fn create_message_to_display(self) -> CurrentMessage {
         let texts = match self {
-            TutorialMessage::Initial => vec!["Welcome to the world!"],
+            TutorialMessage::Initial => vec![
+                "Welcome to the world!",
+                "Look around with the mouse and move using W/S/A/D",
+                "Break voxels by pressing or holding the left mouse button",
+            ],
             TutorialMessage::Map => vec![
                 "Use W/S/A/D to rotate around the map, 'M' to exit",
                 "You can zoom with the scroll wheel",
             ],
-            TutorialMessage::Crafting => vec!["You can craft items by pressing 'C'"],
+            TutorialMessage::Destroy => vec![
+                "You collected some voxels, scroll to select them",
+                "Place them with the right mouse button",
+                "You can craft items by pressing 'C'",
+            ],
+            TutorialMessage::Replacing => {
+                vec!["You can replace voxels using the middle mouse button"]
+            }
+            TutorialMessage::Inventory => vec!["Press 'E' to enter the inventory menu"],
         };
 
         CurrentMessage::new(texts)
@@ -61,6 +75,10 @@ impl TutorialMessages {
 
     /// shows the message if it wasn't shown before
     pub fn show(&mut self, tutorial_message: TutorialMessage) {
+        if self.current_message.is_some() {
+            return;
+        }
+
         let message_already_displayed = !self.seen_messages.insert(tutorial_message);
         if message_already_displayed {
             return;
@@ -84,7 +102,7 @@ impl TutorialMessages {
         }
     }
 
-    pub fn draw(&self, width: f32, height: f32, asset_manager: &AssetManager) {
+    pub fn draw(&self, height: f32, asset_manager: &AssetManager) {
         if let Some(message) = &self.current_message {
             debug_assert!(!message.texts.is_empty());
             debug_assert!(message.delta > 0.0);
@@ -92,7 +110,7 @@ impl TutorialMessages {
             let text = message.texts[0];
             let font_size = (height * FONT_COEF) as u16;
             let font = Some(&asset_manager.font);
-            let y = width * Y_COEF;
+            let y = height * Y_COEF;
 
             let text_dimensions = measure_text(text, font, font_size, 1.0);
 
