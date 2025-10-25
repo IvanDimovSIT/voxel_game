@@ -133,6 +133,10 @@ impl Inventory {
         item.count -= 1;
         self.selected[index] = if item.count == 0 { None } else { Some(item) }
     }
+
+    pub fn is_hotbar_full(&self) -> bool {
+        self.selected.iter().all(|item| item.is_some())
+    }
 }
 impl Default for Inventory {
     fn default() -> Self {

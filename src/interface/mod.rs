@@ -9,5 +9,6 @@ pub mod style;
 pub mod text;
 pub mod text_input;
 pub mod title_screen;
+pub mod tutorial_messages;
 pub mod util;
 pub mod world_selection;

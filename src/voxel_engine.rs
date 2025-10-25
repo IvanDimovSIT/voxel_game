@@ -26,6 +26,7 @@ use crate::{
             voxel_selection_menu::draw_voxel_selection_menu,
         },
         interface_context::InterfaceContext,
+        tutorial_messages::{TutorialMessage, TutorialMessages},
     },
     model::{inventory::Item, player_info::PlayerInfo, user_settings::UserSettings, world::World},
     service::{
@@ -73,6 +74,7 @@ pub struct VoxelEngine {
     sky: Sky,
     height_map: HeightMap,
     world_map: WorldMap,
+    tutorial_messages: TutorialMessages,
 }
 impl VoxelEngine {
     pub fn new(
@@ -97,6 +99,7 @@ impl VoxelEngine {
             voxel_particles: VoxelParticleSystem::new(),
             creature_manager: world_systems.creature_manager,
             world_map: WorldMap::new(),
+            tutorial_messages: TutorialMessages::new(),
         }
     }
 
@@ -118,6 +121,7 @@ impl VoxelEngine {
         self.world.load_all_blocking(&load_zone);
         self.renderer
             .load_all_blocking(&mut self.world, &render_zone);
+        self.tutorial_messages.show(TutorialMessage::Initial);
     }
 
     fn check_change_render_distance(&mut self) {
@@ -138,6 +142,7 @@ impl VoxelEngine {
             return raycast_result;
         }
         if input::is_show_map() {
+            self.tutorial_messages.show(TutorialMessage::Map);
             self.world_map.active = !self.world_map.active;
         }
         if self.world_map.active {
@@ -274,9 +279,12 @@ impl VoxelEngine {
 
     /// updates time dependent processes
     pub fn update_processes(&mut self, delta: f32) {
+        self.tutorial_messages.update(delta);
+
         if self.menu_state.is_in_menu() || self.world_map.active {
             return;
         }
+
         self.world_time.update(delta);
         self.sky.update(delta);
         self.process_physics(delta);
@@ -369,7 +377,11 @@ impl VoxelEngine {
                 rendered,
                 creatures_drawn,
             );
+        } else {
+            set_default_camera();
+            self.tutorial_messages.draw(height, &self.asset_manager);
         }
+
         let menu_result = self.process_menu();
 
         next_frame().await;
@@ -403,6 +415,7 @@ impl VoxelEngine {
             draw_water_effect(width, height, &self.asset_manager.texture_manager);
         }
         draw_crosshair(width, height);
+        self.tutorial_messages.draw(height, &self.asset_manager);
         self.player_info
             .voxel_selector
             .draw(&self.player_info.inventory.selected, &self.asset_manager);
@@ -551,6 +564,8 @@ impl VoxelEngine {
                 self.asset_manager
                     .sound_manager
                     .play_sound(SoundId::Place, &self.user_settings);
+
+                self.tutorial_messages.show(TutorialMessage::Replacing);
             }
         }
     }
@@ -574,6 +589,11 @@ impl VoxelEngine {
                     self.asset_manager
                         .sound_manager
                         .play_sound(SoundId::Destroy, &self.user_settings);
+
+                    self.tutorial_messages.show(TutorialMessage::Destroy);
+                    if self.player_info.inventory.is_hotbar_full() {
+                        self.tutorial_messages.show(TutorialMessage::Inventory);
+                    }
                 }
             }
         }
