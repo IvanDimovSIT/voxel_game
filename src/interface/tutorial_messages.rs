@@ -1,5 +1,6 @@
 use std::collections::HashSet;
 
+use bincode::{Decode, Encode};
 use macroquad::{
     shapes::draw_rectangle,
     text::{Font, TextDimensions, TextParams, draw_text_ex, measure_text},
@@ -13,12 +14,17 @@ const MESSAGE_X: f32 = 20.0;
 const Y_COEF: f32 = 0.8;
 const MARGIN: f32 = 5.0;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Encode, Decode)]
 pub enum TutorialMessage {
+    /// on entering world
     Initial,
+    /// on opening map
     Map,
+    /// on destroying voxel - explain place
     Destroy,
+    /// on placeing voxel - explain replace
     Replacing,
+    /// on hotbar filling up - explain inventory
     Inventory,
 }
 impl TutorialMessage {
@@ -70,6 +76,12 @@ impl TutorialMessages {
         Self {
             seen_messages: HashSet::new(),
             current_message: None,
+        }
+    }
+
+    pub fn create_dto(&self) -> TutorialMessagesDTO {
+        TutorialMessagesDTO {
+            seen_messages: self.seen_messages.clone(),
         }
     }
 
@@ -152,5 +164,97 @@ impl TutorialMessages {
             text_height + MARGIN * 2.0,
             SHADOW_COLOR,
         );
+    }
+}
+impl From<TutorialMessagesDTO> for TutorialMessages {
+    fn from(value: TutorialMessagesDTO) -> Self {
+        Self {
+            seen_messages: value.seen_messages,
+            current_message: None,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Encode, Decode)]
+pub struct TutorialMessagesDTO {
+    seen_messages: HashSet<TutorialMessage>,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_show_should_add() {
+        let mut tutorial = TutorialMessages::new();
+        tutorial.show(TutorialMessage::Initial);
+
+        assert!(tutorial.seen_messages.contains(&TutorialMessage::Initial));
+        assert!(tutorial.current_message.is_some());
+    }
+
+    #[test]
+    fn test_show_should_not_add() {
+        let mut tutorial = TutorialMessages::new();
+
+        tutorial.show(TutorialMessage::Initial);
+        assert!(tutorial.current_message.is_some());
+
+        tutorial.current_message = None;
+        let seen_before = tutorial.seen_messages.clone();
+
+        tutorial.show(TutorialMessage::Initial);
+
+        assert_eq!(tutorial.seen_messages, seen_before);
+        assert!(tutorial.current_message.is_none());
+    }
+
+    #[test]
+    fn test_show_should_not_override_existing_message() {
+        let mut tutorial = TutorialMessages::new();
+
+        tutorial.show(TutorialMessage::Initial);
+        assert!(tutorial.current_message.is_some());
+
+        tutorial.show(TutorialMessage::Map);
+
+        assert!(tutorial.seen_messages.contains(&TutorialMessage::Initial));
+        assert!(!tutorial.seen_messages.contains(&TutorialMessage::Map));
+        assert!(tutorial.current_message.is_some());
+    }
+
+    #[test]
+    fn test_update_removes_messages() {
+        let mut tutorial = TutorialMessages::new();
+        tutorial.show(TutorialMessage::Initial);
+
+        assert!(tutorial.current_message.is_some());
+        let initial_text_count = tutorial.current_message.as_ref().unwrap().texts.len();
+
+        tutorial.update(DISPLAY_MESSAGE_DURATION);
+        assert_eq!(
+            tutorial.current_message.as_ref().unwrap().texts.len(),
+            initial_text_count - 1
+        );
+
+        while tutorial.current_message.is_some() {
+            tutorial.update(DISPLAY_MESSAGE_DURATION);
+        }
+
+        assert!(tutorial.current_message.is_none());
+    }
+
+    #[test]
+    fn test_create_and_convert_dto() {
+        let mut tutorial = TutorialMessages::new();
+        tutorial.show(TutorialMessage::Initial);
+        tutorial.current_message = None;
+
+        let dto = tutorial.create_dto();
+        assert!(dto.seen_messages.contains(&TutorialMessage::Initial));
+
+        let converted: TutorialMessages = dto.into();
+        assert!(converted.seen_messages.contains(&TutorialMessage::Initial));
+        assert!(converted.current_message.is_none());
     }
 }

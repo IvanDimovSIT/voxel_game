@@ -2,6 +2,7 @@ use bincode::{Decode, Encode};
 
 use crate::{
     graphics::sky::{Sky, SkyDTO},
+    interface::tutorial_messages::{TutorialMessages, TutorialMessagesDTO},
     service::{
         creatures::creature_manager::{CreatureManager, CreatureManagerDTO},
         persistence::generic_persistence::{
@@ -24,6 +25,7 @@ pub struct WorldMetadata {
     pub water_simulator: WaterSimulator,
     pub creature_manager: CreatureManagerDTO,
     pub sky_dto: SkyDTO,
+    pub tutorial_messages_dto: TutorialMessagesDTO,
 }
 impl WorldMetadata {
     pub fn new(
@@ -31,6 +33,7 @@ impl WorldMetadata {
         voxel_simulator: &VoxelSimulator,
         creature_manager: &CreatureManager,
         sky: &Sky,
+        tutorial_messages: &TutorialMessages,
     ) -> Self {
         let (simulated_voxels, water_simulator) = voxel_simulator.create_dtos();
         Self {
@@ -39,6 +42,7 @@ impl WorldMetadata {
             water_simulator,
             creature_manager: creature_manager.create_dto(),
             sky_dto: sky.create_dto(),
+            tutorial_messages_dto: tutorial_messages.create_dto(),
         }
     }
 }

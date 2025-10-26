@@ -4,6 +4,7 @@ use macroquad::math::vec3;
 
 use crate::{
     graphics::{renderer::Renderer, sky::Sky, voxel_particle_system::VoxelParticleSystem},
+    interface::tutorial_messages::TutorialMessages,
     model::{
         area::AREA_HEIGHT, location::Location, player_info::PlayerInfo, voxel::Voxel, world::World,
     },
@@ -104,6 +105,7 @@ pub struct WorldSystems {
     pub creature_manager: CreatureManager,
     pub player_info: PlayerInfo,
     pub sky: Sky,
+    pub tutorial_messages: TutorialMessages,
 }
 
 /// loads the saved world data or initialises it if not saved
@@ -117,7 +119,7 @@ pub fn initialise_world_systems(
         .unwrap_or_else(|| (PlayerInfo::new(vec3(0.0, 0.0, 0.0)), false));
 
     player_info.camera_controller.set_focus(true);
-    let (world_time, simulated_voxels, water_simulator, creature_manager, sky) =
+    let (world_time, simulated_voxels, water_simulator, creature_manager, sky, tutorial_messages) =
         if let Some(world_metadata) = load_world_metadata(&world_name) {
             (
                 WorldTime::new(world_metadata.delta),
@@ -128,6 +130,7 @@ pub fn initialise_world_systems(
                     &asset_manager.mesh_manager,
                 ),
                 Sky::from_dto(&asset_manager.texture_manager, world_metadata.sky_dto),
+                world_metadata.tutorial_messages_dto.into(),
             )
         } else {
             (
@@ -136,6 +139,7 @@ pub fn initialise_world_systems(
                 WaterSimulator::new(),
                 CreatureManager::new(),
                 Sky::new(&asset_manager.texture_manager),
+                TutorialMessages::new(),
             )
         };
 
@@ -157,6 +161,7 @@ pub fn initialise_world_systems(
         creature_manager,
         sky,
         player_info,
+        tutorial_messages,
     }
 }
 

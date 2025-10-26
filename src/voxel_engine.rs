@@ -99,7 +99,7 @@ impl VoxelEngine {
             voxel_particles: VoxelParticleSystem::new(),
             creature_manager: world_systems.creature_manager,
             world_map: WorldMap::new(),
-            tutorial_messages: TutorialMessages::new(),
+            tutorial_messages: world_systems.tutorial_messages,
         }
     }
 
@@ -682,6 +682,7 @@ impl Drop for VoxelEngine {
             &self.voxel_simulator,
             &self.creature_manager,
             &self.sky,
+            &self.tutorial_messages,
         );
         store_world_metadata(world_metadata, self.world.get_world_name());
         write_user_settings_blocking(&self.user_settings);
