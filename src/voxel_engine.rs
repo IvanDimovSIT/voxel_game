@@ -684,7 +684,7 @@ impl Drop for VoxelEngine {
             &self.sky,
             &self.tutorial_messages,
         );
-        store_world_metadata(world_metadata, self.world.get_world_name());
+        store_world_metadata(self.world.get_world_name(), world_metadata);
         write_user_settings_blocking(&self.user_settings);
         self.world.save_all_blocking();
     }

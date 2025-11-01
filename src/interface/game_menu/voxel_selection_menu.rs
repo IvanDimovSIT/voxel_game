@@ -326,9 +326,6 @@ fn draw_inventory_voxels(
                     y_pos,
                     &asset_manager.font,
                 );
-                if Voxel::TRANSPARENT.contains(&item.voxel) {
-                    draw_empty_slot(voxel_size, x_pos, y_pos);
-                }
             } else {
                 draw_empty_slot(voxel_size, x_pos, y_pos);
             }

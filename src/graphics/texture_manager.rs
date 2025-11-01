@@ -10,7 +10,7 @@ use crate::{
     model::voxel::{MAX_VOXEL_VARIANTS, Voxel},
 };
 
-const BASE_CREATURE_TEXTURES_PATH: &str = "assets/images/";
+const BASE_CREATURE_TEXTURES_PATH: &str = "assets/images/creature_textures/";
 const BASE_VOXEL_TEXTURES_PATH: &str = "assets/images/voxels/";
 const BASE_ICON_TEXTURES_PATH: &str = "assets/images/icons/";
 const TITLE_SCREEN_BACKGROUND_PATH: &str = "assets/images/title.png";
@@ -37,10 +37,11 @@ const TEXTURES: [(Voxel, &str); 16] = [
     (Voxel::Ice, "ice.png"),
 ];
 const WATER_TEXTURE: &str = "water.png";
-const ICON_TEXTURES: [(Voxel, &str); 3] = [
+const ICON_TEXTURES: [(Voxel, &str); 4] = [
     (Voxel::Grass, "grass-icon.png"),
     (Voxel::Trampoline, "trampoline-icon.png"),
     (Voxel::Wood, "wood-icon.png"),
+    (Voxel::Glass, "glass-icon.png"),
 ];
 const MESH_TEXTURES: [(MeshId, &str); MeshId::VARIANTS] = [
     (MeshId::Bunny, "bunny_texture.png"),
@@ -90,9 +91,8 @@ impl TextureManager {
     }
 
     async fn load_voxel_icon_textures() -> HashMap<Voxel, Texture2D> {
-        let mut textures = HashMap::with_capacity(Self::VOXELS_WITH_DIFFERENT_FACES.len());
+        let mut textures = HashMap::with_capacity(ICON_TEXTURES.len());
         for (texture_type, texture_path) in ICON_TEXTURES {
-            assert!(Self::VOXELS_WITH_DIFFERENT_FACES.contains(&texture_type));
             let full_path = format!("{BASE_ICON_TEXTURES_PATH}{texture_path}");
             let texture = Self::load_image(&full_path).await;
             textures.insert(texture_type, texture);
@@ -101,8 +101,15 @@ impl TextureManager {
                 texture_type, texture_path
             );
         }
+        Self::verify_loaded_textures_for_multiface_voxels(&textures);
 
         textures
+    }
+
+    fn verify_loaded_textures_for_multiface_voxels(textures: &HashMap<Voxel, Texture2D>) {
+        for voxel in Self::VOXELS_WITH_DIFFERENT_FACES {
+            assert!(textures.contains_key(&voxel))
+        }
     }
 
     async fn load_voxel_textures() -> Vec<Option<Texture2D>> {
@@ -160,15 +167,12 @@ impl TextureManager {
         }
     }
 
+    /// returns the icon texture of the voxel, could be the same as the regular texture
     pub fn get_icon(&self, voxel: Voxel) -> Texture2D {
-        if !Self::VOXELS_WITH_DIFFERENT_FACES.contains(&voxel) {
-            return self.get(voxel);
-        }
-
         self.voxel_icons
             .get(&voxel)
-            .expect("Icon texture not loaded")
-            .clone()
+            .map(Texture2D::weak_clone)
+            .unwrap_or_else(|| self.get(voxel))
     }
 
     pub fn get_title_screen_background(&self) -> Texture2D {

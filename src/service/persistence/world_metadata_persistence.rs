@@ -52,7 +52,7 @@ fn get_metadata_filepath(world_name: &str) -> String {
 }
 
 /// stores the world time
-pub fn store_world_metadata(world_metadata: WorldMetadata, world_name: &str) {
+pub fn store_world_metadata(world_name: &str, world_metadata: WorldMetadata) {
     let filepath = get_metadata_filepath(world_name);
     let _create_result = create_directory(world_name);
     let _result = write_binary_object(&filepath, &world_metadata, IS_COMPRESSED);
