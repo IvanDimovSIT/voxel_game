@@ -57,8 +57,8 @@ pub struct ButterflyCreature {
 }
 impl ButterflyCreature {
     pub fn new(position: Vec3, mesh_manager: &MeshManager) -> Self {
-        let mesh1 = mesh_manager.get_at(MeshId::ButterflyDown, position);
-        let mesh2 = mesh_manager.get_at(MeshId::ButterflyUp, position);
+        let mesh1 = mesh_manager.create_at(MeshId::ButterflyDown, position);
+        let mesh2 = mesh_manager.create_at(MeshId::ButterflyUp, position);
         let mesh_arr = [(mesh1, MeshId::ButterflyDown), (mesh2, MeshId::ButterflyUp)];
 
         Self {
@@ -206,8 +206,8 @@ impl Creature for ButterflyCreature {
         let mut direction = FORWAD_DIRECTION;
         let angle = butterfly_dto.angle;
 
-        let mut mesh1 = mesh_manager.get_at(MeshId::ButterflyDown, position);
-        let mut mesh2 = mesh_manager.get_at(MeshId::ButterflyUp, position);
+        let mut mesh1 = mesh_manager.create_at(MeshId::ButterflyDown, position);
+        let mut mesh2 = mesh_manager.create_at(MeshId::ButterflyUp, position);
         rotate_around_z_with_direction(&mut mesh1, &mut direction, position, angle);
         rotate_around_z(&mut mesh2, position, angle);
         let mesh_arr = [(mesh1, MeshId::ButterflyDown), (mesh2, MeshId::ButterflyUp)];

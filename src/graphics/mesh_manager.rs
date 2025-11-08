@@ -55,6 +55,21 @@ impl MeshManager {
         Self { models }
     }
 
+    /// creates a mesh at the location
+    pub fn create_at(&self, id: MeshId, at: Vec3) -> Mesh {
+        let mesh_ref = self.models.get(&id).expect("Failed to find mesh");
+
+        let mut mesh = Mesh {
+            vertices: mesh_ref.vertices.clone(),
+            indices: mesh_ref.indices.clone(),
+            texture: mesh_ref.texture.clone(),
+        };
+
+        move_mesh(&mut mesh, at);
+
+        mesh
+    }
+
     fn load_mesh(filepath: &str, texture: Texture2D) -> Mesh {
         let (loaded_models, _loaded_materials) = load_obj(
             filepath,
@@ -128,19 +143,5 @@ impl MeshManager {
         }
 
         vertices
-    }
-
-    pub fn get_at(&self, id: MeshId, at: Vec3) -> Mesh {
-        let mesh_ref = self.models.get(&id).expect("Failed to find mesh");
-
-        let mut mesh = Mesh {
-            vertices: mesh_ref.vertices.clone(),
-            indices: mesh_ref.indices.clone(),
-            texture: mesh_ref.texture.clone(),
-        };
-
-        move_mesh(&mut mesh, at);
-
-        mesh
     }
 }

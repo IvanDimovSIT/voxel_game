@@ -60,7 +60,7 @@ pub struct BunnyCreature {
 impl BunnyCreature {
     /// creates a new bunny creature at position with a random rotation
     pub fn new(position: Vec3, mesh_manager: &MeshManager) -> Self {
-        let mesh = mesh_manager.get_at(MeshId::Bunny, position);
+        let mesh = mesh_manager.create_at(MeshId::Bunny, position);
         let random_rotation = gen_range(0.0, TAU);
         let mut bunny = Self {
             position,
@@ -231,7 +231,7 @@ impl Creature for BunnyCreature {
             CreatureManager::decode_creature_dto(creature_dto, CreatureId::Bunny)?;
 
         let position = arr_to_vec3(bunny_dto.position);
-        let mut mesh = mesh_manager.get_at(MeshId::Bunny, position);
+        let mut mesh = mesh_manager.create_at(MeshId::Bunny, position);
         let mut direction = FORWAD_DIRECTION;
         rotate_around_z_with_direction(&mut mesh, &mut direction, position, bunny_dto.rotation);
 

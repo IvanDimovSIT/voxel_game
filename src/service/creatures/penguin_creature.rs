@@ -79,7 +79,7 @@ pub struct PenguinCreature {
 impl PenguinCreature {
     /// creates a new penguin creature at position with a random rotation
     pub fn new(position: Vec3, mesh_manager: &MeshManager) -> Self {
-        let mesh = mesh_manager.get_at(MeshId::Penguin, position);
+        let mesh = mesh_manager.create_at(MeshId::Penguin, position);
         let random_rotation = gen_range(0.0, TAU);
         let mut penguin = Self {
             position,
@@ -285,7 +285,7 @@ impl Creature for PenguinCreature {
             CreatureManager::decode_creature_dto(creature_dto, CreatureId::Penguin)?;
 
         let position = arr_to_vec3(dto.position);
-        let mut mesh = mesh_manager.get_at(MeshId::Penguin, position);
+        let mut mesh = mesh_manager.create_at(MeshId::Penguin, position);
         let mut direction = FORWAD_DIRECTION;
         let total_rotation =
             (dto.rotation + dto.animation_rotation + ANIMATION_TURN_OFFSET).rem_euclid(TAU);

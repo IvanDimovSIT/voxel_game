@@ -334,17 +334,8 @@ impl VoxelEngine {
     /// draws the current frame, return the new context if changed
     pub async fn draw_scene(&mut self, raycast_result: RaycastResult) -> Option<GameState> {
         let (width, height) = screen_size();
-        let camera = if self.world_map.active {
-            self.world_map.create_map_camera(&self.player_info)
-        } else {
-            self.player_info.camera_controller.create_camera()
-        };
-
-        if self.world_map.active {
-            self.world_map.draw_background();
-        } else {
-            self.sky.draw_sky(&self.world_time, &camera);
-        }
+        let camera = self.create_3d_camera();
+        self.draw_background(&camera);
 
         // set 3D camera and voxel shader
         let visible_areas = self.renderer.set_voxel_shader_and_find_visible_areas(
@@ -366,7 +357,46 @@ impl VoxelEngine {
             self.world_map.active,
         );
 
-        // remove shader
+        // draw ui elements over 3D scene
+        let menu_result = self.draw_ui_layer(
+            width,
+            height,
+            &camera,
+            raycast_result,
+            rendered,
+            creatures_drawn,
+        );
+
+        next_frame().await;
+        menu_result
+    }
+
+    fn draw_background(&self, camera: &Camera3D) {
+        if self.world_map.active {
+            self.world_map.draw_background();
+        } else {
+            self.sky.draw_sky(&self.world_time, &camera);
+        }
+    }
+
+    fn create_3d_camera(&self) -> Camera3D {
+        if self.world_map.active {
+            self.world_map.create_map_camera(&self.player_info)
+        } else {
+            self.player_info.camera_controller.create_camera()
+        }
+    }
+
+    /// draws the ui layer over the 3d scene
+    fn draw_ui_layer(
+        &mut self,
+        width: f32,
+        height: f32,
+        camera: &Camera3D,
+        raycast_result: RaycastResult,
+        rendered: (usize, usize),
+        creatures_drawn: u32,
+    ) -> Option<GameState> {
         gl_use_default_material();
         if !self.world_map.active {
             self.draw_in_game_ui_elements(
@@ -382,12 +412,10 @@ impl VoxelEngine {
             self.tutorial_messages.draw(height, &self.asset_manager);
         }
 
-        let menu_result = self.process_menu();
-
-        next_frame().await;
-        menu_result
+        self.process_menu()
     }
 
+    /// draws the ui elements for the normal first person view
     fn draw_in_game_ui_elements(
         &self,
         width: f32,
