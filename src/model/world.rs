@@ -75,6 +75,14 @@ impl World {
         self.areas[&area_location].sample_height(local_location.x, local_location.y)
     }
 
+    /// returns the min z of the column, treats transparent voxels as solid
+    pub fn get_non_empty_height(&mut self, location: impl Into<InternalLocation>) -> u8 {
+        let (area_location, local_location) =
+            Self::convert_global_to_area_and_local_location(location.into());
+        self.load_area(area_location);
+        self.areas[&area_location].get_non_empty_height(local_location.x, local_location.y)
+    }
+
     /// temporarily takes ownership of an area to be used with `get_with_cache`
     pub fn with_cached_area<L, F, T>(&mut self, location: L, f: F) -> T
     where

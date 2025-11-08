@@ -55,6 +55,19 @@ impl Area {
             .unwrap_or(AREA_HEIGHT - 1) as u8
     }
 
+    pub fn get_non_empty_height(&self, local_x: u32, local_y: u32) -> u8 {
+        (0..AREA_HEIGHT)
+            .find(|z| {
+                Voxel::None
+                    != self.get(InternalLocation {
+                        x: local_x,
+                        y: local_y,
+                        z: *z,
+                    })
+            })
+            .unwrap_or(AREA_HEIGHT - 1) as u8
+    }
+
     #[inline(always)]
     fn convert_to_index(local_location: InternalLocation) -> usize {
         debug_assert!(local_location.x < AREA_SIZE);

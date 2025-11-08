@@ -1,3 +1,5 @@
+use std::f32::consts::PI;
+
 use macroquad::{math::Vec3, models::Mesh};
 
 /// rotates a mesh and it's direction around z
@@ -54,6 +56,60 @@ fn rotate_direction(direction: &mut Vec3, sin: f32, cos: f32) {
 pub fn move_mesh(mesh: &mut Mesh, by: Vec3) {
     for v in &mut mesh.vertices {
         v.position += by;
+    }
+}
+
+/// rotates a mesh to face `towards`, uses Rodrigues' rotation formula
+pub fn rotate_mesh_towards(
+    mesh: &mut Mesh,
+    mesh_direction: Vec3,
+    mesh_origin: Vec3,
+    towards: Vec3,
+) {
+    let source = mesh_direction.normalize_or_zero();
+    let destination = (towards - mesh_origin).normalize_or_zero();
+
+    if source.length() <= f32::EPSILON || destination.length() <= f32::EPSILON {
+        return;
+    }
+
+    let dot = source.dot(destination).clamp(-1.0, 1.0);
+
+    if (dot - 1.0).abs() <= f32::EPSILON {
+        return;
+    }
+
+    let cross = source.cross(destination);
+    let cross_len = cross.length();
+
+    let (axis, angle) = if cross_len <= 1e-6 {
+        if dot < 0.0 {
+            let arbitrary = if source.x.abs() < 0.9 {
+                Vec3::new(1.0, 0.0, 0.0)
+            } else {
+                Vec3::new(0.0, 1.0, 0.0)
+            };
+            let perp = source.cross(arbitrary).normalize_or_zero();
+            (perp, PI)
+        } else {
+            return;
+        }
+    } else {
+        (cross / cross_len, cross_len.atan2(dot))
+    };
+
+    let (sin_a, cos_a) = angle.sin_cos();
+
+    for v in &mut mesh.vertices {
+        let p = &mut v.position;
+        let r = *p - mesh_origin;
+
+        let k = axis;
+        let k_dot_r = k.dot(r);
+        let k_cross_r = k.cross(r);
+
+        let rotated = r * cos_a + k_cross_r * sin_a + k * (k_dot_r * (1.0 - cos_a));
+        *p = mesh_origin + rotated;
     }
 }
 

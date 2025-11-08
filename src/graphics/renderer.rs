@@ -360,7 +360,7 @@ impl Renderer {
     pub fn set_voxel_shader_and_find_visible_areas(
         &self,
         camera: &Camera3D,
-        world_time: &WorldTime,
+        world_light_level: f32,
         user_settings: &UserSettings,
         world: &World,
         height_map: &mut HeightMap,
@@ -391,7 +391,7 @@ impl Renderer {
         let light_level = if should_show_map {
             WorldTime::MAX_LIGHT_LEVEL
         } else {
-            world_time.get_light_level()
+            world_light_level
         };
 
         self.shader.set_voxel_material(VoxelUniformParams {
