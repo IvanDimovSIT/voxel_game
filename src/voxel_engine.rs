@@ -85,7 +85,6 @@ impl VoxelEngine {
         user_settings: UserSettings,
     ) -> Self {
         let world_systems = initialise_world_systems(world_name, asset_manager.clone());
-        let rain_system = RainSystem::new(&asset_manager.texture_manager);
 
         Self {
             world: world_systems.world,
@@ -103,7 +102,7 @@ impl VoxelEngine {
             creature_manager: world_systems.creature_manager,
             world_map: WorldMap::new(),
             tutorial_messages: world_systems.tutorial_messages,
-            rain_system,
+            rain_system: world_systems.rain_system,
         }
     }
 
@@ -386,7 +385,7 @@ impl VoxelEngine {
             self.world_map.draw_background();
         } else {
             self.sky
-                .draw_sky(&self.world_time, &self.rain_system, &camera);
+                .draw_sky(&self.world_time, &self.rain_system, camera);
         }
     }
 
@@ -413,7 +412,7 @@ impl VoxelEngine {
             self.draw_in_game_ui_elements(
                 width,
                 height,
-                &camera,
+                camera,
                 raycast_result,
                 rendered,
                 creatures_drawn,
@@ -722,6 +721,7 @@ impl Drop for VoxelEngine {
             &self.creature_manager,
             &self.sky,
             &self.tutorial_messages,
+            &self.rain_system,
         );
         store_world_metadata(self.world.get_world_name(), world_metadata);
         write_user_settings_blocking(&self.user_settings);
