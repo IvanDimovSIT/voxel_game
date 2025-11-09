@@ -1,7 +1,10 @@
 use bincode::{Decode, Encode};
 
 use crate::{
-    graphics::sky::{Sky, SkyDTO},
+    graphics::{
+        rain_system::{RainSystem, RainSystemDTO},
+        sky::{Sky, SkyDTO},
+    },
     interface::tutorial_messages::{TutorialMessages, TutorialMessagesDTO},
     service::{
         creatures::creature_manager::{CreatureManager, CreatureManagerDTO},
@@ -26,6 +29,7 @@ pub struct WorldMetadata {
     pub creature_manager: CreatureManagerDTO,
     pub sky_dto: SkyDTO,
     pub tutorial_messages_dto: TutorialMessagesDTO,
+    pub rain_system: RainSystemDTO,
 }
 impl WorldMetadata {
     pub fn new(
@@ -34,6 +38,7 @@ impl WorldMetadata {
         creature_manager: &CreatureManager,
         sky: &Sky,
         tutorial_messages: &TutorialMessages,
+        rain_system: &RainSystem,
     ) -> Self {
         let (simulated_voxels, water_simulator) = voxel_simulator.create_dtos();
         Self {
@@ -43,6 +48,7 @@ impl WorldMetadata {
             creature_manager: creature_manager.create_dto(),
             sky_dto: sky.create_dto(),
             tutorial_messages_dto: tutorial_messages.create_dto(),
+            rain_system: rain_system.create_dto(),
         }
     }
 }

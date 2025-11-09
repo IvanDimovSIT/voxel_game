@@ -12,6 +12,7 @@ use crate::{
     graphics::{
         debug_display::{DebugDisplay, DebugInfo},
         height_map::HeightMap,
+        rain_system::RainSystem,
         renderer::Renderer,
         screen_effects::draw_water_effect,
         sky::Sky,
@@ -75,6 +76,7 @@ pub struct VoxelEngine {
     height_map: HeightMap,
     world_map: WorldMap,
     tutorial_messages: TutorialMessages,
+    rain_system: RainSystem,
 }
 impl VoxelEngine {
     pub fn new(
@@ -100,6 +102,7 @@ impl VoxelEngine {
             creature_manager: world_systems.creature_manager,
             world_map: WorldMap::new(),
             tutorial_messages: world_systems.tutorial_messages,
+            rain_system: world_systems.rain_system,
         }
     }
 
@@ -285,6 +288,8 @@ impl VoxelEngine {
             return;
         }
 
+        self.rain_system
+            .update(delta, &self.player_info, &mut self.world);
         self.world_time.update(delta);
         self.sky.update(delta);
         self.process_physics(delta);
@@ -340,7 +345,8 @@ impl VoxelEngine {
         // set 3D camera and voxel shader
         let visible_areas = self.renderer.set_voxel_shader_and_find_visible_areas(
             &camera,
-            &self.world_time,
+            self.world_time
+                .get_light_level(self.rain_system.get_light_level_modifier()),
             &self.user_settings,
             &self.world,
             &mut self.height_map,
@@ -349,6 +355,9 @@ impl VoxelEngine {
         let creatures_drawn = self.creature_manager.draw(&camera, &self.user_settings);
         self.voxel_particles.draw();
         self.voxel_simulator.draw(&camera);
+        if !self.world_map.active {
+            self.rain_system.draw(&camera);
+        }
         let rendered = self.renderer.render_voxels(
             &camera,
             &self.player_info,
@@ -375,7 +384,8 @@ impl VoxelEngine {
         if self.world_map.active {
             self.world_map.draw_background();
         } else {
-            self.sky.draw_sky(&self.world_time, &camera);
+            self.sky
+                .draw_sky(&self.world_time, &self.rain_system, camera);
         }
     }
 
@@ -402,7 +412,7 @@ impl VoxelEngine {
             self.draw_in_game_ui_elements(
                 width,
                 height,
-                &camera,
+                camera,
                 raycast_result,
                 rendered,
                 creatures_drawn,
@@ -711,6 +721,7 @@ impl Drop for VoxelEngine {
             &self.creature_manager,
             &self.sky,
             &self.tutorial_messages,
+            &self.rain_system,
         );
         store_world_metadata(self.world.get_world_name(), world_metadata);
         write_user_settings_blocking(&self.user_settings);

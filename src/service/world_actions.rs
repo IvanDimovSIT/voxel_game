@@ -3,7 +3,10 @@ use std::rc::Rc;
 use macroquad::math::vec3;
 
 use crate::{
-    graphics::{renderer::Renderer, sky::Sky, voxel_particle_system::VoxelParticleSystem},
+    graphics::{
+        rain_system::RainSystem, renderer::Renderer, sky::Sky,
+        voxel_particle_system::VoxelParticleSystem,
+    },
     interface::tutorial_messages::TutorialMessages,
     model::{
         area::AREA_HEIGHT, location::Location, player_info::PlayerInfo, voxel::Voxel, world::World,
@@ -106,6 +109,7 @@ pub struct WorldSystems {
     pub player_info: PlayerInfo,
     pub sky: Sky,
     pub tutorial_messages: TutorialMessages,
+    pub rain_system: RainSystem,
 }
 
 /// loads the saved world data or initialises it if not saved
@@ -119,29 +123,35 @@ pub fn initialise_world_systems(
         .unwrap_or_else(|| (PlayerInfo::new(vec3(0.0, 0.0, 0.0)), false));
 
     player_info.camera_controller.set_focus(true);
-    let (world_time, simulated_voxels, water_simulator, creature_manager, sky, tutorial_messages) =
-        if let Some(world_metadata) = load_world_metadata(&world_name) {
-            (
-                WorldTime::new(world_metadata.delta),
-                world_metadata.simulated_voxels,
-                world_metadata.water_simulator,
-                CreatureManager::from_dto(
-                    world_metadata.creature_manager,
-                    &asset_manager.mesh_manager,
-                ),
-                Sky::from_dto(&asset_manager.texture_manager, world_metadata.sky_dto),
-                world_metadata.tutorial_messages_dto.into(),
-            )
-        } else {
-            (
-                WorldTime::new(std::f32::consts::PI * 0.5),
-                vec![],
-                WaterSimulator::new(),
-                CreatureManager::new(),
-                Sky::new(&asset_manager.texture_manager),
-                TutorialMessages::new(),
-            )
-        };
+    let (
+        world_time,
+        simulated_voxels,
+        water_simulator,
+        creature_manager,
+        sky,
+        tutorial_messages,
+        rain_system,
+    ) = if let Some(world_metadata) = load_world_metadata(&world_name) {
+        (
+            WorldTime::new(world_metadata.delta),
+            world_metadata.simulated_voxels,
+            world_metadata.water_simulator,
+            CreatureManager::from_dto(world_metadata.creature_manager, &asset_manager.mesh_manager),
+            Sky::from_dto(&asset_manager.texture_manager, world_metadata.sky_dto),
+            world_metadata.tutorial_messages_dto.into(),
+            RainSystem::from_dto(world_metadata.rain_system, &asset_manager.texture_manager),
+        )
+    } else {
+        (
+            WorldTime::new(std::f32::consts::PI * 0.5),
+            vec![],
+            WaterSimulator::new(),
+            CreatureManager::new(),
+            Sky::new(&asset_manager.texture_manager),
+            TutorialMessages::new(),
+            RainSystem::new(&asset_manager.texture_manager),
+        )
+    };
 
     let renderer = Renderer::new(asset_manager.clone());
     let falling_voxel_simulator =
@@ -162,6 +172,7 @@ pub fn initialise_world_systems(
         sky,
         player_info,
         tutorial_messages,
+        rain_system,
     }
 }
 

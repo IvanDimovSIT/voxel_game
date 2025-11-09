@@ -13,8 +13,8 @@ use macroquad::{
 
 use crate::{
     graphics::{
-        mesh_generator::MeshGenerator, mesh_transformer::move_mesh, sky_shader::SkyShader,
-        texture_manager::TextureManager,
+        mesh_generator::MeshGenerator, mesh_transformer::move_mesh, rain_system::RainSystem,
+        sky_shader::SkyShader, texture_manager::TextureManager,
     },
     service::{
         activity_timer::ActivityTimer, camera_controller::CameraController, world_time::WorldTime,
@@ -69,8 +69,8 @@ impl Sky {
         }
     }
 
-    pub fn draw_sky(&self, world_time: &WorldTime, camera: &Camera3D) {
-        let light_level = world_time.get_light_level();
+    pub fn draw_sky(&self, world_time: &WorldTime, rain_system: &RainSystem, camera: &Camera3D) {
+        let light_level = world_time.get_light_level(rain_system.get_light_level_modifier());
         let dark_level = 1.0 - light_level;
         let sky_color = Color::new(
             SKY_BRIGHT_COLOR.r * light_level + SKY_DARK_COLOR.r * dark_level,
