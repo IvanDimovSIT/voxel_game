@@ -37,10 +37,6 @@ impl Item {
         debug_assert!(count <= MAX_ITEMS_PER_SLOT);
         Item { voxel, count }
     }
-
-    pub fn some(voxel: Voxel, count: u8) -> Option<Item> {
-        Some(Self::new(voxel, count))
-    }
 }
 
 #[derive(Debug, Clone, Encode, Decode)]
@@ -51,17 +47,6 @@ pub struct Inventory {
 impl Inventory {
     pub const INVENTORY_SIZE: usize = 40;
     pub const SELECTED_SIZE: usize = 8;
-
-    pub fn new() -> Self {
-        let mut inventory = Self::default();
-        inventory.selected[0] = Item::some(Voxel::Brick, 50);
-        inventory.selected[1] = Item::some(Voxel::Glass, 50);
-        inventory.selected[2] = Item::some(Voxel::Trampoline, 50);
-        inventory.selected[3] = Item::some(Voxel::Lamp, 50);
-        inventory.selected[4] = Item::some(Voxel::WaterSource, 50);
-
-        inventory
-    }
 
     pub fn add_item(&mut self, mut item: Item) {
         let items_iterator = self
@@ -139,6 +124,7 @@ impl Inventory {
     }
 }
 impl Default for Inventory {
+    /// creates an empty inventory
     fn default() -> Self {
         Self {
             items: [None; Self::INVENTORY_SIZE],
@@ -150,6 +136,12 @@ impl Default for Inventory {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    impl Item {
+        pub fn some(voxel: Voxel, count: u8) -> Option<Item> {
+            Some(Self::new(voxel, count))
+        }
+    }
 
     #[test]
     fn test_add_item_into_empty() {

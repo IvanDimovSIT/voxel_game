@@ -75,12 +75,18 @@ impl World {
         self.areas[&area_location].sample_height(local_location.x, local_location.y)
     }
 
-    /// returns the min z of the column, treats transparent voxels as solid
-    pub fn get_non_empty_height(&mut self, location: impl Into<InternalLocation>) -> u8 {
+    /// returns the min z of the column, treats transparent voxels as solid, doesn't force area load,
+    /// returns 0 if not loaded
+    pub fn get_non_empty_height_without_loading(
+        &self,
+        location: impl Into<InternalLocation>,
+    ) -> u8 {
         let (area_location, local_location) =
             Self::convert_global_to_area_and_local_location(location.into());
-        self.load_area(area_location);
-        self.areas[&area_location].get_non_empty_height(local_location.x, local_location.y)
+        self.areas
+            .get(&area_location)
+            .map(|area| area.get_non_empty_height(local_location.x, local_location.y))
+            .unwrap_or(0)
     }
 
     /// temporarily takes ownership of an area to be used with `get_with_cache`
@@ -390,5 +396,33 @@ mod tests {
             assert_eq!(area.get(loc), contained_area.get(loc));
         });
         assert_eq!(world.areas.len(), 1);
+    }
+
+    #[test]
+    fn test_get_non_empty_height_without_loading_unloaded_area() {
+        let world =
+            World::new("test_world_test_get_non_empty_height_without_loading_unloaded_area");
+
+        let height = world.get_non_empty_height_without_loading(InternalLocation::new(10, 10, 0));
+
+        assert_eq!(height, 0);
+    }
+
+    #[test]
+    fn test_get_non_empty_height_without_loading_loaded_area() {
+        let mut world =
+            World::new("test_world_test_get_non_empty_height_without_loading_loaded_area");
+        let area_location = AreaLocation::new(0, 0);
+
+        let mut area = Area::new(area_location);
+        for z in 2..=5 {
+            area.set(InternalLocation::new(3, 4, z), Voxel::Brick);
+        }
+
+        world.return_area(area);
+
+        let height = world.get_non_empty_height_without_loading(InternalLocation::new(3, 4, 0));
+
+        assert_eq!(height, 2,);
     }
 }

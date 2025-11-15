@@ -13,8 +13,11 @@ use macroquad::{
 
 use crate::{
     graphics::{
-        mesh_generator::MeshGenerator, mesh_transformer::move_mesh, rain_system::RainSystem,
-        sky_shader::SkyShader, texture_manager::TextureManager,
+        mesh_generator::MeshGenerator,
+        mesh_transformer::move_mesh,
+        rain_system::RainSystem,
+        sky_shader::SkyShader,
+        texture_manager::{PlainTextureId, TextureManager},
     },
     service::{
         activity_timer::ActivityTimer, camera_controller::CameraController, world_time::WorldTime,
@@ -48,8 +51,8 @@ impl Sky {
     pub fn new(texture_manager: &TextureManager) -> Self {
         Self {
             sky_shader: SkyShader::new(),
-            sun_texture: texture_manager.get_sun_texture(),
-            moon_texture: texture_manager.get_moon_texture(),
+            sun_texture: texture_manager.get_plain_texture(PlainTextureId::Sun),
+            moon_texture: texture_manager.get_plain_texture(PlainTextureId::Moon),
             clouds_manager: CloudsManager::new(texture_manager),
         }
     }
@@ -57,8 +60,8 @@ impl Sky {
     pub fn from_dto(texture_manager: &TextureManager, dto: SkyDTO) -> Self {
         Self {
             sky_shader: SkyShader::new(),
-            sun_texture: texture_manager.get_sun_texture(),
-            moon_texture: texture_manager.get_moon_texture(),
+            sun_texture: texture_manager.get_plain_texture(PlainTextureId::Sun),
+            moon_texture: texture_manager.get_plain_texture(PlainTextureId::Moon),
             clouds_manager: CloudsManager::from_dto(texture_manager, dto.clouds_dto),
         }
     }
@@ -144,7 +147,7 @@ pub struct CloudsManager {
 impl CloudsManager {
     pub fn new(texture_manager: &TextureManager) -> Self {
         let mut clouds = Self {
-            clouds_texture: texture_manager.get_clouds_texture(),
+            clouds_texture: texture_manager.get_plain_texture(PlainTextureId::Clouds),
             cloud_positions: vec![],
             add_clouds_activity: ActivityTimer::new(0.0, CLOUDS_SPAWN_DELAY),
         };
@@ -159,7 +162,7 @@ impl CloudsManager {
 
         Self {
             add_clouds_activity: ActivityTimer::new(dto.clouds_spawn_delta, CLOUDS_SPAWN_DELAY),
-            clouds_texture: texture_manager.get_clouds_texture(),
+            clouds_texture: texture_manager.get_plain_texture(PlainTextureId::Clouds),
             cloud_positions,
         }
     }

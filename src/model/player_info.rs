@@ -41,7 +41,7 @@ impl PlayerInfo {
             jump_velocity: JUMP_VELOCITY,
             size: PLAYER_SIZE,
             voxel_selector: ItemHotbar::new(),
-            inventory: Inventory::new(),
+            inventory: Inventory::default(),
             is_in_water: false,
             destroy_progress: ActivityTimer::new(0.0, DESTROY_VOXEL_DELAY),
             place_progress: ActivityTimer::new(0.0, PLACE_VOXEL_DELAY),

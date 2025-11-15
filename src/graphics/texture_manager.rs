@@ -13,11 +13,6 @@ use crate::{
 const BASE_CREATURE_TEXTURES_PATH: &str = "assets/images/creature_textures/";
 const BASE_VOXEL_TEXTURES_PATH: &str = "assets/images/voxels/";
 const BASE_ICON_TEXTURES_PATH: &str = "assets/images/icons/";
-const TITLE_SCREEN_BACKGROUND_PATH: &str = "assets/images/title.png";
-const CONTROLS_GRAPHIC_PATH: &str = "assets/images/controls.png";
-const SUN_PATH: &str = "assets/images/sun.png";
-const MOON_PATH: &str = "assets/images/moon.png";
-const CLOUDS_PATH: &str = "assets/images/clouds.png";
 const TEXTURES: [(Voxel, &str); 16] = [
     (Voxel::Stone, "stone.png"),
     (Voxel::Sand, "sand.png"),
@@ -51,15 +46,33 @@ const MESH_TEXTURES: [(MeshId, &str); MeshId::VARIANTS] = [
 ];
 const MAX_TEXTURE_COUNT: usize = MAX_VOXEL_VARIANTS;
 
+const BASE_PLAIN_TEXTURES: &str = "assets/images/others/";
+const PLAIN_TEXTURES: [(PlainTextureId, &str, FilterMode); 5] = [
+    (PlainTextureId::Sun, "sun.png", FilterMode::Linear),
+    (PlainTextureId::Moon, "moon.png", FilterMode::Linear),
+    (PlainTextureId::Clouds, "clouds.png", FilterMode::Nearest),
+    (
+        PlainTextureId::TitleScreenBackground,
+        "title.png",
+        FilterMode::Linear,
+    ),
+    (PlainTextureId::Controls, "controls.png", FilterMode::Linear),
+];
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum PlainTextureId {
+    Sun,
+    Moon,
+    Clouds,
+    TitleScreenBackground,
+    Controls,
+}
+
 pub struct TextureManager {
     textures: Vec<Option<Texture2D>>,
     mesh_textures: HashMap<MeshId, Texture2D>,
-    title_screen_background: Texture2D,
-    controls_image: Texture2D,
-    sun_texture: Texture2D,
-    moon_texture: Texture2D,
-    clouds_texture: Texture2D,
     voxel_icons: HashMap<Voxel, Texture2D>,
+    plain_textures: HashMap<PlainTextureId, Texture2D>,
 }
 impl TextureManager {
     pub const VOXELS_WITH_DIFFERENT_FACES: [Voxel; 3] =
@@ -68,26 +81,32 @@ impl TextureManager {
     /// loads all of the textures
     pub async fn new() -> Self {
         let textures = Self::load_voxel_textures().await;
-        let title_screen_background = Self::load_image(TITLE_SCREEN_BACKGROUND_PATH).await;
-        let sun_texture = Self::load_image(SUN_PATH).await;
-        let moon_texture = Self::load_image(MOON_PATH).await;
-        let clouds_texture = Self::load_image(CLOUDS_PATH).await;
-        clouds_texture.set_filter(FilterMode::Nearest);
         let voxel_icons = Self::load_voxel_icon_textures().await;
         let mesh_textures = Self::load_mesh_textures().await;
-        let controls_image = Self::load_image(CONTROLS_GRAPHIC_PATH).await;
-        controls_image.set_filter(FilterMode::Nearest);
+        let plain_textures = Self::load_plain_textures().await;
 
         Self {
             textures,
-            title_screen_background,
             voxel_icons,
-            sun_texture,
-            moon_texture,
             mesh_textures,
-            controls_image,
-            clouds_texture,
+            plain_textures,
         }
+    }
+
+    async fn load_plain_textures() -> HashMap<PlainTextureId, Texture2D> {
+        let mut textures = HashMap::with_capacity(PLAIN_TEXTURES.len());
+        for (texture_type, texture_path, filter_mode) in PLAIN_TEXTURES {
+            let full_path = format!("{BASE_PLAIN_TEXTURES}{texture_path}");
+            let texture = Self::load_image(&full_path).await;
+            texture.set_filter(filter_mode);
+            textures.insert(texture_type, texture);
+            info!(
+                "Loaded plain texture for {:?} from '{}'",
+                texture_type, texture_path
+            );
+        }
+
+        textures
     }
 
     async fn load_voxel_icon_textures() -> HashMap<Voxel, Texture2D> {
@@ -129,6 +148,7 @@ impl TextureManager {
         textures
     }
 
+    /// loads the texture once and reuses it for all water voxels
     async fn load_water_texture(textures: &mut [Option<Texture2D>]) {
         let water_voxels = [
             Voxel::WaterSource,
@@ -167,32 +187,19 @@ impl TextureManager {
         }
     }
 
+    pub fn get_plain_texture(&self, texture_id: PlainTextureId) -> Texture2D {
+        self.plain_textures
+            .get(&texture_id)
+            .expect("Plain texture not found")
+            .weak_clone()
+    }
+
     /// returns the icon texture of the voxel, could be the same as the regular texture
     pub fn get_icon(&self, voxel: Voxel) -> Texture2D {
         self.voxel_icons
             .get(&voxel)
             .map(Texture2D::weak_clone)
             .unwrap_or_else(|| self.get(voxel))
-    }
-
-    pub fn get_title_screen_background(&self) -> Texture2D {
-        self.title_screen_background.weak_clone()
-    }
-
-    pub fn get_controls_image(&self) -> Texture2D {
-        self.controls_image.weak_clone()
-    }
-
-    pub fn get_sun_texture(&self) -> Texture2D {
-        self.sun_texture.weak_clone()
-    }
-
-    pub fn get_moon_texture(&self) -> Texture2D {
-        self.moon_texture.weak_clone()
-    }
-
-    pub fn get_clouds_texture(&self) -> Texture2D {
-        self.clouds_texture.weak_clone()
     }
 
     pub fn get_mesh_texture(&self, id: MeshId) -> Texture2D {

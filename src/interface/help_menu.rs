@@ -8,6 +8,7 @@ use macroquad::{
 };
 
 use crate::{
+    graphics::texture_manager::PlainTextureId,
     interface::{
         background::draw_background,
         button::draw_back_button,
@@ -39,7 +40,9 @@ pub struct HelpMenuContext {
 impl HelpMenuContext {
     pub fn new(asset_manager: &AssetManager) -> Self {
         Self {
-            controls_image: asset_manager.texture_manager.get_controls_image(),
+            controls_image: asset_manager
+                .texture_manager
+                .get_plain_texture(PlainTextureId::Controls),
         }
     }
 

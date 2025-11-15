@@ -197,7 +197,8 @@ impl RainSystem {
             let y_offset = gen_range(-MAX_DISTANCE, MAX_DISTANCE);
             let z_offset = gen_range(-2.0, 2.0);
             let drop_location = vec3(x_offset, y_offset, z_offset) + start_position;
-            let ground_z = world.get_non_empty_height(vector_to_location(drop_location));
+            let ground_z =
+                world.get_non_empty_height_without_loading(vector_to_location(drop_location));
 
             let rain_drop = RainDrop {
                 location: drop_location,
