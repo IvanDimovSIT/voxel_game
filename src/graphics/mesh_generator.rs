@@ -1,13 +1,14 @@
 use std::rc::Rc;
 
 use macroquad::{
-    math::{Vec2, Vec3, Vec4, vec2},
+    math::{Vec2, Vec3, Vec3Swizzles, Vec4, Vec4Swizzles, vec2, vec3},
     models::Mesh,
     rand::rand,
     ui::Vertex,
 };
 
 use crate::{
+    graphics::mesh_transformer,
     model::{
         location::{InternalLocation, Location},
         voxel::Voxel,
@@ -511,6 +512,71 @@ impl MeshGenerator {
     pub fn should_generate_top_face(current_voxel: Voxel, neighbour_voxel: Voxel) -> bool {
         Self::should_generate_face(current_voxel, neighbour_voxel)
             || Voxel::PARTIAL_HEIGHT.contains(&current_voxel)
+    }
+
+    /// generates plain without a texture looking at the camera, with bottom position at lightning_position
+    pub fn generate_lightning_mesh(lightning_position: Vec3, camera_position: Vec3) -> Mesh {
+        const LIGTNING_WIDTH: f32 = 5.0;
+        const LIGTNING_HEIGHT: f32 = 30.0;
+        let vertices = [
+            Vertex {
+                position: vec3(
+                    lightning_position.x - LIGTNING_WIDTH / 2.0,
+                    lightning_position.y,
+                    lightning_position.z - LIGTNING_HEIGHT,
+                ),
+                uv: Self::UV_REPEATING[0],
+                color: Self::COLOR,
+                normal: Self::FRONT_NORMAL,
+            },
+            Vertex {
+                position: vec3(
+                    lightning_position.x + LIGTNING_WIDTH / 2.0,
+                    lightning_position.y,
+                    lightning_position.z - LIGTNING_HEIGHT,
+                ),
+                uv: Self::UV_REPEATING[1],
+                color: Self::COLOR,
+                normal: Self::FRONT_NORMAL,
+            },
+            Vertex {
+                position: vec3(
+                    lightning_position.x + LIGTNING_WIDTH / 2.0,
+                    lightning_position.y,
+                    lightning_position.z,
+                ),
+                uv: Self::UV_REPEATING[2],
+                color: Self::COLOR,
+                normal: Self::FRONT_NORMAL,
+            },
+            Vertex {
+                position: vec3(
+                    lightning_position.x - LIGTNING_WIDTH / 2.0,
+                    lightning_position.y,
+                    lightning_position.z,
+                ),
+                uv: Self::UV_REPEATING[3],
+                color: Self::COLOR,
+                normal: Self::FRONT_NORMAL,
+            },
+        ]
+        .to_vec();
+
+        let norm_xy = Self::FRONT_NORMAL.xy().normalize_or_zero();
+
+        let cam_xy = (camera_position.xy() - lightning_position.xy()).normalize_or_zero();
+
+        let angle = cam_xy.y.atan2(cam_xy.x) - norm_xy.y.atan2(norm_xy.x);
+
+        let mut mesh = Mesh {
+            vertices,
+            indices: Self::INDECIES.as_slice().to_vec(),
+            texture: None,
+        };
+
+        mesh_transformer::rotate_around_z(&mut mesh, lightning_position, angle);
+
+        mesh
     }
 
     /// generates an untextured quad mesh at the origin (0,0,0)

@@ -356,7 +356,7 @@ impl VoxelEngine {
         self.voxel_particles.draw();
         self.voxel_simulator.draw(&camera);
         if !self.world_map.active {
-            self.rain_system.draw(&camera);
+            self.rain_system.draw_rain(&camera);
         }
         let rendered = self.renderer.render_voxels(
             &camera,
@@ -365,6 +365,9 @@ impl VoxelEngine {
             &visible_areas,
             self.world_map.active,
         );
+        if !self.world_map.active {
+            self.rain_system.draw_lightning(&camera);
+        }
 
         // draw ui elements over 3D scene
         let menu_result = self.draw_ui_layer(

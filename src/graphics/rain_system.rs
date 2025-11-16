@@ -2,14 +2,18 @@ use bincode::{Decode, Encode};
 use macroquad::{
     camera::Camera3D,
     math::{Vec3, vec3},
-    models::draw_mesh,
+    models::{Mesh, draw_mesh},
     prelude::info,
     rand::{gen_range, rand},
     texture::Texture2D,
 };
 
 use crate::{
-    graphics::{mesh_generator::MeshGenerator, mesh_transformer, texture_manager::TextureManager},
+    graphics::{
+        mesh_generator::MeshGenerator,
+        mesh_transformer,
+        texture_manager::{PlainTextureId, TextureManager},
+    },
     model::{player_info::PlayerInfo, voxel::Voxel, world::World},
     service::activity_timer::ActivityTimer,
     utils::{arr_to_vec3, vec3_to_arr, vector_to_location},
@@ -21,6 +25,10 @@ const MIN_SKY_MODIFIER: f32 = 0.6;
 
 const REMOVE_ACTIVITY_COOLDOWN: f32 = 0.1;
 const CHANGE_STATE_ACTIVITY_COOLDOWN: f32 = 40.0;
+
+const LIGHTNING_DURATION_S: f32 = 1.0;
+const LIGHTNING_ACTIVITY_COOLDOWN: f32 = 4.0;
+const LIGHNING_FLASH_DURATION_S: f32 = 0.3;
 
 #[derive(Debug, Clone, Copy)]
 struct RainDrop {
@@ -36,13 +44,32 @@ impl From<RainDropDTO> for RainDrop {
     }
 }
 
+#[derive(Debug, Clone, Copy)]
+struct Lightning {
+    position: Vec3,
+    life: f32,
+}
+impl Lightning {
+    fn new(position: Vec3) -> Self {
+        Self {
+            position,
+            life: LIGHTNING_DURATION_S,
+        }
+    }
+}
+
 pub struct RainSystem {
     is_raining: bool,
     rain_drops: Vec<RainDrop>,
     water_texture: Texture2D,
+    lightning_texture: Texture2D,
     remove_activity: ActivityTimer,
     change_state_activity: ActivityTimer,
+    lightning_activity: ActivityTimer,
+    lightnings: Vec<Lightning>,
     sky_modifier: f32,
+    /// goes to 0.0 over time, when lightning is added, it increases
+    last_lightning_delta: f32,
 }
 impl RainSystem {
     pub fn new(texture_manager: &TextureManager) -> Self {
@@ -53,6 +80,10 @@ impl RainSystem {
             remove_activity: ActivityTimer::new(0.0, REMOVE_ACTIVITY_COOLDOWN),
             sky_modifier: 1.0,
             change_state_activity: ActivityTimer::new(0.0, CHANGE_STATE_ACTIVITY_COOLDOWN),
+            lightning_activity: ActivityTimer::new(0.0, LIGHTNING_ACTIVITY_COOLDOWN),
+            lightnings: vec![],
+            last_lightning_delta: 0.0,
+            lightning_texture: texture_manager.get_plain_texture(PlainTextureId::Lightning),
         }
     }
 
@@ -73,6 +104,10 @@ impl RainSystem {
                 CHANGE_STATE_ACTIVITY_COOLDOWN,
             ),
             sky_modifier: dto.sky_modifier,
+            lightning_activity: ActivityTimer::new(0.0, LIGHTNING_ACTIVITY_COOLDOWN),
+            lightnings: vec![],
+            last_lightning_delta: 0.0,
+            lightning_texture: texture_manager.get_plain_texture(PlainTextureId::Lightning),
         }
     }
 
@@ -108,10 +143,12 @@ impl RainSystem {
         if self.remove_activity.tick(delta) {
             self.remove_fallen();
         }
+
+        self.update_lightning(delta, player_info, world);
     }
 
     /// draws rain drops as quads facing at the camera
-    pub fn draw(&self, camera: &Camera3D) {
+    pub fn draw_rain(&self, camera: &Camera3D) {
         let camera_position = camera.position;
         let look = (camera.target - camera_position).normalize_or_zero();
 
@@ -121,14 +158,77 @@ impl RainSystem {
             .for_each(|r| self.draw_mesh_for_rain_drop(r, camera_position));
     }
 
+    /// should be used with the sky shader
+    pub fn draw_lightning(&self, camera: &Camera3D) {
+        if self.lightnings.is_empty() {
+            return;
+        }
+
+        // TODO: set lighning shader
+        let camera_position = camera.position;
+        for l in &self.lightnings {
+            let mesh = self.create_lightning_mesh(l.position, camera_position);
+            draw_mesh(&mesh);
+        }
+    }
+
     pub fn get_light_level_modifier(&self) -> f32 {
-        self.sky_modifier
+        if self.last_lightning_delta > 0.0 {
+            1.0
+        } else {
+            self.sky_modifier
+        }
+    }
+
+    fn update_lightning(&mut self, delta: f32, player_info: &PlayerInfo, world: &mut World) {
+        self.last_lightning_delta = (self.last_lightning_delta - delta).max(0.0);
+        for lightning in &mut self.lightnings {
+            lightning.life -= delta;
+        }
+
+        self.lightnings.retain(|l| l.life > 0.0);
+        if self.is_raining && self.lightning_activity.tick(delta) {
+            self.add_lightning(player_info, world);
+        }
+    }
+
+    fn add_lightning(&mut self, player_info: &PlayerInfo, world: &mut World) {
+        const MAX_DISTANCE: f32 = 40.0;
+
+        let x_offset = gen_range(-MAX_DISTANCE, MAX_DISTANCE);
+        let y_offset = gen_range(-MAX_DISTANCE, MAX_DISTANCE);
+        let sample_location = vector_to_location(
+            player_info.camera_controller.get_position() + vec3(x_offset, y_offset, 0.0),
+        );
+
+        let ground_z = world.get_non_empty_height_without_loading(sample_location);
+        let lightning_position = vec3(
+            sample_location.x as f32,
+            sample_location.y as f32,
+            ground_z as f32,
+        );
+
+        let lightning = Lightning::new(lightning_position);
+        info!("Lighning at {}", lightning_position);
+        // TODO: play sound
+
+        self.lightnings.push(lightning);
+        self.last_lightning_delta = LIGHNING_FLASH_DURATION_S;
+    }
+
+    fn create_lightning_mesh(&self, lightning_position: Vec3, camera_position: Vec3) -> Mesh {
+        let mesh = MeshGenerator::generate_lightning_mesh(lightning_position, camera_position);
+
+        Mesh {
+            texture: Some(self.lightning_texture.weak_clone()),
+            ..mesh
+        }
     }
 
     #[inline(always)]
-    fn cull_visible(camera_position: Vec3, look: Vec3, rain_location: Vec3) -> bool {
+    fn cull_visible(camera_position: Vec3, look: Vec3, mesh_position: Vec3) -> bool {
         const VISIBLE_THRESHOLD: f32 = 0.6;
-        let look_towards_rain = (rain_location - camera_position).normalize_or_zero();
+        let look_towards_rain = (mesh_position - camera_position).normalize_or_zero();
 
         look.dot(look_towards_rain) >= VISIBLE_THRESHOLD
     }

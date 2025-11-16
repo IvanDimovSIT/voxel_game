@@ -47,7 +47,7 @@ const MESH_TEXTURES: [(MeshId, &str); MeshId::VARIANTS] = [
 const MAX_TEXTURE_COUNT: usize = MAX_VOXEL_VARIANTS;
 
 const BASE_PLAIN_TEXTURES: &str = "assets/images/others/";
-const PLAIN_TEXTURES: [(PlainTextureId, &str, FilterMode); 5] = [
+const PLAIN_TEXTURES: [(PlainTextureId, &str, FilterMode); 6] = [
     (PlainTextureId::Sun, "sun.png", FilterMode::Linear),
     (PlainTextureId::Moon, "moon.png", FilterMode::Linear),
     (PlainTextureId::Clouds, "clouds.png", FilterMode::Nearest),
@@ -57,6 +57,11 @@ const PLAIN_TEXTURES: [(PlainTextureId, &str, FilterMode); 5] = [
         FilterMode::Linear,
     ),
     (PlainTextureId::Controls, "controls.png", FilterMode::Linear),
+    (
+        PlainTextureId::Lightning,
+        "lightning.png",
+        FilterMode::Linear,
+    ),
 ];
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -66,6 +71,7 @@ pub enum PlainTextureId {
     Clouds,
     TitleScreenBackground,
     Controls,
+    Lightning,
 }
 
 pub struct TextureManager {
