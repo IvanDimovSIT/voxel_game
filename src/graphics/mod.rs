@@ -1,4 +1,5 @@
 pub mod debug_display;
+pub mod flat_shader;
 pub mod height_map;
 pub mod mesh_generator;
 pub mod mesh_manager;

@@ -1,7 +1,10 @@
-use std::rc::Rc;
+use std::{
+    f32::consts::{FRAC_PI_2, TAU},
+    rc::Rc,
+};
 
 use macroquad::{
-    math::{Vec2, Vec3, Vec3Swizzles, Vec4, Vec4Swizzles, vec2, vec3},
+    math::{Vec2, Vec3, Vec4, vec2, vec3},
     models::Mesh,
     rand::rand,
     ui::Vertex,
@@ -516,8 +519,8 @@ impl MeshGenerator {
 
     /// generates plain without a texture looking at the camera, with bottom position at lightning_position
     pub fn generate_lightning_mesh(lightning_position: Vec3, camera_position: Vec3) -> Mesh {
-        const LIGTNING_WIDTH: f32 = 5.0;
-        const LIGTNING_HEIGHT: f32 = 30.0;
+        const LIGTNING_WIDTH: f32 = 6.0;
+        const LIGTNING_HEIGHT: f32 = 40.0;
         let vertices = [
             Vertex {
                 position: vec3(
@@ -562,11 +565,8 @@ impl MeshGenerator {
         ]
         .to_vec();
 
-        let norm_xy = Self::FRONT_NORMAL.xy().normalize_or_zero();
-
-        let cam_xy = (camera_position.xy() - lightning_position.xy()).normalize_or_zero();
-
-        let angle = cam_xy.y.atan2(cam_xy.x) - norm_xy.y.atan2(norm_xy.x);
+        let dir = camera_position - lightning_position;
+        let angle = (dir.y.atan2(dir.x) + FRAC_PI_2).rem_euclid(TAU);
 
         let mut mesh = Mesh {
             vertices,

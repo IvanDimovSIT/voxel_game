@@ -10,11 +10,15 @@ use macroquad::{
 
 use crate::{
     graphics::{
+        flat_shader::FlatShader,
         mesh_generator::MeshGenerator,
         mesh_transformer,
         texture_manager::{PlainTextureId, TextureManager},
     },
-    model::{player_info::PlayerInfo, voxel::Voxel, world::World},
+    model::{
+        area::AREA_SIZE, player_info::PlayerInfo, user_settings::UserSettings, voxel::Voxel,
+        world::World,
+    },
     service::activity_timer::ActivityTimer,
     utils::{arr_to_vec3, vec3_to_arr, vector_to_location},
 };
@@ -26,7 +30,7 @@ const MIN_SKY_MODIFIER: f32 = 0.6;
 const REMOVE_ACTIVITY_COOLDOWN: f32 = 0.1;
 const CHANGE_STATE_ACTIVITY_COOLDOWN: f32 = 40.0;
 
-const LIGHTNING_DURATION_S: f32 = 1.0;
+const LIGHTNING_DURATION_S: f32 = 0.6;
 const LIGHTNING_ACTIVITY_COOLDOWN: f32 = 4.0;
 const LIGHNING_FLASH_DURATION_S: f32 = 0.3;
 
@@ -70,6 +74,7 @@ pub struct RainSystem {
     sky_modifier: f32,
     /// goes to 0.0 over time, when lightning is added, it increases
     last_lightning_delta: f32,
+    flat_shader: FlatShader,
 }
 impl RainSystem {
     pub fn new(texture_manager: &TextureManager) -> Self {
@@ -84,6 +89,7 @@ impl RainSystem {
             lightnings: vec![],
             last_lightning_delta: 0.0,
             lightning_texture: texture_manager.get_plain_texture(PlainTextureId::Lightning),
+            flat_shader: FlatShader::new(),
         }
     }
 
@@ -108,6 +114,7 @@ impl RainSystem {
             lightnings: vec![],
             last_lightning_delta: 0.0,
             lightning_texture: texture_manager.get_plain_texture(PlainTextureId::Lightning),
+            flat_shader: FlatShader::new(),
         }
     }
 
@@ -127,7 +134,13 @@ impl RainSystem {
         }
     }
 
-    pub fn update(&mut self, delta: f32, player_info: &PlayerInfo, world: &mut World) {
+    pub fn update(
+        &mut self,
+        delta: f32,
+        player_info: &PlayerInfo,
+        world: &mut World,
+        user_settings: &UserSettings,
+    ) {
         if self.change_state_activity.tick(delta) {
             self.update_change_raining_state();
         }
@@ -144,7 +157,7 @@ impl RainSystem {
             self.remove_fallen();
         }
 
-        self.update_lightning(delta, player_info, world);
+        self.update_lightning(delta, player_info, world, user_settings);
     }
 
     /// draws rain drops as quads facing at the camera
@@ -164,7 +177,7 @@ impl RainSystem {
             return;
         }
 
-        // TODO: set lighning shader
+        self.flat_shader.set_flat_material(camera);
         let camera_position = camera.position;
         for l in &self.lightnings {
             let mesh = self.create_lightning_mesh(l.position, camera_position);
@@ -180,7 +193,14 @@ impl RainSystem {
         }
     }
 
-    fn update_lightning(&mut self, delta: f32, player_info: &PlayerInfo, world: &mut World) {
+    /// updates lightning - adds or removes
+    fn update_lightning(
+        &mut self,
+        delta: f32,
+        player_info: &PlayerInfo,
+        world: &mut World,
+        user_settings: &UserSettings,
+    ) {
         self.last_lightning_delta = (self.last_lightning_delta - delta).max(0.0);
         for lightning in &mut self.lightnings {
             lightning.life -= delta;
@@ -188,15 +208,21 @@ impl RainSystem {
 
         self.lightnings.retain(|l| l.life > 0.0);
         if self.is_raining && self.lightning_activity.tick(delta) {
-            self.add_lightning(player_info, world);
+            self.add_lightning(player_info, world, user_settings);
         }
     }
 
-    fn add_lightning(&mut self, player_info: &PlayerInfo, world: &mut World) {
-        const MAX_DISTANCE: f32 = 40.0;
+    /// creates a ligtning at a random position around the player
+    fn add_lightning(
+        &mut self,
+        player_info: &PlayerInfo,
+        world: &mut World,
+        user_settings: &UserSettings,
+    ) {
+        let max_add_distance = ((user_settings.get_render_distance() - 1) * AREA_SIZE) as f32;
 
-        let x_offset = gen_range(-MAX_DISTANCE, MAX_DISTANCE);
-        let y_offset = gen_range(-MAX_DISTANCE, MAX_DISTANCE);
+        let x_offset = gen_range(-max_add_distance, max_add_distance);
+        let y_offset = gen_range(-max_add_distance, max_add_distance);
         let sample_location = vector_to_location(
             player_info.camera_controller.get_position() + vec3(x_offset, y_offset, 0.0),
         );

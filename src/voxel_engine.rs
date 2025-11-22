@@ -288,8 +288,12 @@ impl VoxelEngine {
             return;
         }
 
-        self.rain_system
-            .update(delta, &self.player_info, &mut self.world);
+        self.rain_system.update(
+            delta,
+            &self.player_info,
+            &mut self.world,
+            &self.user_settings,
+        );
         self.world_time.update(delta);
         self.sky.update(delta);
         self.process_physics(delta);
