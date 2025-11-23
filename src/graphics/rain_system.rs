@@ -19,7 +19,10 @@ use crate::{
         area::AREA_SIZE, player_info::PlayerInfo, user_settings::UserSettings, voxel::Voxel,
         world::World,
     },
-    service::activity_timer::ActivityTimer,
+    service::{
+        activity_timer::ActivityTimer,
+        sound_manager::{self, SoundManager},
+    },
     utils::{arr_to_vec3, vec3_to_arr, vector_to_location},
 };
 
@@ -31,8 +34,16 @@ const REMOVE_ACTIVITY_COOLDOWN: f32 = 0.1;
 const CHANGE_STATE_ACTIVITY_COOLDOWN: f32 = 40.0;
 
 const LIGHTNING_DURATION_S: f32 = 0.6;
-const LIGHTNING_ACTIVITY_COOLDOWN: f32 = 4.0;
+const MIN_LIGHTNING_ACTIVITY_COOLDOWN: f32 = 10.0;
+const MAX_LIGHTNING_ACTIVITY_COOLDOWN: f32 = 25.0;
 const LIGHNING_FLASH_DURATION_S: f32 = 0.3;
+
+fn random_lightning_cooldown() -> f32 {
+    gen_range(
+        MIN_LIGHTNING_ACTIVITY_COOLDOWN,
+        MAX_LIGHTNING_ACTIVITY_COOLDOWN,
+    )
+}
 
 #[derive(Debug, Clone, Copy)]
 struct RainDrop {
@@ -85,7 +96,7 @@ impl RainSystem {
             remove_activity: ActivityTimer::new(0.0, REMOVE_ACTIVITY_COOLDOWN),
             sky_modifier: 1.0,
             change_state_activity: ActivityTimer::new(0.0, CHANGE_STATE_ACTIVITY_COOLDOWN),
-            lightning_activity: ActivityTimer::new(0.0, LIGHTNING_ACTIVITY_COOLDOWN),
+            lightning_activity: ActivityTimer::new(0.0, random_lightning_cooldown()),
             lightnings: vec![],
             last_lightning_delta: 0.0,
             lightning_texture: texture_manager.get_plain_texture(PlainTextureId::Lightning),
@@ -110,7 +121,7 @@ impl RainSystem {
                 CHANGE_STATE_ACTIVITY_COOLDOWN,
             ),
             sky_modifier: dto.sky_modifier,
-            lightning_activity: ActivityTimer::new(0.0, LIGHTNING_ACTIVITY_COOLDOWN),
+            lightning_activity: dto.lightning_activity,
             lightnings: vec![],
             last_lightning_delta: 0.0,
             lightning_texture: texture_manager.get_plain_texture(PlainTextureId::Lightning),
@@ -131,6 +142,7 @@ impl RainSystem {
             remove_delta: self.remove_activity.get_delta(),
             change_state_delta: self.change_state_activity.get_delta(),
             sky_modifier: self.sky_modifier,
+            lightning_activity: self.lightning_activity,
         }
     }
 
@@ -140,6 +152,7 @@ impl RainSystem {
         player_info: &PlayerInfo,
         world: &mut World,
         user_settings: &UserSettings,
+        sound_manager: &SoundManager,
     ) {
         if self.change_state_activity.tick(delta) {
             self.update_change_raining_state();
@@ -157,7 +170,7 @@ impl RainSystem {
             self.remove_fallen();
         }
 
-        self.update_lightning(delta, player_info, world, user_settings);
+        self.update_lightning(delta, player_info, world, user_settings, sound_manager);
     }
 
     /// draws rain drops as quads facing at the camera
@@ -200,6 +213,7 @@ impl RainSystem {
         player_info: &PlayerInfo,
         world: &mut World,
         user_settings: &UserSettings,
+        sound_manager: &SoundManager,
     ) {
         self.last_lightning_delta = (self.last_lightning_delta - delta).max(0.0);
         for lightning in &mut self.lightnings {
@@ -208,7 +222,8 @@ impl RainSystem {
 
         self.lightnings.retain(|l| l.life > 0.0);
         if self.is_raining && self.lightning_activity.tick(delta) {
-            self.add_lightning(player_info, world, user_settings);
+            self.add_lightning(player_info, world, user_settings, sound_manager);
+            self.lightning_activity = ActivityTimer::new(0.0, random_lightning_cooldown());
         }
     }
 
@@ -218,6 +233,7 @@ impl RainSystem {
         player_info: &PlayerInfo,
         world: &mut World,
         user_settings: &UserSettings,
+        sound_manager: &SoundManager,
     ) {
         let max_add_distance = ((user_settings.get_render_distance() - 1) * AREA_SIZE) as f32;
 
@@ -235,8 +251,8 @@ impl RainSystem {
         );
 
         let lightning = Lightning::new(lightning_position);
-        info!("Lighning at {}", lightning_position);
-        // TODO: play sound
+        info!("Lightning at {}", lightning_position);
+        sound_manager.play_sound(sound_manager::SoundId::Thunder, user_settings);
 
         self.lightnings.push(lightning);
         self.last_lightning_delta = LIGHNING_FLASH_DURATION_S;
@@ -363,4 +379,5 @@ pub struct RainSystemDTO {
     remove_delta: f32,
     change_state_delta: f32,
     sky_modifier: f32,
+    lightning_activity: ActivityTimer,
 }

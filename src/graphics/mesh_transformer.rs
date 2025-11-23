@@ -1,14 +1,16 @@
-use std::f32::consts::PI;
+use std::f32::{self, consts::PI, consts::TAU};
 
 use macroquad::{math::Vec3, models::Mesh};
 
-/// rotates a mesh and it's direction around z
+/// rotates a mesh and it's direction around z, angle must be in range (0.0 .. TAU)
 pub fn rotate_around_z_with_direction(
     mesh: &mut Mesh,
     direction: &mut Vec3,
     origin: Vec3,
     angle: f32,
 ) {
+    debug_assert!(angle >= 0.0);
+    debug_assert!(angle <= TAU);
     if angle <= f32::EPSILON {
         return;
     }
@@ -18,8 +20,10 @@ pub fn rotate_around_z_with_direction(
     rotate_direction(direction, sin_a, cos_a);
 }
 
-/// rotates a mesh around z
+/// rotates a mesh around z, angle must be in range (0.0 .. TAU)
 pub fn rotate_around_z(mesh: &mut Mesh, origin: Vec3, angle: f32) {
+    debug_assert!(angle >= 0.0);
+    debug_assert!(angle <= TAU);
     if angle <= f32::EPSILON {
         return;
     }
@@ -203,6 +207,23 @@ mod tests {
         assert!((direction.x + direction_copy.x) < LIMIT);
         assert!((direction.y + direction_copy.y) < LIMIT);
         assert!((direction.z - direction_copy.z).abs() < LIMIT);
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_rotate_around_z_angle_less_than_zero() {
+        test_rotate_around_z_invalid_angle(-0.1);
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_rotate_around_z_angle_more_than_tau() {
+        test_rotate_around_z_invalid_angle(TAU + 0.1);
+    }
+
+    fn test_rotate_around_z_invalid_angle(angle: f32) {
+        let mut mesh = MeshGenerator::generate_quad_mesh(1.0);
+        rotate_around_z(&mut mesh, Vec3::ZERO, angle);
     }
 
     fn assert_mesh_eq(mesh1: &Mesh, mesh2: &Mesh) {

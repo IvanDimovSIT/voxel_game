@@ -293,6 +293,7 @@ impl VoxelEngine {
             &self.player_info,
             &mut self.world,
             &self.user_settings,
+            &self.asset_manager.sound_manager,
         );
         self.world_time.update(delta);
         self.sky.update(delta);

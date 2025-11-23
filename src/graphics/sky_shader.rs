@@ -9,6 +9,7 @@ use macroquad::{
 const SKY_VERTEX_SHADER: &str = include_str!("../../resources/shaders/sky_vertex.glsl");
 const SKY_FRAGMENT_SHADER: &str = include_str!("../../resources/shaders/sky_fragment.glsl");
 
+/// shader used for clouds, sun and moon
 pub struct SkyShader {
     sky_material: Material,
 }

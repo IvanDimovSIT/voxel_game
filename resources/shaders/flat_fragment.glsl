@@ -3,7 +3,6 @@
 precision mediump float;
 
 varying vec2 uv;
-varying vec3 facePosition;
 
 uniform sampler2D Texture;
 

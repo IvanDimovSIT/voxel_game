@@ -14,15 +14,17 @@ pub enum SoundId {
     Place,
     Click,
     Bounce,
+    Thunder,
 }
 
 const BASE_SOUNDS_PATH: &str = "assets/sounds/";
-const SOUNDS: [(SoundId, &str); 5] = [
+const SOUNDS: [(SoundId, &str); 6] = [
     (SoundId::Fall, "fall.wav"),
     (SoundId::Destroy, "destroy.wav"),
     (SoundId::Place, "place.wav"),
     (SoundId::Click, "click.wav"),
     (SoundId::Bounce, "bounce.wav"),
+    (SoundId::Thunder, "thunder.wav"),
 ];
 
 pub struct SoundManager {

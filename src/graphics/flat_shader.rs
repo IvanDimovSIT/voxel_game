@@ -12,6 +12,7 @@ const FLAT_FRAGMENT_SHADER: &str = include_str!("../../resources/shaders/flat_fr
 
 const CAMERA_POSITION_UNIFORM: &str = "cameraPos";
 
+/// basic shader - no effects
 pub struct FlatShader {
     flat_material: Material,
 }
