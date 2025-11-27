@@ -33,7 +33,7 @@ const MIN_SKY_MODIFIER: f32 = 0.6;
 const REMOVE_ACTIVITY_COOLDOWN: f32 = 0.1;
 const CHANGE_STATE_ACTIVITY_COOLDOWN: f32 = 40.0;
 
-const LIGHTNING_DURATION_S: f32 = 0.6;
+const LIGHTNING_DURATION_S: f32 = 0.8;
 const MIN_LIGHTNING_ACTIVITY_COOLDOWN: f32 = 10.0;
 const MAX_LIGHTNING_ACTIVITY_COOLDOWN: f32 = 25.0;
 const LIGHNING_FLASH_DURATION_S: f32 = 0.3;
@@ -43,6 +43,12 @@ fn random_lightning_cooldown() -> f32 {
         MIN_LIGHTNING_ACTIVITY_COOLDOWN,
         MAX_LIGHTNING_ACTIVITY_COOLDOWN,
     )
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum RainLightLevelModifier {
+    Multiply(f32),
+    Set(f32),
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -198,11 +204,11 @@ impl RainSystem {
         }
     }
 
-    pub fn get_light_level_modifier(&self) -> f32 {
+    pub fn get_light_level_modifier(&self) -> RainLightLevelModifier {
         if self.last_lightning_delta > 0.0 {
-            1.0
+            RainLightLevelModifier::Set(1.0)
         } else {
-            self.sky_modifier
+            RainLightLevelModifier::Multiply(self.sky_modifier)
         }
     }
 
@@ -221,9 +227,13 @@ impl RainSystem {
         }
 
         self.lightnings.retain(|l| l.life > 0.0);
-        if self.is_raining && self.lightning_activity.tick(delta) {
+
+        let should_add_lightning = self.is_raining
+            && self
+                .lightning_activity
+                .tick_change_cooldown(delta, random_lightning_cooldown);
+        if should_add_lightning {
             self.add_lightning(player_info, world, user_settings, sound_manager);
-            self.lightning_activity = ActivityTimer::new(0.0, random_lightning_cooldown());
         }
     }
 

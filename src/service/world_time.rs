@@ -1,5 +1,7 @@
 use std::f32::consts::PI;
 
+use crate::graphics::rain_system::RainLightLevelModifier;
+
 const LENGTH_OF_DAY: f32 = 200.0;
 const LIGHT_LEVEL_COEF: f32 = -10.0;
 
@@ -28,8 +30,12 @@ impl WorldTime {
         self.delta
     }
 
-    pub fn get_light_level(&self, rain_light_level_modifier: f32) -> f32 {
-        (self.light * rain_light_level_modifier).clamp(Self::MIN_LIGHT_LEVEL, Self::MAX_LIGHT_LEVEL)
+    pub fn get_light_level(&self, rain_light_level_modifier: RainLightLevelModifier) -> f32 {
+        match rain_light_level_modifier {
+            RainLightLevelModifier::Multiply(x) => self.light * x,
+            RainLightLevelModifier::Set(x) => x,
+        }
+        .clamp(Self::MIN_LIGHT_LEVEL, Self::MAX_LIGHT_LEVEL)
     }
 
     fn to_light_level(delta: f32) -> f32 {
@@ -67,7 +73,7 @@ mod tests {
 
     fn assert_in_range(world_time: &WorldTime) {
         let delta = world_time.get_delta();
-        let light = world_time.get_light_level(1.0);
+        let light = world_time.get_light_level(RainLightLevelModifier::Multiply(1.0));
 
         assert!(delta >= 0.0);
         assert!(delta <= PI);

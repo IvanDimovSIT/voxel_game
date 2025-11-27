@@ -5,8 +5,7 @@ use crate::{
     utils::vector_to_location,
 };
 
-const VOXEL_SIZE: f32 = 1.0;
-const HALF_VOXEL_SIZE: f32 = VOXEL_SIZE / 2.0;
+const VOXEL_SIZE: f32 = Voxel::HALF_SIZE * 2.0;
 
 #[derive(Debug, Clone, Copy)]
 pub enum RaycastResult {
@@ -38,21 +37,21 @@ pub fn cast_ray(world: &mut World, from: Vec3, to: Vec3, max_distance: f32) -> R
     let mut previous_position = current_position;
 
     let next_boundary_x = if step_x < 0 {
-        current_position.x as f32 - HALF_VOXEL_SIZE
+        current_position.x as f32 - Voxel::HALF_SIZE
     } else {
-        current_position.x as f32 + HALF_VOXEL_SIZE
+        current_position.x as f32 + Voxel::HALF_SIZE
     };
 
     let next_boundary_y = if step_y < 0 {
-        current_position.y as f32 - HALF_VOXEL_SIZE
+        current_position.y as f32 - Voxel::HALF_SIZE
     } else {
-        current_position.y as f32 + HALF_VOXEL_SIZE
+        current_position.y as f32 + Voxel::HALF_SIZE
     };
 
     let next_boundary_z = if step_z < 0 {
-        current_position.z as f32 - HALF_VOXEL_SIZE
+        current_position.z as f32 - Voxel::HALF_SIZE
     } else {
-        current_position.z as f32 + HALF_VOXEL_SIZE
+        current_position.z as f32 + Voxel::HALF_SIZE
     };
 
     let mut t_max_x = if ray.x.abs() <= f32::EPSILON {

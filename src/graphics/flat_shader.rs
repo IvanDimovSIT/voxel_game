@@ -48,10 +48,8 @@ impl FlatShader {
     }
 
     pub fn set_flat_material(&self, camera: &Camera3D) {
-        self.flat_material.set_uniform(
-            CAMERA_POSITION_UNIFORM,
-            [camera.position.x, camera.position.y, camera.position.z],
-        );
+        self.flat_material
+            .set_uniform(CAMERA_POSITION_UNIFORM, camera.position);
         gl_use_material(&self.flat_material);
     }
 }

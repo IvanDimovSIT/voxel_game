@@ -44,6 +44,10 @@ enum TurnDirection {
     Middle,
 }
 
+fn random_turn_time() -> f32 {
+    gen_range(MIN_TURN_TIME, MAX_TURN_TIME)
+}
+
 pub struct ButterflyCreature {
     position: Vec3,
     direction: Vec3,
@@ -69,7 +73,7 @@ impl ButterflyCreature {
             current_mesh: 0,
             wing_flap_activity: ActivityTimer::new(0.0, WING_FLAP_DELAY),
             turn_direction: TurnDirection::Middle,
-            turn_activity: ActivityTimer::new(0.0, gen_range(MIN_TURN_TIME, MAX_TURN_TIME)),
+            turn_activity: ActivityTimer::new(0.0, random_turn_time()),
             angle: 0.0,
         }
     }
@@ -120,7 +124,10 @@ impl ButterflyCreature {
     }
 
     fn turn(&mut self, delta: f32) {
-        if self.turn_activity.tick(delta) {
+        if self
+            .turn_activity
+            .tick_change_cooldown(delta, random_turn_time)
+        {
             self.turn_direction = match self.turn_direction {
                 TurnDirection::Left | TurnDirection::Right => TurnDirection::Middle,
                 TurnDirection::Middle => {
@@ -131,7 +138,6 @@ impl ButterflyCreature {
                     }
                 }
             };
-            self.turn_activity = ActivityTimer::new(0.0, gen_range(MIN_TURN_TIME, MAX_TURN_TIME));
         }
 
         let turn_angle = match self.turn_direction {
