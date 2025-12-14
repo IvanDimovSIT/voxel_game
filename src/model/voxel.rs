@@ -26,6 +26,8 @@ pub enum Voxel {
     Water2,
     Water3,
     Water4,
+    StoneBrick,
+    StonePillar,
     Snow,
     Ice,
     Glass,
@@ -100,6 +102,8 @@ impl Voxel {
             Self::Water2 => "Water (Level 2)",
             Self::Water3 => "Water (Level 3)",
             Self::Water4 => "Water (Level 4)",
+            Self::StoneBrick => "Stone Brick",
+            Self::StonePillar => "Stone Pillar",
             Self::Snow => "Snow",
             Self::Ice => "Ice",
         }

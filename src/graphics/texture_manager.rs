@@ -13,7 +13,7 @@ use crate::{
 const BASE_CREATURE_TEXTURES_PATH: &str = "assets/images/creature_textures/";
 const BASE_VOXEL_TEXTURES_PATH: &str = "assets/images/voxels/";
 const BASE_ICON_TEXTURES_PATH: &str = "assets/images/icons/";
-const TEXTURES: [(Voxel, &str); 16] = [
+const TEXTURES: [(Voxel, &str); 18] = [
     (Voxel::Stone, "stone.png"),
     (Voxel::Sand, "sand.png"),
     (Voxel::Grass, "grass.png"),
@@ -30,13 +30,16 @@ const TEXTURES: [(Voxel, &str); 16] = [
     (Voxel::Cactus, "cactus.png"),
     (Voxel::Snow, "snow.png"),
     (Voxel::Ice, "ice.png"),
+    (Voxel::StoneBrick, "stone-brick.png"),
+    (Voxel::StonePillar, "stone-pillar.png"),
 ];
 const WATER_TEXTURE: &str = "water.png";
-const ICON_TEXTURES: [(Voxel, &str); 4] = [
+const ICON_TEXTURES: [(Voxel, &str); 5] = [
     (Voxel::Grass, "grass-icon.png"),
     (Voxel::Trampoline, "trampoline-icon.png"),
     (Voxel::Wood, "wood-icon.png"),
     (Voxel::Glass, "glass-icon.png"),
+    (Voxel::StonePillar, "stone-pillar-icon.png"),
 ];
 const MESH_TEXTURES: [(MeshId, &str); MeshId::VARIANTS] = [
     (MeshId::Bunny, "bunny_texture.png"),
@@ -81,8 +84,12 @@ pub struct TextureManager {
     plain_textures: HashMap<PlainTextureId, Texture2D>,
 }
 impl TextureManager {
-    pub const VOXELS_WITH_DIFFERENT_FACES: [Voxel; 3] =
-        [Voxel::Grass, Voxel::Trampoline, Voxel::Wood];
+    pub const VOXELS_WITH_DIFFERENT_FACES: [Voxel; 4] = [
+        Voxel::Grass,
+        Voxel::Trampoline,
+        Voxel::Wood,
+        Voxel::StonePillar,
+    ];
 
     /// loads all of the textures
     pub async fn new() -> Self {

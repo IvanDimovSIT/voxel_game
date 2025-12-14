@@ -10,7 +10,7 @@ impl Item {
     }
 }
 
-const RECEPES: [CraftingRecipe; 6] = [
+const RECEPES: [CraftingRecipe; 8] = [
     CraftingRecipe::new1(Item::new_c(Voxel::Boards, 3), Item::new_c(Voxel::Wood, 1)),
     CraftingRecipe::new1(Item::new_c(Voxel::Glass, 1), Item::new_c(Voxel::Sand, 4)),
     CraftingRecipe::new1(
@@ -29,6 +29,14 @@ const RECEPES: [CraftingRecipe; 6] = [
     CraftingRecipe::new1(
         Item::new_c(Voxel::WaterSource, 1),
         Item::new_c(Voxel::Ice, 1),
+    ),
+    CraftingRecipe::new1(
+        Item::new_c(Voxel::StoneBrick, 1),
+        Item::new_c(Voxel::Stone, 1),
+    ),
+    CraftingRecipe::new1(
+        Item::new_c(Voxel::StonePillar, 1),
+        Item::new_c(Voxel::Stone, 1),
     ),
 ];
 
@@ -97,13 +105,17 @@ mod tests {
         available.add(Voxel::Clay, 10u32);
 
         let craftable = find_craftable(&available);
-        assert_eq!(craftable.len(), 3);
+        assert_eq!(craftable.len(), 5);
         assert_eq!(craftable[0].0.output.voxel, Voxel::Boards);
         assert_eq!(craftable[0].1, 10);
         assert_eq!(craftable[1].0.output.voxel, Voxel::Cobblestone);
         assert_eq!(craftable[1].1, 10);
         assert_eq!(craftable[2].0.output.voxel, Voxel::Brick);
         assert_eq!(craftable[2].1, 3);
+        assert_eq!(craftable[3].0.output.voxel, Voxel::StoneBrick);
+        assert_eq!(craftable[3].1, 10);
+        assert_eq!(craftable[4].0.output.voxel, Voxel::StonePillar);
+        assert_eq!(craftable[4].1, 10);
     }
 
     #[test]
