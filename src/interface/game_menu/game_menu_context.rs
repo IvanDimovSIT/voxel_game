@@ -191,6 +191,9 @@ pub fn draw_options_menu<F: FnMut(&UserSettings)>(
     }
     if toggle_sounds {
         user_settings.has_sound = !user_settings.has_sound;
+        asset_manager
+            .sound_manager
+            .start_or_stop_music(user_settings);
     }
     if increase_render_distance {
         let _increased = user_settings.increase_render_distance();

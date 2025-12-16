@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use macroquad::{
-    audio::{Sound, load_sound, play_sound_once},
+    audio::{PlaySoundParams, Sound, load_sound, play_sound, play_sound_once, stop_sound},
     prelude::{error, info},
 };
 
@@ -15,16 +15,18 @@ pub enum SoundId {
     Click,
     Bounce,
     Thunder,
+    Music,
 }
 
 const BASE_SOUNDS_PATH: &str = "assets/sounds/";
-const SOUNDS: [(SoundId, &str); 6] = [
+const SOUNDS: [(SoundId, &str); 7] = [
     (SoundId::Fall, "fall.wav"),
     (SoundId::Destroy, "destroy.wav"),
     (SoundId::Place, "place.wav"),
     (SoundId::Click, "click.wav"),
     (SoundId::Bounce, "bounce.wav"),
     (SoundId::Thunder, "thunder.wav"),
+    (SoundId::Music, "music.ogg"),
 ];
 
 pub struct SoundManager {
@@ -55,6 +57,34 @@ impl SoundManager {
             play_sound_once(sound);
         } else {
             error!("Failed to find sound for {:?}", sound_id)
+        }
+    }
+
+    /// starts or stops the in-game music based on user settings
+    pub fn start_or_stop_music(&self, user_settings: &UserSettings) {
+        if !user_settings.has_sound {
+            self.stop_music();
+            return;
+        }
+
+        if let Some(sound) = self.sounds.get(&SoundId::Music) {
+            play_sound(
+                sound,
+                PlaySoundParams {
+                    looped: true,
+                    ..Default::default()
+                },
+            );
+        } else {
+            error!("Failed to find sound for {:?}", SoundId::Music)
+        }
+    }
+
+    pub fn stop_music(&self) {
+        if let Some(sound) = self.sounds.get(&SoundId::Music) {
+            stop_sound(sound);
+        } else {
+            error!("Failed to find sound for {:?}", SoundId::Music)
         }
     }
 

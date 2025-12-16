@@ -125,6 +125,9 @@ impl VoxelEngine {
         self.renderer
             .load_all_blocking(&mut self.world, &render_zone);
         self.tutorial_messages.show(TutorialMessage::Initial);
+        self.asset_manager
+            .sound_manager
+            .start_or_stop_music(&self.user_settings);
     }
 
     fn check_change_render_distance(&mut self) {
@@ -734,5 +737,6 @@ impl Drop for VoxelEngine {
         store_world_metadata(self.world.get_world_name(), world_metadata);
         write_user_settings_blocking(&self.user_settings);
         self.world.save_all_blocking();
+        self.asset_manager.sound_manager.stop_music();
     }
 }
