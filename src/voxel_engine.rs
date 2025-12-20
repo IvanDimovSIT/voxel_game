@@ -53,8 +53,8 @@ use crate::{
         raycast::{RaycastResult, cast_ray},
         sound_manager::SoundId,
         world_actions::{
-            destroy_voxel, initialise_world_systems, place_voxel, replace_voxel,
-            update_player_in_water,
+            DestroyActionEvent, destroy_voxel, initialise_world_systems, place_voxel,
+            replace_voxel, update_player_in_water,
         },
         world_time::WorldTime,
     },
@@ -326,8 +326,12 @@ impl VoxelEngine {
         );
 
         push_player_up_if_stuck(&mut self.player_info, &mut self.world);
-        self.voxel_simulator
-            .update(&mut self.world, &mut self.renderer, delta);
+        self.voxel_simulator.update(
+            &mut self.world,
+            &mut self.renderer,
+            &self.asset_manager,
+            delta,
+        );
     }
 
     /// updates the areas loaded in memory and unloads old areas
@@ -362,7 +366,7 @@ impl VoxelEngine {
         );
         let creatures_drawn = self.creature_manager.draw(&camera, &self.user_settings);
         self.voxel_particles.draw();
-        self.voxel_simulator.draw(&camera);
+        self.voxel_simulator.draw(&camera, &self.renderer);
         if !self.world_map.active {
             self.rain_system.draw_rain(&camera);
         }
@@ -626,22 +630,29 @@ impl VoxelEngine {
                 first_non_empty,
                 last_empty: _,
             } => {
-                let maybe_destroyed = destroy_voxel(
+                let destroy_event = destroy_voxel(
                     first_non_empty,
                     &mut self.world,
                     &mut self.renderer,
                     &mut self.voxel_simulator,
                     &mut self.voxel_particles,
                 );
-                if let Some(destroyed) = maybe_destroyed {
-                    self.player_info.inventory.add_item(Item::new(destroyed, 1));
-                    self.asset_manager
-                        .sound_manager
-                        .play_sound(SoundId::Destroy, &self.user_settings);
+                match destroy_event {
+                    DestroyActionEvent::None => {}
+                    DestroyActionEvent::GainVoxel(destroyed) => {
+                        self.player_info.inventory.add_item(Item::new(destroyed, 1));
+                        self.asset_manager
+                            .sound_manager
+                            .play_sound(SoundId::Destroy, &self.user_settings);
 
-                    self.tutorial_messages.show(TutorialMessage::Destroy);
-                    if self.player_info.inventory.is_hotbar_full() {
-                        self.tutorial_messages.show(TutorialMessage::Inventory);
+                        self.tutorial_messages.show(TutorialMessage::Destroy);
+                        if self.player_info.inventory.is_hotbar_full() {
+                            self.tutorial_messages.show(TutorialMessage::Inventory);
+                        }
+                    }
+                    DestroyActionEvent::StartBomb(location) => {
+                        self.voxel_simulator.add_bomb(location);
+                        //TODO: play sound
                     }
                 }
             }

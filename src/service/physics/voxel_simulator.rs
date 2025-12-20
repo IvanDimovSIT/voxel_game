@@ -1,17 +1,25 @@
 use macroquad::camera::Camera3D;
 
 use crate::{
-    graphics::renderer::Renderer,
+    graphics::{
+        mesh_manager::{self, MeshManager},
+        renderer::Renderer,
+    },
     model::{location::Location, world::World},
-    service::physics::{
-        falling_voxel_simulator::{FallingVoxelSimulator, SimulatedVoxelDTO},
-        water_simulator::WaterSimulator,
+    service::{
+        asset_manager::AssetManager,
+        physics::{
+            bomb_simulator::BombSimulator,
+            falling_voxel_simulator::{FallingVoxelSimulator, SimulatedVoxelDTO},
+            water_simulator::WaterSimulator,
+        },
     },
 };
 
 pub struct VoxelSimulator {
     water_simulator: WaterSimulator,
     falling_voxel_simulator: FallingVoxelSimulator,
+    bomb_simulator: BombSimulator,
 }
 impl VoxelSimulator {
     pub fn new(
@@ -21,10 +29,17 @@ impl VoxelSimulator {
         Self {
             water_simulator,
             falling_voxel_simulator,
+            bomb_simulator: BombSimulator::new(),
         }
     }
 
-    pub fn update(&mut self, world: &mut World, renderer: &mut Renderer, delta: f32) {
+    pub fn update(
+        &mut self,
+        world: &mut World,
+        renderer: &mut Renderer,
+        asset_manager: &AssetManager,
+        delta: f32,
+    ) {
         self.falling_voxel_simulator.simulate_falling(
             world,
             renderer,
@@ -32,6 +47,12 @@ impl VoxelSimulator {
             delta,
         );
         self.water_simulator.update(world, renderer, delta);
+        let updated_locations = self
+            .bomb_simulator
+            .update(world, renderer, asset_manager, delta);
+        for loc in updated_locations {
+            self.update_location(loc, world, renderer);
+        }
     }
 
     pub fn update_location(
@@ -49,8 +70,9 @@ impl VoxelSimulator {
         self.water_simulator.location_updated(location);
     }
 
-    pub fn draw(&self, camera: &Camera3D) {
+    pub fn draw(&self, camera: &Camera3D, renderer: &Renderer) {
         self.falling_voxel_simulator.draw(camera);
+        self.bomb_simulator.draw(renderer);
     }
 
     pub fn location_has_voxel(&self, location: Location) -> bool {
@@ -62,5 +84,9 @@ impl VoxelSimulator {
             self.falling_voxel_simulator.create_simulated_voxel_dtos(),
             self.water_simulator.clone(),
         )
+    }
+
+    pub fn add_bomb(&mut self, location: Location) {
+        self.bomb_simulator.add_active_bomb(location);
     }
 }

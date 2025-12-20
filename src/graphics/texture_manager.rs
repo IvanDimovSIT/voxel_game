@@ -11,10 +11,10 @@ use crate::{
     service::asset_manager::{AssetError, AssetLoadingErrors},
 };
 
-const BASE_CREATURE_TEXTURES_PATH: &str = "assets/images/creature_textures/";
+const BASE_MODEL_TEXTURES_PATH: &str = "assets/images/model_textures/";
 const BASE_VOXEL_TEXTURES_PATH: &str = "assets/images/voxels/";
 const BASE_ICON_TEXTURES_PATH: &str = "assets/images/icons/";
-const TEXTURES: [(Voxel, &str); 18] = [
+const TEXTURES: [(Voxel, &str); 19] = [
     (Voxel::Stone, "stone.png"),
     (Voxel::Sand, "sand.png"),
     (Voxel::Grass, "grass.png"),
@@ -33,14 +33,16 @@ const TEXTURES: [(Voxel, &str); 18] = [
     (Voxel::Ice, "ice.png"),
     (Voxel::StoneBrick, "stone-brick.png"),
     (Voxel::StonePillar, "stone-pillar.png"),
+    (Voxel::Bomb, "bomb.png"),
 ];
 const WATER_TEXTURE: &str = "water.png";
-const ICON_TEXTURES: [(Voxel, &str); 5] = [
+const ICON_TEXTURES: [(Voxel, &str); 6] = [
     (Voxel::Grass, "grass-icon.png"),
     (Voxel::Trampoline, "trampoline-icon.png"),
     (Voxel::Wood, "wood-icon.png"),
     (Voxel::Glass, "glass-icon.png"),
     (Voxel::StonePillar, "stone-pillar-icon.png"),
+    (Voxel::Bomb, "bomb-icon.png"),
 ];
 const MESH_TEXTURES: [(MeshId, &str); MeshId::VARIANTS] = [
     (MeshId::Bunny, "bunny_texture.png"),
@@ -85,11 +87,12 @@ pub struct TextureManager {
     plain_textures: HashMap<PlainTextureId, Texture2D>,
 }
 impl TextureManager {
-    pub const VOXELS_WITH_DIFFERENT_FACES: [Voxel; 4] = [
+    pub const VOXELS_WITH_DIFFERENT_FACES: [Voxel; 5] = [
         Voxel::Grass,
         Voxel::Trampoline,
         Voxel::Wood,
         Voxel::StonePillar,
+        Voxel::Bomb,
     ];
 
     /// loads all of the textures
@@ -285,7 +288,7 @@ impl TextureManager {
         let mut errors = vec![];
 
         for (id, file) in MESH_TEXTURES {
-            let fullpath = format!("{BASE_CREATURE_TEXTURES_PATH}{file}");
+            let fullpath = format!("{BASE_MODEL_TEXTURES_PATH}{file}");
             if let Some(texture) = Self::load_image(&fullpath).await {
                 texture.set_filter(FilterMode::Nearest);
                 textures.insert(id, texture);

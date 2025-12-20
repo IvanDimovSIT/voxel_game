@@ -20,6 +20,7 @@ pub enum MeshId {
     ButterflyDown,
     ButterflyUp,
     Penguin,
+    Explosion,
 }
 impl MeshId {
     pub const VARIANTS: usize = 4;

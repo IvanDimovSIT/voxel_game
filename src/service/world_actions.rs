@@ -74,16 +74,22 @@ pub fn replace_voxel(
     Some(to_be_replaced)
 }
 
+pub enum DestroyActionEvent {
+    None,
+    GainVoxel(Voxel),
+    StartBomb(Location),
+}
+
 pub fn destroy_voxel(
     location: Location,
     world: &mut World,
     renderer: &mut Renderer,
     voxel_simulator: &mut VoxelSimulator,
     voxel_particles: &mut VoxelParticleSystem,
-) -> Option<Voxel> {
+) -> DestroyActionEvent {
     let voxel = world.get(location);
     if voxel == Voxel::None || location.z == AREA_HEIGHT as i32 - 1 {
-        return None;
+        return DestroyActionEvent::None;
     }
 
     world.set(location, Voxel::None);
@@ -91,7 +97,11 @@ pub fn destroy_voxel(
     renderer.update_location(world, location);
     voxel_simulator.update_location(location, world, renderer);
 
-    Some(voxel)
+    if voxel == Voxel::Bomb {
+        DestroyActionEvent::StartBomb(location)
+    } else {
+        DestroyActionEvent::GainVoxel(voxel)
+    }
 }
 
 pub fn update_player_in_water(player_info: &mut PlayerInfo, world: &mut World) {
