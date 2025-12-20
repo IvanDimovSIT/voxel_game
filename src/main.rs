@@ -41,13 +41,16 @@ fn config() -> Conf {
 #[macroquad::main(config)]
 async fn main() {
     initialise_save_directory();
-    let asset_manager = AssetManager::new().await;
+    let asset_manager_result = AssetManager::new().await;
     let user_settings = read_or_initialise_user_settings();
     if user_settings.is_fullscreen {
         set_fullscreen(true);
     }
 
-    let mut state = GameState::new(asset_manager.clone(), user_settings);
+    let mut state = match asset_manager_result {
+        Ok(asset_manager) => GameState::new(asset_manager.clone(), user_settings),
+        Err(errors) => GameState::error(errors),
+    };
 
     loop {
         if !state.process_next_frame().await {

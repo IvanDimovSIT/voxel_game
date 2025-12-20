@@ -1,5 +1,6 @@
 pub mod background;
 pub mod button;
+pub mod error_display;
 pub mod game_menu;
 pub mod help_menu;
 pub mod interface_context;

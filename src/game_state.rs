@@ -3,13 +3,16 @@ use std::{rc::Rc, thread::sleep, time::Duration};
 use macroquad::time::get_frame_time;
 
 use crate::{
-    interface::interface_context::InterfaceContext, model::user_settings::UserSettings,
-    service::asset_manager::AssetManager, voxel_engine::VoxelEngine,
+    interface::{error_display::ErrorDisplay, interface_context::InterfaceContext},
+    model::user_settings::UserSettings,
+    service::asset_manager::{AssetLoadingErrors, AssetManager},
+    voxel_engine::VoxelEngine,
 };
 
 pub enum GameState {
     Running { voxel_engine: Box<VoxelEngine> },
     Menu { context: Box<InterfaceContext> },
+    Error { display: Box<ErrorDisplay> },
     Exit,
 }
 impl GameState {
@@ -19,6 +22,12 @@ impl GameState {
                 asset_manager,
                 user_settings,
             )),
+        }
+    }
+
+    pub fn error(asset_errors: AssetLoadingErrors) -> Self {
+        Self::Error {
+            display: Box::new(ErrorDisplay::new(asset_errors)),
         }
     }
 
@@ -38,6 +47,11 @@ impl GameState {
             GameState::Exit => {
                 sleep(Duration::from_millis(200));
                 return false;
+            }
+            GameState::Error { display } => {
+                if display.next_frame().await {
+                    *self = GameState::Exit;
+                }
             }
         }
 

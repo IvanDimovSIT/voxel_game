@@ -8,6 +8,7 @@ use macroquad::{
 use crate::{
     graphics::mesh_manager::MeshId,
     model::voxel::{MAX_VOXEL_VARIANTS, Voxel},
+    service::asset_manager::{AssetError, AssetLoadingErrors},
 };
 
 const BASE_CREATURE_TEXTURES_PATH: &str = "assets/images/creature_textures/";
@@ -92,50 +93,88 @@ impl TextureManager {
     ];
 
     /// loads all of the textures
-    pub async fn new() -> Self {
+    pub async fn new() -> Result<Self, AssetLoadingErrors> {
         let textures = Self::load_voxel_textures().await;
         let voxel_icons = Self::load_voxel_icon_textures().await;
         let mesh_textures = Self::load_mesh_textures().await;
         let plain_textures = Self::load_plain_textures().await;
 
-        Self {
-            textures,
-            voxel_icons,
-            mesh_textures,
-            plain_textures,
+        let mut errors = vec![];
+
+        if let Err(err) = &textures {
+            errors.extend(err.errors.clone());
         }
+        if let Err(err) = &voxel_icons {
+            errors.extend(err.errors.clone());
+        }
+        if let Err(err) = &mesh_textures {
+            errors.extend(err.errors.clone());
+        }
+        if let Err(err) = &plain_textures {
+            errors.extend(err.errors.clone());
+        }
+
+        if !errors.is_empty() {
+            return Err(AssetLoadingErrors::new(errors));
+        }
+
+        Ok(Self {
+            textures: textures.unwrap(),
+            voxel_icons: voxel_icons.unwrap(),
+            mesh_textures: mesh_textures.unwrap(),
+            plain_textures: plain_textures.unwrap(),
+        })
     }
 
-    async fn load_plain_textures() -> HashMap<PlainTextureId, Texture2D> {
+    async fn load_plain_textures() -> Result<HashMap<PlainTextureId, Texture2D>, AssetLoadingErrors>
+    {
         let mut textures = HashMap::with_capacity(PLAIN_TEXTURES.len());
+        let mut errors = vec![];
+
         for (texture_type, texture_path, filter_mode) in PLAIN_TEXTURES {
             let full_path = format!("{BASE_PLAIN_TEXTURES}{texture_path}");
-            let texture = Self::load_image(&full_path).await;
-            texture.set_filter(filter_mode);
-            textures.insert(texture_type, texture);
-            info!(
-                "Loaded plain texture for {:?} from '{}'",
-                texture_type, texture_path
-            );
+            if let Some(texture) = Self::load_image(&full_path).await {
+                texture.set_filter(filter_mode);
+                textures.insert(texture_type, texture);
+                info!(
+                    "Loaded plain texture for {:?} from '{}'",
+                    texture_type, texture_path
+                );
+            } else {
+                errors.push(AssetError::MissingImage { path: full_path });
+            }
         }
 
-        textures
+        if errors.is_empty() {
+            Ok(textures)
+        } else {
+            Err(AssetLoadingErrors::new(errors))
+        }
     }
 
-    async fn load_voxel_icon_textures() -> HashMap<Voxel, Texture2D> {
+    async fn load_voxel_icon_textures() -> Result<HashMap<Voxel, Texture2D>, AssetLoadingErrors> {
         let mut textures = HashMap::with_capacity(ICON_TEXTURES.len());
+        let mut errors = vec![];
+
         for (texture_type, texture_path) in ICON_TEXTURES {
             let full_path = format!("{BASE_ICON_TEXTURES_PATH}{texture_path}");
-            let texture = Self::load_image(&full_path).await;
-            textures.insert(texture_type, texture);
-            info!(
-                "Loaded icon texture for {:?} from '{}'",
-                texture_type, texture_path
-            );
+            if let Some(texture) = Self::load_image(&full_path).await {
+                textures.insert(texture_type, texture);
+                info!(
+                    "Loaded icon texture for {:?} from '{}'",
+                    texture_type, texture_path
+                );
+            } else {
+                errors.push(AssetError::MissingImage { path: full_path });
+            }
         }
-        Self::verify_loaded_textures_for_multiface_voxels(&textures);
 
-        textures
+        if errors.is_empty() {
+            Self::verify_loaded_textures_for_multiface_voxels(&textures);
+            Ok(textures)
+        } else {
+            Err(AssetLoadingErrors::new(errors))
+        }
     }
 
     fn verify_loaded_textures_for_multiface_voxels(textures: &HashMap<Voxel, Texture2D>) {
@@ -144,25 +183,36 @@ impl TextureManager {
         }
     }
 
-    async fn load_voxel_textures() -> Vec<Option<Texture2D>> {
+    async fn load_voxel_textures() -> Result<Vec<Option<Texture2D>>, AssetLoadingErrors> {
         let mut textures = vec![None; MAX_TEXTURE_COUNT];
+        let mut missing_textures = vec![];
+
         for (texture_type, texture_path) in TEXTURES {
             let full_path = format!("{BASE_VOXEL_TEXTURES_PATH}{texture_path}");
-            let texture = Self::load_image(&full_path).await;
-            texture.set_filter(FilterMode::Nearest);
-            textures[texture_type.index()] = Some(texture);
-            info!(
-                "Loaded texture for {:?} from '{}'",
-                texture_type, texture_path
-            );
+            if let Some(texture) = Self::load_image(&full_path).await {
+                texture.set_filter(FilterMode::Nearest);
+                textures[texture_type.index()] = Some(texture);
+                info!(
+                    "Loaded texture for {:?} from '{}'",
+                    texture_type, texture_path
+                );
+            } else {
+                missing_textures.push(AssetError::MissingImage { path: full_path });
+            }
         }
-        Self::load_water_texture(&mut textures).await;
+        if let Err(missing) = Self::load_water_texture(&mut textures).await {
+            missing_textures.push(missing);
+        }
 
-        textures
+        if missing_textures.is_empty() {
+            Ok(textures)
+        } else {
+            Err(AssetLoadingErrors::new(missing_textures))
+        }
     }
 
     /// loads the texture once and reuses it for all water voxels
-    async fn load_water_texture(textures: &mut [Option<Texture2D>]) {
+    async fn load_water_texture(textures: &mut [Option<Texture2D>]) -> Result<(), AssetError> {
         let water_voxels = [
             Voxel::WaterSource,
             Voxel::WaterDown,
@@ -172,17 +222,25 @@ impl TextureManager {
             Voxel::Water4,
         ];
         let texture_path = format!("{BASE_VOXEL_TEXTURES_PATH}{WATER_TEXTURE}");
-        let texture = Self::load_image(&texture_path).await;
-        texture.set_filter(FilterMode::Nearest);
-        for voxel in water_voxels {
-            textures[voxel.index()] = Some(texture.clone());
+        if let Some(texture) = Self::load_image(&texture_path).await {
+            texture.set_filter(FilterMode::Nearest);
+            for voxel in water_voxels {
+                textures[voxel.index()] = Some(texture.clone());
+            }
+            Ok(())
+        } else {
+            Err(AssetError::MissingImage { path: texture_path })
         }
     }
 
-    async fn load_image(path: &str) -> Texture2D {
-        load_texture(path)
-            .await
-            .unwrap_or_else(|_| panic!("Error loading texture '{path}'"))
+    async fn load_image(path: &str) -> Option<Texture2D> {
+        match load_texture(path).await {
+            Ok(texture) => Some(texture),
+            Err(err) => {
+                error!("Error loading texture '{}':{}", path, err);
+                None
+            }
+        }
     }
 
     /// returns the texture of the voxel
@@ -222,18 +280,24 @@ impl TextureManager {
             .weak_clone()
     }
 
-    async fn load_mesh_textures() -> HashMap<MeshId, Texture2D> {
+    async fn load_mesh_textures() -> Result<HashMap<MeshId, Texture2D>, AssetLoadingErrors> {
         let mut textures = HashMap::new();
+        let mut errors = vec![];
+
         for (id, file) in MESH_TEXTURES {
             let fullpath = format!("{BASE_CREATURE_TEXTURES_PATH}{file}");
-            let texture = load_texture(&fullpath)
-                .await
-                .unwrap_or_else(|_| panic!("Error loading creature texture '{fullpath}'"));
-            texture.set_filter(FilterMode::Nearest);
-
-            textures.insert(id, texture);
+            if let Some(texture) = Self::load_image(&fullpath).await {
+                texture.set_filter(FilterMode::Nearest);
+                textures.insert(id, texture);
+            } else {
+                errors.push(AssetError::MissingImage { path: fullpath });
+            }
         }
 
-        textures
+        if errors.is_empty() {
+            Ok(textures)
+        } else {
+            Err(AssetLoadingErrors::new(errors))
+        }
     }
 }

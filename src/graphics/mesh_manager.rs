@@ -3,12 +3,16 @@ use std::collections::HashMap;
 use macroquad::{
     math::{Vec3, vec2, vec3, vec4},
     models::Mesh,
+    prelude::{error, info},
     texture::Texture2D,
     ui::Vertex,
 };
 use tobj::{LoadOptions, Model, load_obj};
 
-use crate::graphics::{mesh_transformer::move_mesh, texture_manager::TextureManager};
+use crate::{
+    graphics::{mesh_transformer::move_mesh, texture_manager::TextureManager},
+    service::asset_manager::{AssetError, AssetLoadingErrors},
+};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum MeshId {
@@ -39,20 +43,39 @@ const MODEL_FILES: [(MeshId, &str); MeshId::VARIANTS] = [
 
 const MAX_COORDINATES: f32 = 4.0;
 
+const MESH_LOAD_OPTIONS: LoadOptions = LoadOptions {
+    single_index: true,
+    triangulate: true,
+    ignore_points: false,
+    ignore_lines: false,
+};
+
 pub struct MeshManager {
     models: HashMap<MeshId, Mesh>,
 }
 impl MeshManager {
-    pub fn new(texture_manager: &TextureManager) -> Self {
+    pub fn new(texture_manager: &TextureManager) -> Result<Self, AssetLoadingErrors> {
         let mut models = HashMap::new();
+        let mut errors = vec![];
+
         for (id, path) in MODEL_FILES {
             let fullpath = format!("{BASE_PATH}{path}");
             let texture = texture_manager.get_mesh_texture(id);
-            let mesh = Self::load_mesh(&fullpath, texture);
-            models.insert(id, mesh);
+            match Self::load_mesh(&fullpath, texture) {
+                Ok(mesh) => {
+                    models.insert(id, mesh);
+                }
+                Err(err) => {
+                    errors.push(err);
+                }
+            }
         }
 
-        Self { models }
+        if errors.is_empty() {
+            Ok(Self { models })
+        } else {
+            Err(AssetLoadingErrors::new(errors))
+        }
     }
 
     /// creates a mesh at the location
@@ -70,25 +93,26 @@ impl MeshManager {
         mesh
     }
 
-    fn load_mesh(filepath: &str, texture: Texture2D) -> Mesh {
-        let (loaded_models, _loaded_materials) = load_obj(
-            filepath,
-            &LoadOptions {
-                single_index: true,
-                triangulate: true,
-                ignore_points: false,
-                ignore_lines: false,
-            },
-        )
-        .unwrap_or_else(|_| panic!("Error loading model '{filepath}'"));
+    fn load_mesh(filepath: &str, texture: Texture2D) -> Result<Mesh, AssetError> {
+        match load_obj(filepath, &MESH_LOAD_OPTIONS) {
+            Ok((loaded_models, _loaded_materials)) => {
+                if loaded_models.len() != 1 {
+                    return Err(AssetError::ModelFileMustContainASingleModel {
+                        path: filepath.to_owned(),
+                    });
+                }
 
-        assert_eq!(
-            loaded_models.len(),
-            1,
-            "model files must contain a single model"
-        );
-        let loaded_model = loaded_models.into_iter().last().unwrap();
-        Self::convert_loaded_model_to_mesh(loaded_model, texture)
+                let loaded_model = loaded_models.into_iter().last().unwrap();
+                info!("Loaded model '{}'", filepath);
+                Ok(Self::convert_loaded_model_to_mesh(loaded_model, texture))
+            }
+            Err(err) => {
+                error!("Failed to load model '{}':{}", filepath, err);
+                Err(AssetError::MissingModel {
+                    path: filepath.to_owned(),
+                })
+            }
+        }
     }
 
     fn convert_loaded_model_to_mesh(loaded_model: Model, texture: Texture2D) -> Mesh {

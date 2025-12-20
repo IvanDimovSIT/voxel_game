@@ -5,7 +5,13 @@ use macroquad::{
     prelude::{error, info},
 };
 
-use crate::{model::user_settings::UserSettings, service::physics::player_physics::CollisionType};
+use crate::{
+    model::user_settings::UserSettings,
+    service::{
+        asset_manager::{AssetError, AssetLoadingErrors},
+        physics::player_physics::CollisionType,
+    },
+};
 
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
 pub enum SoundId {
@@ -34,18 +40,29 @@ pub struct SoundManager {
 }
 impl SoundManager {
     /// loads sounds from files
-    pub async fn new() -> Self {
+    pub async fn new() -> Result<Self, AssetLoadingErrors> {
         let mut sounds = HashMap::new();
+        let mut errors = vec![];
+
         for (id, path) in SOUNDS {
             let full_path = format!("{BASE_SOUNDS_PATH}{path}");
-            let sound = load_sound(&full_path)
-                .await
-                .unwrap_or_else(|_| panic!("Failed to load '{path}'"));
-            info!("Loaded sound with id {:?} from '{}'", id, path);
-            sounds.insert(id, sound);
+            match load_sound(&full_path).await {
+                Ok(sound) => {
+                    info!("Loaded sound with id {:?} from '{}'", id, path);
+                    sounds.insert(id, sound);
+                }
+                Err(err) => {
+                    error!("Failed to load '{path}':{}", err);
+                    errors.push(AssetError::MissingSound { path: full_path });
+                }
+            }
         }
 
-        Self { sounds }
+        if errors.is_empty() {
+            Ok(Self { sounds })
+        } else {
+            Err(AssetLoadingErrors::new(errors))
+        }
     }
 
     pub fn play_sound(&self, sound_id: SoundId, user_settings: &UserSettings) {
