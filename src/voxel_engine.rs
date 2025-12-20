@@ -330,6 +330,7 @@ impl VoxelEngine {
             &mut self.world,
             &mut self.renderer,
             &self.asset_manager,
+            &self.user_settings,
             delta,
         );
     }
@@ -652,7 +653,9 @@ impl VoxelEngine {
                     }
                     DestroyActionEvent::StartBomb(location) => {
                         self.voxel_simulator.add_bomb(location);
-                        //TODO: play sound
+                        self.asset_manager
+                            .sound_manager
+                            .play_sound(SoundId::LightFuse, &self.user_settings);
                     }
                 }
             }

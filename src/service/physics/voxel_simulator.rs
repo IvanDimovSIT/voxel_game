@@ -1,11 +1,8 @@
 use macroquad::camera::Camera3D;
 
 use crate::{
-    graphics::{
-        mesh_manager::{self, MeshManager},
-        renderer::Renderer,
-    },
-    model::{location::Location, world::World},
+    graphics::renderer::Renderer,
+    model::{location::Location, user_settings::UserSettings, world::World},
     service::{
         asset_manager::AssetManager,
         physics::{
@@ -38,6 +35,7 @@ impl VoxelSimulator {
         world: &mut World,
         renderer: &mut Renderer,
         asset_manager: &AssetManager,
+        user_settings: &UserSettings,
         delta: f32,
     ) {
         self.falling_voxel_simulator.simulate_falling(
@@ -47,9 +45,9 @@ impl VoxelSimulator {
             delta,
         );
         self.water_simulator.update(world, renderer, delta);
-        let updated_locations = self
-            .bomb_simulator
-            .update(world, renderer, asset_manager, delta);
+        let updated_locations =
+            self.bomb_simulator
+                .update(world, renderer, asset_manager, user_settings, delta);
         for loc in updated_locations {
             self.update_location(loc, world, renderer);
         }

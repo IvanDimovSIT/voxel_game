@@ -10,10 +10,14 @@ use crate::{
         mesh_manager::{MeshId, MeshManager},
         renderer::Renderer,
     },
-    model::{area::AREA_HEIGHT, location::Location, voxel::Voxel, world::World},
+    model::{
+        area::AREA_HEIGHT, location::Location, user_settings::UserSettings, voxel::Voxel,
+        world::World,
+    },
     service::{
         asset_manager::AssetManager,
         physics::player_physics::{GRAVITY, MAX_FALL_SPEED},
+        sound_manager::SoundId,
     },
     utils::vector_to_location,
 };
@@ -22,9 +26,9 @@ const MAX_ACTIVE_BOMBS: usize = 10;
 const BOMB_DELAY_S: f32 = 3.0;
 const SHORT_BOMB_DELAY_S: f32 = 0.5;
 const INITIAL_BOMB_VELOCITY: f32 = -4.0;
-const EXPLOSION_RADIUS: f32 = 4.0;
+const EXPLOSION_RADIUS: f32 = 4.5;
 const EXPLOSION_RADIUS_SQ: f32 = EXPLOSION_RADIUS * EXPLOSION_RADIUS;
-const EXPLOSION_DURATION_S: f32 = 0.8;
+const EXPLOSION_DURATION_S: f32 = 0.2;
 
 struct ActiveBomb {
     position: Vec3,
@@ -76,6 +80,7 @@ impl BombSimulator {
         world: &mut World,
         renderer: &mut Renderer,
         asset_manager: &AssetManager,
+        user_settings: &UserSettings,
         delta: f32,
     ) -> HashSet<Location> {
         let mut explosion_at = vec![];
@@ -83,9 +88,12 @@ impl BombSimulator {
             Self::update_bomb(bomb, world, delta);
             if bomb.life_s <= 0.0 {
                 explosion_at.push(bomb.position);
-                //TODO: Play sound
+                asset_manager
+                    .sound_manager
+                    .play_sound(SoundId::Explosion, user_settings);
             }
         }
+        self.explosions.iter_mut().for_each(|e| e.life_s -= delta);
         self.explosions.retain(|e| e.life_s > 0.0);
         self.active_bombs.retain(|b| b.life_s > 0.0);
         self.handle_explosions(explosion_at, world, renderer, asset_manager)
@@ -93,10 +101,14 @@ impl BombSimulator {
 
     pub fn draw(&self, renderer: &Renderer) {
         for bomb in &self.active_bombs {
-            //TODO: alternate between 2 models
+            let bomb_voxel = if (bomb.life_s * 10.0).sin() > 0.5 {
+                Voxel::Bomb
+            } else {
+                Voxel::ActiveBomb
+            };
             let mesh = renderer
                 .get_mesh_generator()
-                .generate_mesh_for_falling_voxel(Voxel::Bomb, bomb.position);
+                .generate_mesh_for_falling_voxel(bomb_voxel, bomb.position);
 
             draw_mesh(&mesh);
         }
@@ -165,7 +177,7 @@ impl BombSimulator {
         let r = EXPLOSION_RADIUS.ceil() as i32;
 
         let z_min = (cz - r).max(0);
-        let z_max = (cz + r).min(AREA_HEIGHT as i32 - 1);
+        let z_max = (cz + r).min(AREA_HEIGHT as i32 - 2);
 
         for x in (cx - r)..=(cx + r) {
             for y in (cy - r)..=(cy + r) {

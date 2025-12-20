@@ -31,6 +31,7 @@ pub enum Voxel {
     Snow,
     Ice,
     Bomb,
+    ActiveBomb,
     Glass,
 }
 impl Voxel {
@@ -108,6 +109,7 @@ impl Voxel {
             Self::Snow => "Snow",
             Self::Ice => "Ice",
             Self::Bomb => "Bomb",
+            Self::ActiveBomb => "Active Bomb",
         }
     }
 
