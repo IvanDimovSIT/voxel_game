@@ -23,6 +23,7 @@ pub struct AssetLoadingErrors {
 }
 impl AssetLoadingErrors {
     pub fn new(errors: Vec<AssetError>) -> Self {
+        assert!(!errors.is_empty());
         Self { errors }
     }
 }

@@ -10,7 +10,7 @@ impl Item {
     }
 }
 
-const RECEPES: [CraftingRecipe; 10] = [
+const RECEPES: [CraftingRecipe; 11] = [
     CraftingRecipe::new1(Item::new_c(Voxel::Boards, 3), Item::new_c(Voxel::Wood, 1)),
     CraftingRecipe::new1(Item::new_c(Voxel::Glass, 1), Item::new_c(Voxel::Sand, 4)),
     CraftingRecipe::new1(
@@ -47,6 +47,12 @@ const RECEPES: [CraftingRecipe; 10] = [
         Item::new_c(Voxel::Trampoline, 1),
         Item::new_c(Voxel::Wood, 10),
     ),
+    CraftingRecipe::new3(
+        Item::new_c(Voxel::Bomb, 1),
+        Item::new_c(Voxel::Sand, 2),
+        Item::new_c(Voxel::Wood, 2),
+        Item::new_c(Voxel::Stone, 2),
+    ),
 ];
 
 #[derive(Debug, Clone, Copy)]
@@ -67,6 +73,13 @@ impl CraftingRecipe {
     const fn new2(output: Item, input1: Item, input2: Item) -> Self {
         Self {
             inputs: [Some(input1), Some(input2), None],
+            output,
+        }
+    }
+
+    const fn new3(output: Item, input1: Item, input2: Item, input3: Item) -> Self {
+        Self {
+            inputs: [Some(input1), Some(input2), Some(input3)],
             output,
         }
     }
