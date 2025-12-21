@@ -8,6 +8,7 @@ use macroquad::{
 use crate::{
     graphics::{
         mesh_manager::{MeshId, MeshManager},
+        mesh_transformer,
         renderer::Renderer,
     },
     model::{
@@ -106,9 +107,16 @@ impl BombSimulator {
             } else {
                 Voxel::ActiveBomb
             };
-            let mesh = renderer
+            let mut mesh = renderer
                 .get_mesh_generator()
                 .generate_mesh_for_falling_voxel(bomb_voxel, bomb.position);
+
+            const BOMB_SCALE_START_S: f32 = 0.2;
+            const BOMB_SCALE_MAX: f32 = 1.5;
+            if bomb.life_s < BOMB_SCALE_START_S {
+                let scale_amount = 1.0 + (BOMB_SCALE_START_S - bomb.life_s) * BOMB_SCALE_MAX;
+                mesh_transformer::scale_mesh(&mut mesh, bomb.position, scale_amount);
+            }
 
             draw_mesh(&mesh);
         }

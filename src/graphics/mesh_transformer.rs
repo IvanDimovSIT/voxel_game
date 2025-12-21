@@ -117,6 +117,15 @@ pub fn rotate_mesh_towards(
     }
 }
 
+/// scale mesh with it's origin by amount
+pub fn scale_mesh(mesh: &mut Mesh, mesh_origin: Vec3, amount: f32) {
+    for v in &mut mesh.vertices {
+        v.position -= mesh_origin;
+        v.position *= amount;
+        v.position += mesh_origin;
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use std::f32::consts::{PI, TAU};
@@ -219,6 +228,54 @@ mod tests {
     #[should_panic]
     fn test_rotate_around_z_angle_more_than_tau() {
         test_rotate_around_z_invalid_angle(TAU + 0.1);
+    }
+
+    #[test]
+    fn test_scale_mesh_no_change() {
+        let mut mesh = MeshGenerator::generate_quad_mesh(1.0);
+        let mesh_copy = MeshGenerator::generate_quad_mesh(1.0);
+
+        scale_mesh(&mut mesh, Vec3::ZERO, 1.0);
+
+        assert_mesh_eq(&mesh, &mesh_copy);
+    }
+
+    #[test]
+    fn test_scale_mesh_greater() {
+        let mesh = MeshGenerator::generate_quad_mesh(1.0);
+        let mesh_copy = MeshGenerator::generate_quad_mesh(1.0);
+
+        let scale = 2.5;
+        let origin = Vec3::ZERO;
+
+        test_scale(mesh, mesh_copy, scale, origin);
+    }
+
+    #[test]
+    fn test_scale_mesh_smaller() {
+        let mesh = MeshGenerator::generate_quad_mesh(1.0);
+        let mesh_copy = MeshGenerator::generate_quad_mesh(1.0);
+
+        let scale = 0.3;
+        let origin = Vec3::ZERO;
+
+        test_scale(mesh, mesh_copy, scale, origin);
+    }
+
+    fn test_scale(mut mesh: Mesh, mesh_copy: Mesh, scale: f32, origin: Vec3) {
+        scale_mesh(&mut mesh, origin, scale);
+
+        for (scaled, original) in mesh.vertices.iter().zip(mesh_copy.vertices.iter()) {
+            assert_eq!(scaled.normal, original.normal);
+            assert_eq!(scaled.color, original.color);
+            assert_eq!(scaled.uv, original.uv);
+
+            assert!((scaled.position.x - original.position.x * scale).abs() < LIMIT);
+            assert!((scaled.position.y - original.position.y * scale).abs() < LIMIT);
+            assert!((scaled.position.z - original.position.z * scale).abs() < LIMIT);
+        }
+
+        assert_eq!(mesh.indices, mesh_copy.indices);
     }
 
     fn test_rotate_around_z_invalid_angle(angle: f32) {

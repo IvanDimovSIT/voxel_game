@@ -93,13 +93,13 @@ pub fn destroy_voxel(
     }
 
     world.set(location, Voxel::None);
-    voxel_particles.add_particles_for_destroyed(voxel, location, renderer.get_mesh_generator());
     renderer.update_location(world, location);
     voxel_simulator.update_location(location, world, renderer);
 
     if voxel == Voxel::Bomb {
         DestroyActionEvent::StartBomb(location)
     } else {
+        voxel_particles.add_particles_for_destroyed(voxel, location, renderer.get_mesh_generator());
         DestroyActionEvent::GainVoxel(voxel)
     }
 }
