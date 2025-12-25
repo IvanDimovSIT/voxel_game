@@ -16,16 +16,22 @@ const X_OFFSET: f32 = 2.0;
 
 pub struct ErrorDisplay {
     errors: Vec<String>,
+    error_title: String,
 }
 impl ErrorDisplay {
     pub fn new(asset_errors: AssetLoadingErrors) -> Self {
-        let errors = asset_errors
+        let errors: Vec<_> = asset_errors
             .errors
             .into_iter()
             .map(Self::map_asset_error_to_text)
             .collect();
 
-        Self { errors }
+        let error_title = format!("Error loading assets({}):", errors.len());
+
+        Self {
+            errors,
+            error_title,
+        }
     }
 
     /// returns true if the game should exit
@@ -40,7 +46,7 @@ impl ErrorDisplay {
             TEXT_COLOR,
         );
         draw_text(
-            "Error loading assets:",
+            &self.error_title,
             X_OFFSET,
             LARGE_FONT * 2.0,
             LARGE_FONT,
