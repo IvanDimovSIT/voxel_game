@@ -45,7 +45,7 @@ impl InterfaceContext {
     pub fn enter_game(&self) -> Option<Box<VoxelEngine>> {
         match &self.current_screen {
             InterfaceScreen::WorldSelection(world_selection_context) => {
-                world_selection_context.enter_game(self.asset_manager.clone(), &self.user_settings)
+                world_selection_context.enter_game(&self.asset_manager, &self.user_settings)
             }
             _ => None,
         }

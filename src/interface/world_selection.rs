@@ -69,14 +69,14 @@ impl WorldSelectionContext {
 
     pub fn enter_game(
         &self,
-        asset_manager: Rc<AssetManager>,
+        asset_manager: &Rc<AssetManager>,
         user_settings: &UserSettings,
     ) -> Option<Box<VoxelEngine>> {
         if self.should_enter {
             self.store_world_names(true);
             let voxel_engine = Box::new(VoxelEngine::new(
                 self.world_name_input.get_text(),
-                asset_manager,
+                asset_manager.clone(),
                 user_settings.clone(),
             ));
             Some(voxel_engine)

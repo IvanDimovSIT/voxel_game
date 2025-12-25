@@ -7,6 +7,7 @@ use macroquad::{
 
 use crate::{
     game_state::GameState,
+    graphics::shader_manager::ShaderManager,
     service::{
         asset_manager::AssetManager,
         persistence::{
@@ -40,6 +41,8 @@ fn config() -> Conf {
 
 #[macroquad::main(config)]
 async fn main() {
+    // force shader initialisation
+    ShaderManager::instance();
     initialise_save_directory();
     let asset_manager_result = AssetManager::new().await;
     let user_settings = read_or_initialise_user_settings();

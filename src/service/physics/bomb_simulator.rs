@@ -1,6 +1,7 @@
-use std::collections::HashSet;
+use std::{collections::HashSet, sync::Arc};
 
 use macroquad::{
+    camera::Camera3D,
     math::{Vec3, vec3},
     models::{Mesh, draw_mesh},
 };
@@ -10,6 +11,7 @@ use crate::{
         mesh_manager::{MeshId, MeshManager},
         mesh_transformer,
         renderer::Renderer,
+        shader_manager::ShaderManager,
     },
     model::{
         area::AREA_HEIGHT, location::Location, user_settings::UserSettings, voxel::Voxel,
@@ -53,12 +55,14 @@ impl Explosion {
 pub struct BombSimulator {
     active_bombs: Vec<ActiveBomb>,
     explosions: Vec<Explosion>,
+    shader_manager: Arc<ShaderManager>,
 }
 impl BombSimulator {
     pub fn new() -> Self {
         Self {
             active_bombs: Vec::with_capacity(MAX_ACTIVE_BOMBS),
             explosions: vec![],
+            shader_manager: ShaderManager::instance(),
         }
     }
 
@@ -100,7 +104,8 @@ impl BombSimulator {
         self.handle_explosions(explosion_at, world, renderer, asset_manager)
     }
 
-    pub fn draw(&self, renderer: &Renderer) {
+    /// draws active bombs
+    pub fn draw_bombs(&self, renderer: &Renderer) {
         for bomb in &self.active_bombs {
             let bomb_voxel = if (bomb.life_s * 10.0).sin() > 0.5 {
                 Voxel::Bomb
@@ -120,7 +125,15 @@ impl BombSimulator {
 
             draw_mesh(&mesh);
         }
+    }
 
+    /// draws explosions, sets shader to flat
+    pub fn draw_explosions(&self, camera: &Camera3D) {
+        if self.explosions.is_empty() {
+            return;
+        }
+
+        self.shader_manager.flat_shader.set_flat_material(camera);
         for explosion in &self.explosions {
             draw_mesh(&explosion.mesh);
         }

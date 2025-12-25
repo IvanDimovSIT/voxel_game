@@ -356,6 +356,7 @@ impl VoxelEngine {
         self.draw_background(&camera);
 
         // set 3D camera and voxel shader
+        self.voxel_simulator.draw_for_flat_shader(&camera);
         let visible_areas = self.renderer.set_voxel_shader_and_find_visible_areas(
             &camera,
             self.world_time
@@ -367,7 +368,8 @@ impl VoxelEngine {
         );
         let creatures_drawn = self.creature_manager.draw(&camera, &self.user_settings);
         self.voxel_particles.draw();
-        self.voxel_simulator.draw(&camera, &self.renderer);
+        self.voxel_simulator
+            .draw_for_voxel_shader(&camera, &self.renderer);
         if !self.world_map.active {
             self.rain_system.draw_rain(&camera);
         }

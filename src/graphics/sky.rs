@@ -1,4 +1,7 @@
-use std::f32::consts::{PI, TAU};
+use std::{
+    f32::consts::{PI, TAU},
+    sync::Arc,
+};
 
 use bincode::{Decode, Encode};
 use macroquad::{
@@ -16,7 +19,7 @@ use crate::{
         mesh_generator::MeshGenerator,
         mesh_transformer::move_mesh,
         rain_system::RainSystem,
-        sky_shader::SkyShader,
+        shader_manager::ShaderManager,
         texture_manager::{PlainTextureId, TextureManager},
     },
     service::{
@@ -42,7 +45,7 @@ const CLOUDS_DESPAWN_Y: f32 = 2000.0;
 const CLOUD_SPEED: f32 = 5.0;
 
 pub struct Sky {
-    sky_shader: SkyShader,
+    shader_manager: Arc<ShaderManager>,
     sun_texture: Texture2D,
     moon_texture: Texture2D,
     clouds_manager: CloudsManager,
@@ -50,7 +53,7 @@ pub struct Sky {
 impl Sky {
     pub fn new(texture_manager: &TextureManager) -> Self {
         Self {
-            sky_shader: SkyShader::new(),
+            shader_manager: ShaderManager::instance(),
             sun_texture: texture_manager.get_plain_texture(PlainTextureId::Sun),
             moon_texture: texture_manager.get_plain_texture(PlainTextureId::Moon),
             clouds_manager: CloudsManager::new(texture_manager),
@@ -59,7 +62,7 @@ impl Sky {
 
     pub fn from_dto(texture_manager: &TextureManager, dto: SkyDTO) -> Self {
         Self {
-            sky_shader: SkyShader::new(),
+            shader_manager: ShaderManager::instance(),
             sun_texture: texture_manager.get_plain_texture(PlainTextureId::Sun),
             moon_texture: texture_manager.get_plain_texture(PlainTextureId::Moon),
             clouds_manager: CloudsManager::from_dto(texture_manager, dto.clouds_dto),
@@ -86,7 +89,7 @@ impl Sky {
         let normalised_camera = CameraController::normalize_camera_3d(camera);
         set_camera(&normalised_camera);
 
-        self.sky_shader.set_sky_material();
+        self.shader_manager.sky_shader.set_sky_material();
         self.draw_sun_and_moon(world_time);
         self.clouds_manager.draw();
     }

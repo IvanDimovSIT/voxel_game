@@ -1,6 +1,7 @@
 use std::{
     collections::{HashMap, HashSet},
     rc::Rc,
+    sync::Arc,
 };
 
 use macroquad::{
@@ -12,7 +13,9 @@ use macroquad::{
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 
 use crate::{
-    graphics::{height_map::HeightMap, voxel_shader::VoxelUniformParams},
+    graphics::{
+        height_map::HeightMap, shader_manager::ShaderManager, voxel_shader::VoxelUniformParams,
+    },
     model::{
         area::{AREA_HEIGHT, AREA_SIZE, Area},
         location::{AreaLocation, InternalLocation, LOCATION_OFFSET, Location},
@@ -27,10 +30,7 @@ use crate::{
     utils::StackVec,
 };
 
-use super::{
-    mesh_generator::{FaceDirection, MeshGenerator},
-    voxel_shader::VoxelShader,
-};
+use super::mesh_generator::{FaceDirection, MeshGenerator};
 
 const AREA_RENDER_THRESHOLD: f32 = 0.35;
 const LOOK_DOWN_RENDER_MULTIPLIER: f32 = 0.5;
@@ -90,7 +90,7 @@ impl GeneratedMeshResult {
 pub struct Renderer {
     meshes: Meshes,
     mesh_generator: MeshGenerator,
-    shader: VoxelShader,
+    shader_manager: Arc<ShaderManager>,
     render_set: HashSet<AreaLocation>,
 }
 impl Renderer {
@@ -98,7 +98,7 @@ impl Renderer {
         Self {
             meshes: Meshes::new(),
             mesh_generator: MeshGenerator::new(asset_manager),
-            shader: VoxelShader::new(),
+            shader_manager: ShaderManager::instance(),
             render_set: HashSet::new(),
         }
     }
@@ -394,15 +394,17 @@ impl Renderer {
             world_light_level
         };
 
-        self.shader.set_voxel_material(VoxelUniformParams {
-            camera,
-            render_size,
-            light_level,
-            lights: &lights,
-            height_map,
-            has_dynamic_lighting: user_settings.has_dynamic_lighting(),
-            show_map: should_show_map,
-        });
+        self.shader_manager
+            .voxel_shader
+            .set_voxel_material(VoxelUniformParams {
+                camera,
+                render_size,
+                light_level,
+                lights: &lights,
+                height_map,
+                has_dynamic_lighting: user_settings.has_dynamic_lighting(),
+                show_map: should_show_map,
+            });
 
         visible_areas
     }

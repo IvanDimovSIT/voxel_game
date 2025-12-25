@@ -7,6 +7,7 @@ pub mod mesh_transformer;
 pub mod rain_system;
 pub mod renderer;
 pub mod screen_effects;
+pub mod shader_manager;
 pub mod sky;
 pub mod sky_shader;
 pub mod texture_manager;

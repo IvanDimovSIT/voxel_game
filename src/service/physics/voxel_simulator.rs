@@ -68,9 +68,14 @@ impl VoxelSimulator {
         self.water_simulator.location_updated(location);
     }
 
-    pub fn draw(&self, camera: &Camera3D, renderer: &Renderer) {
+    /// draws elements that require the standard voxel shader
+    pub fn draw_for_voxel_shader(&self, camera: &Camera3D, renderer: &Renderer) {
         self.falling_voxel_simulator.draw(camera);
-        self.bomb_simulator.draw(renderer);
+        self.bomb_simulator.draw_bombs(renderer);
+    }
+
+    pub fn draw_for_flat_shader(&self, camera: &Camera3D) {
+        self.bomb_simulator.draw_explosions(camera);
     }
 
     pub fn location_has_voxel(&self, location: Location) -> bool {
