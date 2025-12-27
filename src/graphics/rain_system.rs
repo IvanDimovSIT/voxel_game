@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use bincode::{Decode, Encode};
 use macroquad::{
     camera::Camera3D,
@@ -14,7 +12,7 @@ use crate::{
     graphics::{
         mesh_generator::MeshGenerator,
         mesh_transformer,
-        shader_manager::ShaderManager,
+        shader_manager::SHADER_MANAGER_INSTANCE,
         texture_manager::{PlainTextureId, TextureManager},
     },
     model::{
@@ -93,7 +91,6 @@ pub struct RainSystem {
     sky_modifier: f32,
     /// goes to 0.0 over time, when lightning is added, it increases
     last_lightning_delta: f32,
-    shader_manager: Arc<ShaderManager>,
 }
 impl RainSystem {
     pub fn new(texture_manager: &TextureManager) -> Self {
@@ -108,7 +105,6 @@ impl RainSystem {
             lightnings: vec![],
             last_lightning_delta: 0.0,
             lightning_texture: texture_manager.get_plain_texture(PlainTextureId::Lightning),
-            shader_manager: ShaderManager::instance(),
         }
     }
 
@@ -133,7 +129,6 @@ impl RainSystem {
             lightnings: vec![],
             last_lightning_delta: 0.0,
             lightning_texture: texture_manager.get_plain_texture(PlainTextureId::Lightning),
-            shader_manager: ShaderManager::instance(),
         }
     }
 
@@ -198,7 +193,9 @@ impl RainSystem {
             return;
         }
 
-        self.shader_manager.flat_shader.set_flat_material(camera);
+        SHADER_MANAGER_INSTANCE
+            .flat_shader
+            .set_flat_material(camera);
         let camera_position = camera.position;
         for l in &self.lightnings {
             let mesh = self.create_lightning_mesh(l.position, camera_position);

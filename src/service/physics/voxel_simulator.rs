@@ -1,4 +1,4 @@
-use macroquad::camera::Camera3D;
+use macroquad::{camera::Camera3D, math::Vec3};
 
 use crate::{
     graphics::renderer::Renderer,
@@ -74,8 +74,9 @@ impl VoxelSimulator {
         self.bomb_simulator.draw_bombs(renderer);
     }
 
-    pub fn draw_for_flat_shader(&self, camera: &Camera3D) {
-        self.bomb_simulator.draw_explosions(camera);
+    /// returns a vector of explosion locations
+    pub fn draw_for_flat_shader(&self, camera: &Camera3D) -> Vec<Vec3> {
+        self.bomb_simulator.draw_explosions(camera)
     }
 
     pub fn location_has_voxel(&self, location: Location) -> bool {

@@ -17,7 +17,10 @@ use crate::{
     },
 };
 
+// values from voxel shader
 const MAX_LIGHTS: usize = 64;
+const MAX_EXPLOSIONS: usize = 16;
+
 const TRUE: i32 = 1;
 const FALSE: i32 = 0;
 
@@ -35,6 +38,8 @@ const FOG_BASE_COLOR_LIGHT_UNIFORM: &str = "fogBaseColorLight";
 const FOG_BASE_COLOR_DARK_UNIFORM: &str = "fogBaseColorDark";
 const LIGHTS_COUNT_UNIFORM: &str = "lightsCount";
 const LIGHTS_UNIFORM: &str = "lights";
+const EXPLOSIONS_COUNT_UNIFORM: &str = "explosionsCount";
+const EXPLOSIONS_UNIFORM: &str = "explosions";
 const HAS_DYNAMIC_SHADOWS_UNIFORM: &str = "hasDynamicShadows";
 const SHOW_DROP_SHADOW_UNIFORM: &str = "showDropShadow";
 
@@ -43,6 +48,7 @@ pub struct VoxelUniformParams<'a> {
     pub render_size: u32,
     pub light_level: f32,
     pub lights: &'a [InternalLocation],
+    pub explosions: Vec<Vec3>,
     pub height_map: Texture2D,
     pub has_dynamic_lighting: bool,
     pub show_map: bool,
@@ -78,6 +84,10 @@ impl VoxelShader {
         let lights_count_uniform = UniformDesc::new(LIGHTS_COUNT_UNIFORM, UniformType::Int1);
         let lights_uniform =
             UniformDesc::new(LIGHTS_UNIFORM, UniformType::Float3).array(MAX_LIGHTS);
+        let explosions_count_uniform =
+            UniformDesc::new(EXPLOSIONS_COUNT_UNIFORM, UniformType::Int1);
+        let explosions_uniform =
+            UniformDesc::new(EXPLOSIONS_UNIFORM, UniformType::Float3).array(MAX_EXPLOSIONS);
         let has_dynamic_shadows_uniform =
             UniformDesc::new(HAS_DYNAMIC_SHADOWS_UNIFORM, UniformType::Int1);
         let show_drop_shadow_uniform =
@@ -100,6 +110,8 @@ impl VoxelShader {
                     fog_dark_color_uniform,
                     lights_count_uniform,
                     lights_uniform,
+                    explosions_count_uniform,
+                    explosions_uniform,
                     has_dynamic_shadows_uniform,
                     show_drop_shadow_uniform,
                 ],
@@ -156,6 +168,7 @@ impl VoxelShader {
             .set_uniform(SHOW_DROP_SHADOW_UNIFORM, show_drop_shadow);
 
         self.set_lights(uniform_params.lights, camera);
+        self.set_explosions(uniform_params.explosions, camera);
 
         gl_use_material(&self.voxel_material);
     }
@@ -184,6 +197,25 @@ impl VoxelShader {
             .set_uniform_array(LIGHTS_UNIFORM, &lights_array);
         self.voxel_material
             .set_uniform(LIGHTS_COUNT_UNIFORM, lights_count as i32);
+    }
+
+    fn set_explosions(&self, explosions: Vec<Vec3>, camera: &Camera3D) {
+        let mut explosions_array = [Vec3::ZERO; MAX_EXPLOSIONS];
+        let explosions_count = explosions.len().min(MAX_EXPLOSIONS);
+        let explosions_iter = explosions
+            .into_iter()
+            .take(MAX_EXPLOSIONS)
+            .map(|explosion_position| explosion_position - camera.position)
+            .enumerate();
+
+        for (i, explosion_position) in explosions_iter {
+            explosions_array[i] = explosion_position;
+        }
+
+        self.voxel_material
+            .set_uniform_array(EXPLOSIONS_UNIFORM, &explosions_array);
+        self.voxel_material
+            .set_uniform(EXPLOSIONS_COUNT_UNIFORM, explosions_count as i32);
     }
 
     fn calulate_fog_distances(render_size: u32) -> (f32, f32) {

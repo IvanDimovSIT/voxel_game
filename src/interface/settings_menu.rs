@@ -37,9 +37,9 @@ const INCREASE_RENDER_DISTANCE_DESCRIPTION: [&str; 2] =
     ["Increase view distance,", "lowers performance"];
 const TOGGLE_SOUNDS_DESCRIPTION: [&str; 1] = ["Toggles game sounds"];
 const TOGGLE_FULLSCREEN_DESCRIPTION: [&str; 1] = ["Toggles fullscreen mode"];
-const TOGGLE_LIGHTS_DESCRIPTION: [&str; 2] = [
-    "Enables dynamic lights placed by the player",
-    "and dynamic shadows, lowers performance",
+const TOGGLE_SHADOWS_DESCRIPTION: [&str; 2] = [
+    "Changes the appearance of dynamic shadows,",
+    "can be disabled",
 ];
 
 pub struct SettingsContext;
@@ -248,7 +248,7 @@ impl SettingsContext {
         Self::draw_description(
             width,
             height,
-            &TOGGLE_LIGHTS_DESCRIPTION,
+            &TOGGLE_SHADOWS_DESCRIPTION,
             is_point_in_rect(x_start, y, BUTTON_WIDTH, BUTTON_HEIGHT, mouse_x, mouse_y),
             &asset_manager.font,
         );
@@ -261,20 +261,20 @@ impl SettingsContext {
                 h: BUTTON_HEIGHT,
             },
             match user_settings.shadow_type {
-                ShadowType::Soft => "Dynamic lights, soft shadows",
-                ShadowType::Hard => "Dynamic lights, hard shadows",
-                ShadowType::None => "Static lights and shadows",
+                ShadowType::Soft => "Soft shadows",
+                ShadowType::Hard => "Hard shadows",
+                ShadowType::None => "No shadows",
             },
             BUTTON_TEXT_SIZE as u16,
             asset_manager,
             user_settings,
         );
         if should_change {
-            Self::change_lighting_type(user_settings);
+            Self::change_shadow_type(user_settings);
         }
     }
 
-    fn change_lighting_type(user_settings: &mut UserSettings) {
+    fn change_shadow_type(user_settings: &mut UserSettings) {
         match user_settings.shadow_type {
             ShadowType::None => user_settings.shadow_type = ShadowType::Soft,
             ShadowType::Soft => user_settings.shadow_type = ShadowType::Hard,

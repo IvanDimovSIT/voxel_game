@@ -41,8 +41,7 @@ fn config() -> Conf {
 
 #[macroquad::main(config)]
 async fn main() {
-    // force shader initialisation
-    ShaderManager::instance();
+    ShaderManager::initialise_global_instance();
     initialise_save_directory();
     let asset_manager_result = AssetManager::new().await;
     let user_settings = read_or_initialise_user_settings();
@@ -51,13 +50,9 @@ async fn main() {
     }
 
     let mut state = match asset_manager_result {
-        Ok(asset_manager) => GameState::new(asset_manager.clone(), user_settings),
+        Ok(asset_manager) => GameState::new(asset_manager, user_settings),
         Err(errors) => GameState::error(errors),
     };
 
-    loop {
-        if !state.process_next_frame().await {
-            break;
-        }
-    }
+    while state.process_next_frame().await {}
 }

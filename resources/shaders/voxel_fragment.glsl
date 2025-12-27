@@ -20,6 +20,9 @@ uniform vec3 fogBaseColorDark;
 uniform int lightsCount;
 uniform vec3 lights[64];
 
+uniform int explosionsCount;
+uniform vec3 explosions[16];
+
 uniform int hasDynamicShadows;
 uniform int showDropShadow;
 
@@ -37,6 +40,10 @@ const float playerLightStrength = 15.0;
 // placed lamps
 const float lampStrength = 6.0;
 const vec3 lampColor = vec3(0.95, 1.0, 0.6);
+
+// explosions
+const float explosionLightStrength = 12.0;
+const vec3 explosionLightColor = vec3(1.0, 0.7, 0.2);
 
 // dynamic shadows
 const float dynamicShadowStrength = 0.6;
@@ -74,17 +81,27 @@ float addPlayerLight(float baseLight, float distanceToFace, float darkLevel) {
     return min(baseLight + darkLevel * playerLightProximity * playerLightProximity, 1.0);
 }
 
-// draws placed lamps
-vec3 addLampLighting(float lighting) {
+// returns the added light from the world light source
+vec3 addWorldLight(vec3 lightPosition, vec3 lightColor, float lightStrength) {
+    vec3 directionToLight = lightPosition - facePosition;
+    float distanceToLight = length(directionToLight);
+    float brightness = clamp(1.0 - distanceToLight/lightStrength, 0.0, 1.0);
+    float facingLightCoef = (1.0 + dot(normalize(directionToLight), fragNormal))/2.0;
+    float blend = smoothstep(0.5, 1.5, distanceToLight);
+    brightness *= mix(1.0, facingLightCoef, blend);
+
+    return lightColor * brightness;
+}
+
+// draws placed lamp and explosion lighting
+vec3 addWorldLighting(float lighting) {
     vec3 coloredLighting = vec3(lighting);
     for (int i = 0; i < lightsCount; i++) {
-        vec3 directionToLight = lights[i] - facePosition;
-        float distanceToLight = length(directionToLight);
-        float brightness = clamp(1.0 - distanceToLight/lampStrength, 0.0, 1.0);
-        float facingLightCoef = (1.0 + dot(normalize(directionToLight), fragNormal))/2.0;
-        float blend = smoothstep(0.5, 1.5, distanceToLight);
-        brightness *= mix(1.0, facingLightCoef, blend);
-        coloredLighting += lampColor * brightness;
+        coloredLighting += addWorldLight(lights[i], lampColor, lampStrength);
+    }
+
+    for (int i = 0; i < explosionsCount; i++) {
+        coloredLighting += addWorldLight(explosions[i], explosionLightColor, explosionLightStrength);
     }
 
     return vec3(
@@ -127,7 +144,7 @@ void main() {
 
     float sunLighting = min(lightLevel, 1.0) * (ambient + diffuse * (1.0 - ambient));
     sunLighting *= (1.0 - dynamicShadowStrength * amountInShadow);
-    vec3 coloredLighting = addLampLighting(addPlayerLight(sunLighting, distanceToFace, darkLevel));
+    vec3 coloredLighting = addWorldLighting(addPlayerLight(sunLighting, distanceToFace, darkLevel));
 
     vec3 viewDir = normalize(-facePosition);
     vec3 reflectDir = reflect(-lightDir, normal);

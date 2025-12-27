@@ -1,7 +1,6 @@
 use std::{
     collections::{HashMap, HashSet},
     rc::Rc,
-    sync::Arc,
 };
 
 use macroquad::{
@@ -14,7 +13,8 @@ use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 
 use crate::{
     graphics::{
-        height_map::HeightMap, shader_manager::ShaderManager, voxel_shader::VoxelUniformParams,
+        height_map::HeightMap, shader_manager::SHADER_MANAGER_INSTANCE,
+        voxel_shader::VoxelUniformParams,
     },
     model::{
         area::{AREA_HEIGHT, AREA_SIZE, Area},
@@ -87,10 +87,16 @@ impl GeneratedMeshResult {
     }
 }
 
+#[derive(Debug)]
+pub struct RendererParams {
+    pub world_light_level: f32,
+    pub should_show_map: bool,
+    pub explosion_positions: Vec<Vec3>,
+}
+
 pub struct Renderer {
     meshes: Meshes,
     mesh_generator: MeshGenerator,
-    shader_manager: Arc<ShaderManager>,
     render_set: HashSet<AreaLocation>,
 }
 impl Renderer {
@@ -98,7 +104,6 @@ impl Renderer {
         Self {
             meshes: Meshes::new(),
             mesh_generator: MeshGenerator::new(asset_manager),
-            shader_manager: ShaderManager::instance(),
             render_set: HashSet::new(),
         }
     }
@@ -360,14 +365,13 @@ impl Renderer {
     pub fn set_voxel_shader_and_find_visible_areas(
         &self,
         camera: &Camera3D,
-        world_light_level: f32,
         user_settings: &UserSettings,
         world: &World,
         height_map: &mut HeightMap,
-        should_show_map: bool,
+        renderer_params: RendererParams,
     ) -> Vec<(&AreaLocation, &RenderArea)> {
         const MAX_RENDER_SIZE: u32 = 100;
-        let render_size = if should_show_map {
+        let render_size = if renderer_params.should_show_map {
             MAX_RENDER_SIZE
         } else {
             user_settings.get_render_distance()
@@ -376,7 +380,7 @@ impl Renderer {
         set_camera(&normalised_camera);
         let look = (camera.target - camera.position).normalize_or_zero();
 
-        let visible_areas = if should_show_map {
+        let visible_areas = if renderer_params.should_show_map {
             self.meshes.iter().collect()
         } else {
             self.prepare_visible_areas(camera, look, render_size)
@@ -387,14 +391,14 @@ impl Renderer {
         } else {
             height_map.get_empty_height_map()
         };
-        let lights = Self::prepare_lights(&visible_areas, user_settings);
-        let light_level = if should_show_map {
+        let lights = Self::prepare_lights(&visible_areas);
+        let light_level = if renderer_params.should_show_map {
             WorldTime::MAX_LIGHT_LEVEL
         } else {
-            world_light_level
+            renderer_params.world_light_level
         };
 
-        self.shader_manager
+        SHADER_MANAGER_INSTANCE
             .voxel_shader
             .set_voxel_material(VoxelUniformParams {
                 camera,
@@ -403,7 +407,8 @@ impl Renderer {
                 lights: &lights,
                 height_map,
                 has_dynamic_lighting: user_settings.has_dynamic_lighting(),
-                show_map: should_show_map,
+                show_map: renderer_params.should_show_map,
+                explosions: renderer_params.explosion_positions,
             });
 
         visible_areas
@@ -488,14 +493,7 @@ impl Renderer {
         &self.mesh_generator
     }
 
-    fn prepare_lights(
-        render_areas: &[(&AreaLocation, &RenderArea)],
-        user_settings: &UserSettings,
-    ) -> Vec<InternalLocation> {
-        if !user_settings.has_dynamic_lighting() {
-            return vec![];
-        }
-
+    fn prepare_lights(render_areas: &[(&AreaLocation, &RenderArea)]) -> Vec<InternalLocation> {
         render_areas
             .iter()
             .flat_map(|(_, area)| area.lights.iter().copied())

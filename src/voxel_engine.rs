@@ -13,7 +13,7 @@ use crate::{
         debug_display::{DebugDisplay, DebugInfo},
         height_map::HeightMap,
         rain_system::RainSystem,
-        renderer::Renderer,
+        renderer::{Renderer, RendererParams},
         screen_effects::draw_water_effect,
         sky::Sky,
         ui_display::{draw_crosshair, draw_selected_voxel},
@@ -356,15 +356,20 @@ impl VoxelEngine {
         self.draw_background(&camera);
 
         // set 3D camera and voxel shader
-        self.voxel_simulator.draw_for_flat_shader(&camera);
+        let explosion_positions = self.voxel_simulator.draw_for_flat_shader(&camera);
+        let world_light_level = self
+            .world_time
+            .get_light_level(self.rain_system.get_light_level_modifier());
         let visible_areas = self.renderer.set_voxel_shader_and_find_visible_areas(
             &camera,
-            self.world_time
-                .get_light_level(self.rain_system.get_light_level_modifier()),
             &self.user_settings,
             &self.world,
             &mut self.height_map,
-            self.world_map.active,
+            RendererParams {
+                explosion_positions,
+                world_light_level,
+                should_show_map: self.world_map.active,
+            },
         );
         let creatures_drawn = self.creature_manager.draw(&camera, &self.user_settings);
         self.voxel_particles.draw();

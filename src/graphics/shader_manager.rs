@@ -1,11 +1,11 @@
-use std::sync::{Arc, LazyLock};
+use std::sync::LazyLock;
 
 use macroquad::prelude::info;
 
 use crate::graphics::{flat_shader::FlatShader, sky_shader::SkyShader, voxel_shader::VoxelShader};
 
-// global shader singleton
-static SHADER_MANAGER_INSTANCE: LazyLock<Arc<ShaderManager>> = LazyLock::new(ShaderManager::new);
+/// global shader singleton containing all game shaders
+pub static SHADER_MANAGER_INSTANCE: LazyLock<ShaderManager> = LazyLock::new(ShaderManager::new);
 
 pub struct ShaderManager {
     pub voxel_shader: VoxelShader,
@@ -13,16 +13,16 @@ pub struct ShaderManager {
     pub flat_shader: FlatShader,
 }
 impl ShaderManager {
-    pub fn instance() -> Arc<Self> {
-        SHADER_MANAGER_INSTANCE.clone()
+    pub fn initialise_global_instance() {
+        LazyLock::force(&SHADER_MANAGER_INSTANCE);
     }
 
-    fn new() -> Arc<Self> {
-        let shader_manager = Arc::new(Self {
+    fn new() -> Self {
+        let shader_manager = Self {
             voxel_shader: VoxelShader::new(),
             sky_shader: SkyShader::new(),
             flat_shader: FlatShader::new(),
-        });
+        };
         info!("Initialised shaders");
 
         shader_manager
