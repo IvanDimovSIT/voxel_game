@@ -531,7 +531,7 @@ impl Renderer {
             .par_iter()
             .flat_map(|(_, y)| &y.mesh_map)
             .filter(|(location, (_face_count, voxel, _mesh))| {
-                !(player_info.is_in_water && Voxel::WATER.contains(voxel))
+                !(player_info.is_head_in_water && Voxel::WATER.contains(voxel))
                     && Self::is_voxel_visible(location, look, camera_position, render_distance)
             })
             .collect()

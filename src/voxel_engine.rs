@@ -472,7 +472,7 @@ impl VoxelEngine {
 
         // set 2D camera and draw 2D elements
         set_default_camera();
-        if self.player_info.is_in_water {
+        if self.player_info.is_head_in_water {
             draw_water_effect(width, height, &self.asset_manager.texture_manager);
         }
         draw_crosshair(width, height);

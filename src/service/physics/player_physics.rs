@@ -71,12 +71,16 @@ pub fn process_collisions(
                 if !voxel_hit.is_solid() {
                     continue;
                 }
-                if voxel_hit == Voxel::Trampoline && should_bounce_from_trampoline(player_info) {
+                let is_bounce_collision =
+                    voxel_hit == Voxel::Trampoline && should_bounce_from_trampoline(player_info);
+                if is_bounce_collision {
                     return CollisionType::Bounce;
                 }
 
                 let mut collision_type = CollisionType::Weak;
-                if player_info.velocity >= STRONG_COLLISION_SPEED {
+                let is_strong_collision =
+                    !player_info.is_in_water && player_info.velocity >= STRONG_COLLISION_SPEED;
+                if is_strong_collision {
                     collision_type = CollisionType::Strong { voxel: voxel_hit };
                 }
                 player_info.velocity = 0.0;
@@ -86,6 +90,7 @@ pub fn process_collisions(
                     vec3(top_position.x, top_position.y, down_location.z as f32)
                         - vec3(0.0, 0.0, 2.0),
                 );
+
                 return collision_type;
             }
 

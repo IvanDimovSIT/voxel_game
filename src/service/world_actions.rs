@@ -105,8 +105,13 @@ pub fn destroy_voxel(
 }
 
 pub fn update_player_in_water(player_info: &mut PlayerInfo, world: &mut World) {
-    let player_location = player_info.camera_controller.get_camera_voxel_location();
-    player_info.is_in_water = Voxel::WATER.contains(&world.get(player_location));
+    let player_location_head = player_info.camera_controller.get_camera_voxel_location();
+    let player_location_legs = Location {
+        z: player_location_head.z + 1,
+        ..player_location_head
+    };
+    player_info.is_in_water = Voxel::WATER.contains(&world.get(player_location_legs));
+    player_info.is_head_in_water = Voxel::WATER.contains(&world.get(player_location_head));
 }
 
 /// struct containing the loaded systems for the voxel engine

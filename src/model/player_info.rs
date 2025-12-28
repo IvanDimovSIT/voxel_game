@@ -30,6 +30,7 @@ pub struct PlayerInfo {
     pub velocity: f32,
     pub jump_velocity: f32,
     pub is_in_water: bool,
+    pub is_head_in_water: bool,
 }
 impl PlayerInfo {
     pub fn new(position: Vec3) -> Self {
@@ -43,6 +44,7 @@ impl PlayerInfo {
             voxel_selector: ItemHotbar::new(),
             inventory: Inventory::default(),
             is_in_water: false,
+            is_head_in_water: false,
             destroy_progress: ActivityTimer::new(0.0, DESTROY_VOXEL_DELAY),
             place_progress: ActivityTimer::new(0.0, PLACE_VOXEL_DELAY),
             replace_progress: ActivityTimer::new(0.0, REPLACE_VOXEL_DELAY),
@@ -79,6 +81,7 @@ impl From<PlayerInfoDTO> for PlayerInfo {
             voxel_selector: value.voxel_selector,
             inventory: value.inventory,
             is_in_water: false,
+            is_head_in_water: false,
             destroy_progress: ActivityTimer::new(0.0, DESTROY_VOXEL_DELAY),
             place_progress: ActivityTimer::new(0.0, PLACE_VOXEL_DELAY),
             replace_progress: ActivityTimer::new(0.0, REPLACE_VOXEL_DELAY),
