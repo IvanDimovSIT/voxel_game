@@ -84,12 +84,20 @@ impl CameraController {
         self.up = self.right.cross(self.front).normalize();
     }
 
-    pub fn get_forward_displacement(&self, speed: f32, delta: f32) -> Vec3 {
-        Self::ignore_z(self.front) * speed * delta
+    pub fn get_forward_direction(&self) -> Vec3 {
+        Self::ignore_z(self.front)
     }
 
-    pub fn get_right_displacement(&self, speed: f32, delta: f32) -> Vec3 {
-        Self::ignore_z(self.right) * speed * delta
+    pub fn get_right_direction(&self) -> Vec3 {
+        Self::ignore_z(self.right)
+    }
+
+    pub fn get_backwards_direction(&self) -> Vec3 {
+        -Self::ignore_z(self.front)
+    }
+
+    pub fn get_left_direction(&self) -> Vec3 {
+        -Self::ignore_z(self.right)
     }
 
     pub fn get_position(&self) -> Vec3 {

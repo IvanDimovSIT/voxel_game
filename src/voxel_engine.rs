@@ -2,6 +2,7 @@ use std::rc::Rc;
 
 use macroquad::{
     camera::{Camera3D, set_default_camera},
+    math::Vec3,
     miniquad::window::screen_size,
     prelude::gl_use_default_material,
     window::next_frame,
@@ -47,6 +48,7 @@ use crate::{
         physics::{
             player_physics::{
                 process_collisions, push_player_up_if_stuck, try_jump, try_move, try_swim,
+                update_horizontal_player_velocity,
             },
             voxel_simulator::VoxelSimulator,
         },
@@ -213,18 +215,9 @@ impl VoxelEngine {
         if input::swim() {
             try_swim(&mut self.player_info, delta);
         }
-        if input::move_forward() {
-            self.try_move_forward(self.player_info.move_speed, delta);
-        }
-        if input::move_back() {
-            self.try_move_forward(-self.player_info.move_speed, delta);
-        }
-        if input::move_left() {
-            self.try_move_right(-self.player_info.move_speed, delta);
-        }
-        if input::move_right() {
-            self.try_move_right(self.player_info.move_speed, delta);
-        }
+
+        self.handle_movement_input(delta);
+
         if input::toggle_debug() {
             self.debug_display.toggle_display();
         }
@@ -728,20 +721,25 @@ impl VoxelEngine {
         }
     }
 
-    fn try_move_forward(&mut self, velocity: f32, delta: f32) {
-        let displacement = self
-            .player_info
-            .camera_controller
-            .get_forward_displacement(velocity, delta);
-        try_move(&mut self.player_info, &mut self.world, displacement);
-    }
+    fn handle_movement_input(&mut self, delta: f32) {
+        let mut move_dir = Vec3::ZERO;
 
-    fn try_move_right(&mut self, velocity: f32, delta: f32) {
-        let displacement = self
-            .player_info
-            .camera_controller
-            .get_right_displacement(velocity, delta);
-        try_move(&mut self.player_info, &mut self.world, displacement);
+        if input::move_forward() {
+            move_dir += self.player_info.camera_controller.get_forward_direction();
+        }
+        if input::move_back() {
+            move_dir += self.player_info.camera_controller.get_backwards_direction();
+        }
+        if input::move_left() {
+            move_dir += self.player_info.camera_controller.get_left_direction();
+        }
+        if input::move_right() {
+            move_dir += self.player_info.camera_controller.get_right_direction();
+        }
+
+        move_dir = move_dir.normalize_or_zero();
+        update_horizontal_player_velocity(&mut self.player_info, &mut self.world, move_dir, delta);
+        try_move(&mut self.player_info, &mut self.world, move_dir, delta);
     }
 }
 impl Drop for VoxelEngine {

@@ -27,7 +27,7 @@ pub struct PlayerInfo {
     pub move_speed: f32,
     pub voxel_reach: f32,
     pub size: f32,
-    pub velocity: f32,
+    pub velocity: Vec3,
     pub jump_velocity: f32,
     pub is_in_water: bool,
     pub is_head_in_water: bool,
@@ -38,7 +38,7 @@ impl PlayerInfo {
             camera_controller: CameraController::new(position),
             move_speed: PLAYER_MOVE_SPEED,
             voxel_reach: VOXEL_REACH,
-            velocity: 0.0,
+            velocity: Vec3::ZERO,
             jump_velocity: JUMP_VELOCITY,
             size: PLAYER_SIZE,
             voxel_selector: ItemHotbar::new(),
@@ -54,7 +54,7 @@ impl PlayerInfo {
     pub fn create_dto(&self) -> PlayerInfoDTO {
         let position = self.camera_controller.get_position();
         PlayerInfoDTO {
-            velocity: self.velocity,
+            velocity: vec3_to_arr(self.velocity),
             position: vec3_to_arr(position),
             yaw: self.camera_controller.yaw,
             pitch: self.camera_controller.pitch,
@@ -67,6 +67,7 @@ impl PlayerInfo {
 impl From<PlayerInfoDTO> for PlayerInfo {
     fn from(value: PlayerInfoDTO) -> Self {
         let position = arr_to_vec3(value.position);
+        let velocity = arr_to_vec3(value.velocity);
         let mut camera_controller = CameraController::new(position);
         camera_controller.yaw = value.yaw;
         camera_controller.pitch = value.pitch;
@@ -75,7 +76,7 @@ impl From<PlayerInfoDTO> for PlayerInfo {
             camera_controller,
             move_speed: PLAYER_MOVE_SPEED,
             voxel_reach: VOXEL_REACH,
-            velocity: value.velocity,
+            velocity,
             jump_velocity: JUMP_VELOCITY,
             size: PLAYER_SIZE,
             voxel_selector: value.voxel_selector,
@@ -92,7 +93,7 @@ impl From<PlayerInfoDTO> for PlayerInfo {
 #[derive(Debug, Clone, Encode, Decode)]
 pub struct PlayerInfoDTO {
     inventory: Inventory,
-    velocity: f32,
+    velocity: [f32; 3],
     position: [f32; 3],
     voxel_selector: ItemHotbar,
     current_selection: usize,

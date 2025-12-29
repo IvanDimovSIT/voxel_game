@@ -1,12 +1,18 @@
 use core::f32;
 
 use macroquad::{
-    math::{Vec3, vec3},
+    math::{Vec3, vec2, vec3},
     prelude::error,
 };
 
 use crate::{
-    model::{area::Area, location::Location, player_info::PlayerInfo, voxel::Voxel, world::World},
+    model::{
+        area::{AREA_HEIGHT, Area},
+        location::Location,
+        player_info::PlayerInfo,
+        voxel::Voxel,
+        world::World,
+    },
     utils::{StackVec, vector_to_location},
 };
 
@@ -23,6 +29,9 @@ const IN_WATER_MAX_FALL_SPEED: f32 = 15.0;
 const IN_WATER_MOVE_SPEED_MODIFIER: f32 = 0.5;
 const BOTTOM_WALL_COLLISION_OFFSET: Vec3 = vec3(0.0, 0.0, -0.1);
 const MID_WALL_COLLISION_OFFSET: Vec3 = vec3(0.0, 0.0, -0.55);
+const HORIZONTAL_VELOCITY_LOSS: f32 = 3.0;
+const ICE_SLIDE: f32 = 20.0;
+const ICE_MAX_HORIZONTAL_VELOCITY: f32 = 5.0;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CollisionType {
@@ -52,10 +61,10 @@ pub fn process_collisions(
     world: &mut World,
     delta: f32,
 ) -> CollisionType {
-    player_info.velocity = calculate_fall_velocity(player_info, delta);
+    player_info.velocity.z = calculate_fall_velocity(player_info, delta);
 
-    let top_position =
-        player_info.camera_controller.get_position() + vec3(0.0, 0.0, player_info.velocity * delta);
+    let top_position = player_info.camera_controller.get_position()
+        + vec3(0.0, 0.0, player_info.velocity.z * delta);
     let down_position = top_position + vec3(0.0, 0.0, 1.5);
 
     let mut down_locations = StackVec::new();
@@ -79,11 +88,11 @@ pub fn process_collisions(
 
                 let mut collision_type = CollisionType::Weak;
                 let is_strong_collision =
-                    !player_info.is_in_water && player_info.velocity >= STRONG_COLLISION_SPEED;
+                    !player_info.is_in_water && player_info.velocity.z >= STRONG_COLLISION_SPEED;
                 if is_strong_collision {
                     collision_type = CollisionType::Strong { voxel: voxel_hit };
                 }
-                player_info.velocity = 0.0;
+                player_info.velocity.z = 0.0;
 
                 // set player location 2 voxels up from the hit voxel
                 player_info.camera_controller.set_position(
@@ -96,7 +105,7 @@ pub fn process_collisions(
 
             for top_location in top_locations {
                 if is_location_non_empty_with_cache(top_location, world, area) {
-                    player_info.velocity = 0.0;
+                    player_info.velocity.z = 0.0;
                     return CollisionType::Weak;
                 }
             }
@@ -114,15 +123,15 @@ fn calculate_fall_velocity(player_info: &PlayerInfo, delta: f32) -> f32 {
         (1.0, MAX_FALL_SPEED)
     };
 
-    (player_info.velocity + GRAVITY * delta * water_modifier).min(max_fall_speed)
+    (player_info.velocity.z + GRAVITY * delta * water_modifier).min(max_fall_speed)
 }
 
 fn should_bounce_from_trampoline(player_info: &mut PlayerInfo) -> bool {
-    if player_info.velocity < MIN_VELOCITY_TO_BOUNCE {
+    if player_info.velocity.z < MIN_VELOCITY_TO_BOUNCE {
         return false;
     }
 
-    player_info.velocity = -player_info.velocity;
+    player_info.velocity.z = -player_info.velocity.z;
     true
 }
 
@@ -140,7 +149,7 @@ pub fn try_jump(player_info: &mut PlayerInfo, world: &mut World) {
         .any(|location| is_location_non_empty(location, world));
 
     if is_on_ground {
-        player_info.velocity = player_info.jump_velocity;
+        player_info.velocity.z = player_info.jump_velocity;
     }
 }
 
@@ -149,8 +158,8 @@ pub fn try_swim(player_info: &mut PlayerInfo, delta: f32) {
         return;
     }
 
-    player_info.velocity += delta * GAIN_SWIM_SPEED;
-    player_info.velocity = player_info.velocity.max(MAX_SWIM_SPEED);
+    player_info.velocity.z += delta * GAIN_SWIM_SPEED;
+    player_info.velocity.z = player_info.velocity.z.max(MAX_SWIM_SPEED);
 }
 
 /// checks if the new voxel location will cause a collision with the player
@@ -171,8 +180,46 @@ pub fn will_new_voxel_cause_collision(
         .any(|location| location == new_voxel_location)
 }
 
-/// move and process horizontal collisions for the player
-pub fn try_move(player_info: &mut PlayerInfo, world: &mut World, displacement: Vec3) {
+pub fn update_horizontal_player_velocity(
+    player_info: &mut PlayerInfo,
+    world: &mut World,
+    move_dir: Vec3,
+    delta: f32,
+) {
+    debug_assert!(move_dir.is_normalized() || move_dir == Vec3::ZERO);
+
+    let mut down_voxel_location = player_info.camera_controller.get_camera_voxel_location();
+    down_voxel_location.z += 2;
+    if down_voxel_location.z >= AREA_HEIGHT as i32 || down_voxel_location.z < 0 {
+        return;
+    }
+    let down_voxel = world.get(down_voxel_location);
+
+    if down_voxel == Voxel::Ice {
+        let delta_velocity = move_dir * delta * ICE_SLIDE;
+        player_info.velocity += delta_velocity;
+
+        let horizontal = vec2(player_info.velocity.x, player_info.velocity.y);
+        let horizontal_speed = horizontal.length();
+
+        if horizontal_speed > ICE_MAX_HORIZONTAL_VELOCITY {
+            let clamped = horizontal.normalize() * ICE_MAX_HORIZONTAL_VELOCITY;
+            player_info.velocity.x = clamped.x;
+            player_info.velocity.y = clamped.y;
+        }
+    } else if down_voxel != Voxel::None {
+        reset_horizontal_velocity(player_info);
+    }
+}
+
+/// move and process horizontal collisions for the player, accepts a normalized or zero vector
+pub fn try_move(player_info: &mut PlayerInfo, world: &mut World, move_dir: Vec3, delta: f32) {
+    debug_assert!(move_dir.is_normalized() || move_dir == Vec3::ZERO);
+
+    let displacement = delta
+        * (player_info.move_speed * move_dir
+            + vec3(player_info.velocity.x, player_info.velocity.y, 0.0));
+
     let top_position = player_info.camera_controller.get_position();
     let bottom_position =
         player_info.camera_controller.get_bottom_position() + BOTTOM_WALL_COLLISION_OFFSET;
@@ -209,9 +256,23 @@ pub fn try_move(player_info: &mut PlayerInfo, world: &mut World, displacement: V
             top_displaced -= delta_displacement;
         } else {
             player_info.camera_controller.set_position(top_displaced);
+            dampen_horizontal_velocity(player_info, delta);
             return;
         }
     }
+
+    reset_horizontal_velocity(player_info)
+}
+
+fn reset_horizontal_velocity(player_info: &mut PlayerInfo) {
+    player_info.velocity.x = 0.0;
+    player_info.velocity.y = 0.0;
+}
+
+fn dampen_horizontal_velocity(player_info: &mut PlayerInfo, delta: f32) {
+    let velocity_loss = (-HORIZONTAL_VELOCITY_LOSS * delta).exp();
+    player_info.velocity.x *= velocity_loss;
+    player_info.velocity.y *= velocity_loss;
 }
 
 fn modify_displacement_in_water(displacement: Vec3, player_info: &PlayerInfo) -> Vec3 {
