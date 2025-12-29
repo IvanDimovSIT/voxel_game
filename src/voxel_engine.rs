@@ -47,8 +47,8 @@ use crate::{
         },
         physics::{
             player_physics::{
-                process_collisions, push_player_up_if_stuck, try_jump, try_move, try_swim,
-                update_horizontal_player_velocity,
+                handle_horizontal_player_movement, process_collisions, push_player_up_if_stuck,
+                try_jump, try_swim,
             },
             voxel_simulator::VoxelSimulator,
         },
@@ -738,8 +738,7 @@ impl VoxelEngine {
         }
 
         move_dir = move_dir.normalize_or_zero();
-        update_horizontal_player_velocity(&mut self.player_info, &mut self.world, move_dir, delta);
-        try_move(&mut self.player_info, &mut self.world, move_dir, delta);
+        handle_horizontal_player_movement(&mut self.player_info, &mut self.world, move_dir, delta);
     }
 }
 impl Drop for VoxelEngine {

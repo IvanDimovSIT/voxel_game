@@ -180,7 +180,9 @@ pub fn will_new_voxel_cause_collision(
         .any(|location| location == new_voxel_location)
 }
 
-pub fn update_horizontal_player_velocity(
+/// handles all horizontal movements and velocity updates for the player,
+/// if there no movement inputs, the move_dir should be set to Vec::ZERO
+pub fn handle_horizontal_player_movement(
     player_info: &mut PlayerInfo,
     world: &mut World,
     move_dir: Vec3,
@@ -188,12 +190,23 @@ pub fn update_horizontal_player_velocity(
 ) {
     debug_assert!(move_dir.is_normalized() || move_dir == Vec3::ZERO);
 
+    update_horizontal_player_velocity(player_info, world, move_dir, delta);
+    try_move(player_info, world, move_dir, delta);
+}
+
+fn update_horizontal_player_velocity(
+    player_info: &mut PlayerInfo,
+    world: &mut World,
+    move_dir: Vec3,
+    delta: f32,
+) {
     let mut down_voxel_location = player_info.camera_controller.get_camera_voxel_location();
     down_voxel_location.z += 2;
-    if down_voxel_location.z >= AREA_HEIGHT as i32 || down_voxel_location.z < 0 {
-        return;
-    }
-    let down_voxel = world.get(down_voxel_location);
+    let down_voxel = if down_voxel_location.z >= AREA_HEIGHT as i32 || down_voxel_location.z < 0 {
+        Voxel::None
+    } else {
+        world.get(down_voxel_location)
+    };
 
     if down_voxel == Voxel::Ice {
         let delta_velocity = move_dir * delta * ICE_SLIDE;
@@ -213,9 +226,7 @@ pub fn update_horizontal_player_velocity(
 }
 
 /// move and process horizontal collisions for the player, accepts a normalized or zero vector
-pub fn try_move(player_info: &mut PlayerInfo, world: &mut World, move_dir: Vec3, delta: f32) {
-    debug_assert!(move_dir.is_normalized() || move_dir == Vec3::ZERO);
-
+fn try_move(player_info: &mut PlayerInfo, world: &mut World, move_dir: Vec3, delta: f32) {
     let displacement = delta
         * (player_info.move_speed * move_dir
             + vec3(player_info.velocity.x, player_info.velocity.y, 0.0));
