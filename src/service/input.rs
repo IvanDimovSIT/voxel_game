@@ -37,6 +37,10 @@ pub fn toggle_debug() -> bool {
     is_key_released(macroquad::input::KeyCode::GraveAccent)
 }
 
+pub fn toggle_ui() -> bool {
+    is_key_released(macroquad::input::KeyCode::F3)
+}
+
 pub fn is_start_place_voxel(camera_controller: &CameraController) -> bool {
     camera_controller.is_focused() && is_mouse_button_pressed(macroquad::input::MouseButton::Right)
 }

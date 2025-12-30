@@ -79,6 +79,7 @@ pub struct VoxelEngine {
     world_map: WorldMap,
     tutorial_messages: TutorialMessages,
     rain_system: RainSystem,
+    show_ui: bool,
 }
 impl VoxelEngine {
     pub fn new(
@@ -105,6 +106,7 @@ impl VoxelEngine {
             world_map: WorldMap::new(),
             tutorial_messages: world_systems.tutorial_messages,
             rain_system: world_systems.rain_system,
+            show_ui: true,
         }
     }
 
@@ -146,6 +148,9 @@ impl VoxelEngine {
         self.check_change_render_distance();
 
         let raycast_result = self.process_mouse_input(delta);
+        if input::toggle_ui() {
+            self.show_ui = !self.show_ui;
+        }
         if self.menu_state.is_in_menu() {
             return raycast_result;
         }
@@ -424,7 +429,7 @@ impl VoxelEngine {
         creatures_drawn: u32,
     ) -> Option<GameState> {
         gl_use_default_material();
-        if !self.world_map.active {
+        if self.show_ui && !self.world_map.active {
             self.draw_in_game_ui_elements(
                 width,
                 height,
@@ -433,7 +438,7 @@ impl VoxelEngine {
                 rendered,
                 creatures_drawn,
             );
-        } else {
+        } else if self.show_ui {
             set_default_camera();
             self.tutorial_messages.draw(height, &self.asset_manager);
         }
