@@ -101,6 +101,7 @@ impl BombSimulator {
         self.explosions.iter_mut().for_each(|e| e.life_s -= delta);
         self.explosions.retain(|e| e.life_s > 0.0);
         self.active_bombs.retain(|b| b.life_s > 0.0);
+        self.animate_explosions(delta);
         self.handle_explosions(explosion_at, world, renderer, asset_manager)
     }
 
@@ -143,6 +144,12 @@ impl BombSimulator {
         self.explosions.iter().map(|ex| ex.position).collect()
     }
 
+    pub fn location_has_bomb(&self, location: Location) -> bool {
+        self.active_bombs
+            .iter()
+            .any(|bomb| vector_to_location(bomb.position) == location)
+    }
+
     fn update_bomb(bomb: &mut ActiveBomb, world: &mut World, delta: f32) {
         bomb.life_s -= delta;
         bomb.velocity += (GRAVITY * delta).min(MAX_FALL_SPEED);
@@ -158,6 +165,7 @@ impl BombSimulator {
         bomb.position.z = location.z as f32 - 1.0;
     }
 
+    /// checks and performs explosions for bombs that should explode
     fn handle_explosions(
         &mut self,
         mut explosion_positions: Vec<Vec3>,
@@ -243,5 +251,14 @@ impl BombSimulator {
             life_s: SHORT_BOMB_DELAY_S,
         };
         self.active_bombs.push(bomb);
+    }
+
+    fn animate_explosions(&mut self, delta: f32) {
+        const TOTAL_SCALING: f32 = 3.5;
+        let scale_amount = TOTAL_SCALING.powf(delta);
+
+        for explosion in &mut self.explosions {
+            mesh_transformer::scale_mesh(&mut explosion.mesh, explosion.position, scale_amount);
+        }
     }
 }

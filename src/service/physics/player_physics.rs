@@ -6,13 +6,7 @@ use macroquad::{
 };
 
 use crate::{
-    model::{
-        area::{AREA_HEIGHT, Area},
-        location::Location,
-        player_info::PlayerInfo,
-        voxel::Voxel,
-        world::World,
-    },
+    model::{area::Area, location::Location, player_info::PlayerInfo, voxel::Voxel, world::World},
     utils::{StackVec, vector_to_location},
 };
 
@@ -200,12 +194,11 @@ fn update_horizontal_player_velocity(
     move_dir: Vec3,
     delta: f32,
 ) {
-    let mut down_voxel_location = player_info.camera_controller.get_camera_voxel_location();
-    down_voxel_location.z += 2;
-    let down_voxel = if down_voxel_location.z >= AREA_HEIGHT as i32 || down_voxel_location.z < 0 {
-        Voxel::None
+    let down_voxel_location = player_info.camera_controller.get_standing_on_location();
+    let down_voxel = if let Some(loc) = down_voxel_location {
+        world.get(loc)
     } else {
-        world.get(down_voxel_location)
+        Voxel::None
     };
 
     if down_voxel == Voxel::Ice {

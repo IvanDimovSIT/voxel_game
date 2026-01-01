@@ -33,11 +33,12 @@ const TALL_TREE_LOCATIONS: [(Location, Voxel); 9] = [
     (Location::new(1, 0, -4), Voxel::Leaves),
     (Location::new(-1, 0, -4), Voxel::Leaves),
 ];
-const HUGE_TREE_LOCATIONS: [(Location, Voxel); 26] = [
+const HUGE_TREE_LOCATIONS: [(Location, Voxel); 27] = [
     (Location::new(0, 0, -1), Voxel::Wood),
     (Location::new(0, 0, -2), Voxel::Wood),
     (Location::new(0, 0, -3), Voxel::Wood),
     (Location::new(0, 0, -4), Voxel::Wood),
+    (Location::new(0, 0, -5), Voxel::Wood),
     (Location::new(1, 0, -4), Voxel::Wood),
     (Location::new(0, 1, -4), Voxel::Wood),
     (Location::new(0, -1, -4), Voxel::Wood),

@@ -6,7 +6,10 @@ use macroquad::{
     math::{Vec2, Vec3, vec3},
 };
 
-use crate::{model::location::Location, utils::vector_to_location};
+use crate::{
+    model::{area::AREA_HEIGHT, location::Location},
+    utils::vector_to_location,
+};
 
 const LOOK_SPEED: f32 = 0.1;
 
@@ -123,6 +126,18 @@ impl CameraController {
 
     pub fn get_camera_voxel_location(&self) -> Location {
         vector_to_location(self.position)
+    }
+
+    /// returns the location the player is standing on (camera_position.z + 2)
+    pub fn get_standing_on_location(&self) -> Option<Location> {
+        let mut location = vector_to_location(self.position);
+        location.z += 2;
+
+        if location.z < 0 || location.z >= AREA_HEIGHT as i32 {
+            None
+        } else {
+            Some(location)
+        }
     }
 
     pub fn is_focused(&self) -> bool {

@@ -39,7 +39,7 @@ pub fn place_voxel(
     debug_assert!(voxel != Voxel::None);
     let unable_to_place_voxel = world.get(location).is_solid()
         || will_new_voxel_cause_collision(player_info, location)
-        || voxel_simulator.location_has_voxel(location)
+        || voxel_simulator.location_is_empty(location)
         || !creature_manager.check_can_place_voxel(location);
 
     if unable_to_place_voxel {

@@ -79,8 +79,9 @@ impl VoxelSimulator {
         self.bomb_simulator.draw_explosions(camera)
     }
 
-    pub fn location_has_voxel(&self, location: Location) -> bool {
+    pub fn location_is_empty(&self, location: Location) -> bool {
         self.falling_voxel_simulator.location_has_voxel(location)
+            || self.bomb_simulator.location_has_bomb(location)
     }
 
     pub fn create_dtos(&self) -> (Vec<SimulatedVoxelDTO>, WaterSimulator) {
