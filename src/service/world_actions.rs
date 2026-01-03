@@ -203,7 +203,7 @@ fn put_player_on_ground(player_info: &mut PlayerInfo, world: &mut World) {
         if voxel != Voxel::None {
             player_info
                 .camera_controller
-                .set_position(bottom_position - vec3(0.0, 0.0, 1.0));
+                .set_position(bottom_position - vec3(0.0, 0.0, Voxel::SIZE));
 
             if Voxel::WATER.contains(&voxel) {
                 world.set(bottom_location, Voxel::Stone);
@@ -212,7 +212,7 @@ fn put_player_on_ground(player_info: &mut PlayerInfo, world: &mut World) {
         } else {
             player_info
                 .camera_controller
-                .set_position(bottom_position + vec3(0.0, 0.0, 1.0));
+                .set_position(bottom_position + vec3(0.0, 0.0, Voxel::SIZE));
         }
     }
 }

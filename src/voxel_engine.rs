@@ -327,6 +327,7 @@ impl VoxelEngine {
         self.voxel_simulator.update(
             &mut self.world,
             &mut self.renderer,
+            &mut self.player_info,
             &self.asset_manager,
             &self.user_settings,
             delta,

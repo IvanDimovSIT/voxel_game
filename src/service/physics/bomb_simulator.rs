@@ -14,8 +14,8 @@ use crate::{
         shader_manager::SHADER_MANAGER_INSTANCE,
     },
     model::{
-        area::AREA_HEIGHT, location::Location, user_settings::UserSettings, voxel::Voxel,
-        world::World,
+        area::AREA_HEIGHT, location::Location, player_info::PlayerInfo,
+        user_settings::UserSettings, voxel::Voxel, world::World,
     },
     service::{
         asset_manager::AssetManager,
@@ -84,6 +84,7 @@ impl BombSimulator {
         &mut self,
         world: &mut World,
         renderer: &mut Renderer,
+        player_info: &mut PlayerInfo,
         asset_manager: &AssetManager,
         user_settings: &UserSettings,
         delta: f32,
@@ -96,6 +97,7 @@ impl BombSimulator {
                 asset_manager
                     .sound_manager
                     .play_sound(SoundId::Explosion, user_settings);
+                Self::launch_player_from_explosion(player_info, bomb.position);
             }
         }
         self.explosions.iter_mut().for_each(|e| e.life_s -= delta);
@@ -150,6 +152,27 @@ impl BombSimulator {
             .any(|bomb| vector_to_location(bomb.position) == location)
     }
 
+    /// launches player away from explosion origin
+    fn launch_player_from_explosion(player_info: &mut PlayerInfo, explosion_position: Vec3) {
+        const MAX_EXPLOSION_STRENGTH: f32 = 50.0;
+        const MIN_DISTANCE_TO_EXPLOSION: f32 = 0.5;
+        const EXPLOSION_PUSH_BACK_RADIUS: f32 = EXPLOSION_RADIUS * 1.2;
+
+        let vector_from_explosion_to_player =
+            player_info.camera_controller.get_position() - explosion_position;
+        let distance = vector_from_explosion_to_player
+            .length()
+            .max(MIN_DISTANCE_TO_EXPLOSION);
+        let strength = MAX_EXPLOSION_STRENGTH * (EXPLOSION_PUSH_BACK_RADIUS - distance)
+            / EXPLOSION_PUSH_BACK_RADIUS;
+        if strength <= 0.0 {
+            return;
+        }
+        let dir_to_player = vector_from_explosion_to_player / distance;
+        let change_in_velocity = dir_to_player * strength;
+        player_info.velocity += change_in_velocity;
+    }
+
     fn update_bomb(bomb: &mut ActiveBomb, world: &mut World, delta: f32) {
         bomb.life_s -= delta;
         bomb.velocity += (GRAVITY * delta).min(MAX_FALL_SPEED);
@@ -162,7 +185,7 @@ impl BombSimulator {
         }
 
         bomb.velocity = 0.0;
-        bomb.position.z = location.z as f32 - 1.0;
+        bomb.position.z = location.z as f32 - Voxel::SIZE;
     }
 
     /// checks and performs explosions for bombs that should explode
