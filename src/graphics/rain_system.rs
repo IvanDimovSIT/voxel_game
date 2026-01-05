@@ -30,8 +30,8 @@ const RAIN_DROP_SIZE: f32 = 0.15;
 const MAX_SKY_MODIFIER: f32 = 1.0;
 const MIN_SKY_MODIFIER: f32 = 0.6;
 
-const REMOVE_ACTIVITY_COOLDOWN: f32 = 0.1;
-const CHANGE_STATE_ACTIVITY_COOLDOWN: f32 = 40.0;
+const REMOVE_RAINDROPS_ACTIVITY_COOLDOWN: f32 = 0.1;
+const CHANGE_STATE_ACTIVITY_COOLDOWN: f32 = 60.0;
 
 const LIGHTNING_DURATION_S: f32 = 0.8;
 const MIN_LIGHTNING_ACTIVITY_COOLDOWN: f32 = 10.0;
@@ -84,7 +84,7 @@ pub struct RainSystem {
     rain_drops: Vec<RainDrop>,
     water_texture: Texture2D,
     lightning_texture: Texture2D,
-    remove_activity: ActivityTimer,
+    remove_raindrops_activity: ActivityTimer,
     change_state_activity: ActivityTimer,
     lightning_activity: ActivityTimer,
     lightnings: Vec<Lightning>,
@@ -98,7 +98,7 @@ impl RainSystem {
             is_raining: false,
             rain_drops: vec![],
             water_texture: texture_manager.get(Voxel::WaterSource),
-            remove_activity: ActivityTimer::new(0.0, REMOVE_ACTIVITY_COOLDOWN),
+            remove_raindrops_activity: ActivityTimer::new(0.0, REMOVE_RAINDROPS_ACTIVITY_COOLDOWN),
             sky_modifier: 1.0,
             change_state_activity: ActivityTimer::new(0.0, CHANGE_STATE_ACTIVITY_COOLDOWN),
             lightning_activity: ActivityTimer::new(0.0, random_lightning_cooldown()),
@@ -119,7 +119,10 @@ impl RainSystem {
             is_raining: dto.is_raining,
             rain_drops,
             water_texture: texture_manager.get(Voxel::WaterSource),
-            remove_activity: ActivityTimer::new(dto.remove_delta, REMOVE_ACTIVITY_COOLDOWN),
+            remove_raindrops_activity: ActivityTimer::new(
+                dto.remove_delta,
+                REMOVE_RAINDROPS_ACTIVITY_COOLDOWN,
+            ),
             change_state_activity: ActivityTimer::new(
                 dto.change_state_delta,
                 CHANGE_STATE_ACTIVITY_COOLDOWN,
@@ -142,7 +145,7 @@ impl RainSystem {
         RainSystemDTO {
             is_raining: self.is_raining,
             rain_drops,
-            remove_delta: self.remove_activity.get_delta(),
+            remove_delta: self.remove_raindrops_activity.get_delta(),
             change_state_delta: self.change_state_activity.get_delta(),
             sky_modifier: self.sky_modifier,
             lightning_activity: self.lightning_activity,
@@ -169,7 +172,7 @@ impl RainSystem {
         self.update_sky_modifier(delta);
 
         self.simulate(delta);
-        if self.remove_activity.tick(delta) {
+        if self.remove_raindrops_activity.tick(delta) {
             self.remove_fallen();
         }
 

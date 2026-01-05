@@ -140,6 +140,10 @@ pub fn delete_world(world_name: &str) {
         world_name.contains(".") || world_name.contains("/") || world_name.contains("\\");
 
     if is_path_invalid {
+        error!(
+            "Failed to delete world: invalid world name '{}'",
+            world_name
+        );
         return;
     }
 
@@ -152,7 +156,7 @@ pub fn delete_world(world_name: &str) {
 
 #[cfg(test)]
 mod tests {
-    use std::{collections::HashMap, fs::remove_dir_all, time::Instant};
+    use std::{collections::HashMap, fs::remove_dir_all, path::Path, time::Instant};
 
     use crate::model::{
         area::{AREA_HEIGHT, AREA_SIZE},
@@ -231,6 +235,25 @@ mod tests {
         }
 
         assert!(areas.is_empty());
+    }
+
+    #[test]
+    pub fn test_delete_world() {
+        let world_name = "test_world_persistence_test_delete_world";
+
+        let area_locations = [AreaLocation::new(0, 0), AreaLocation::new(1, 0)];
+        let areas: Vec<_> = area_locations
+            .into_iter()
+            .map(|loc| AreaGenerator::generate_area(loc, world_name))
+            .collect();
+
+        store_all_blocking(areas.clone(), world_name.to_owned());
+
+        assert!(Path::new(&get_world_directory(world_name)).exists());
+
+        delete_world(world_name);
+
+        assert!(!Path::new(&get_world_directory(world_name)).exists());
     }
 
     fn assert_areas_equal(area1: &Area, area2: &Area) {

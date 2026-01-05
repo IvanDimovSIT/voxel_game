@@ -13,8 +13,9 @@ pub fn draw_version_number(height: f32, font: &Font) {
     const OFFSET: f32 = 4.0;
     let font_size = VERSION_NUMBER_TEXT_SIZE * height;
     let y = height - OFFSET;
+    let version_text = format!("v{VERSION_NUMBER}");
 
-    draw_game_text(VERSION_NUMBER, OFFSET, y, font_size, TEXT_COLOR, font);
+    draw_game_text(&version_text, OFFSET, y, font_size, TEXT_COLOR, font);
 }
 
 /// draws text with the selected font
