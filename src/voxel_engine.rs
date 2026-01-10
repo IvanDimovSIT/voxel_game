@@ -267,7 +267,7 @@ impl VoxelEngine {
             &mut self.world,
             camera.position,
             camera.target,
-            self.player_info.voxel_reach,
+            PlayerInfo::VOXEL_REACH,
         )
     }
 

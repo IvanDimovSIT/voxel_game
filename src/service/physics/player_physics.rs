@@ -63,8 +63,8 @@ pub fn process_collisions(
 
     let mut down_locations = StackVec::new();
     let mut top_locations = StackVec::new();
-    find_locations_for_collisions(down_position, player_info.size, &mut down_locations);
-    find_locations_for_collisions(top_position, player_info.size, &mut top_locations);
+    find_locations_for_collisions(down_position, PlayerInfo::PLAYER_SIZE, &mut down_locations);
+    find_locations_for_collisions(top_position, PlayerInfo::PLAYER_SIZE, &mut top_locations);
 
     world.with_cached_area(
         player_info.camera_controller.get_camera_voxel_location(),
@@ -136,14 +136,18 @@ pub fn try_jump(player_info: &mut PlayerInfo, world: &mut World) {
 
     let bottom_voxel_position = player_info.camera_controller.get_bottom_position();
     let mut down_locations = StackVec::new();
-    find_locations_for_collisions(bottom_voxel_position, player_info.size, &mut down_locations);
+    find_locations_for_collisions(
+        bottom_voxel_position,
+        PlayerInfo::PLAYER_SIZE,
+        &mut down_locations,
+    );
 
     let is_on_ground = down_locations
         .into_iter()
         .any(|location| is_location_non_empty(location, world));
 
     if is_on_ground {
-        player_info.velocity.z = player_info.jump_velocity;
+        player_info.velocity.z = PlayerInfo::JUMP_VELOCITY;
     }
 }
 
@@ -165,8 +169,8 @@ pub fn will_new_voxel_cause_collision(
     let down_position = top_position + vec3(0.0, 0.0, 1.0);
     let mut down_locations = StackVec::new();
     let mut top_locations = StackVec::new();
-    find_locations_for_collisions(down_position, player_info.size, &mut down_locations);
-    find_locations_for_collisions(top_position, player_info.size, &mut top_locations);
+    find_locations_for_collisions(down_position, PlayerInfo::PLAYER_SIZE, &mut down_locations);
+    find_locations_for_collisions(top_position, PlayerInfo::PLAYER_SIZE, &mut top_locations);
 
     down_locations
         .into_iter()
@@ -221,7 +225,7 @@ fn update_horizontal_player_velocity(
 /// move and process horizontal collisions for the player, accepts a normalized or zero vector
 fn try_move(player_info: &mut PlayerInfo, world: &mut World, move_dir: Vec3, delta: f32) {
     let displacement = delta
-        * (player_info.move_speed * move_dir
+        * (PlayerInfo::PLAYER_MOVE_SPEED * move_dir
             + vec3(player_info.velocity.x, player_info.velocity.y, 0.0));
 
     let top_position = player_info.camera_controller.get_position();
@@ -243,9 +247,13 @@ fn try_move(player_info: &mut PlayerInfo, world: &mut World, move_dir: Vec3, del
         top_locations = StackVec::new();
         bottom_locations = StackVec::new();
         mid_locations = StackVec::new();
-        find_locations_for_collisions(top_displaced, player_info.size, &mut top_locations);
-        find_locations_for_collisions(bottom_displaced, player_info.size, &mut bottom_locations);
-        find_locations_for_collisions(mid_displaced, player_info.size, &mut mid_locations);
+        find_locations_for_collisions(top_displaced, PlayerInfo::PLAYER_SIZE, &mut top_locations);
+        find_locations_for_collisions(
+            bottom_displaced,
+            PlayerInfo::PLAYER_SIZE,
+            &mut bottom_locations,
+        );
+        find_locations_for_collisions(mid_displaced, PlayerInfo::PLAYER_SIZE, &mut mid_locations);
 
         let any_collision =
             world.with_cached_area(vector_to_location(top_displaced), |world, cached_area| {

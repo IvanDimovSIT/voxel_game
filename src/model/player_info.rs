@@ -8,10 +8,6 @@ use crate::{
     utils::{arr_to_vec3, vec3_to_arr},
 };
 
-const PLAYER_MOVE_SPEED: f32 = 9.0;
-const PLAYER_SIZE: f32 = 0.3;
-const VOXEL_REACH: f32 = 7.0;
-const JUMP_VELOCITY: f32 = -15.0;
 const DESTROY_VOXEL_DELAY: f32 = 0.25;
 const PLACE_VOXEL_DELAY: f32 = 0.2;
 const REPLACE_VOXEL_DELAY: f32 = 0.1;
@@ -24,23 +20,20 @@ pub struct PlayerInfo {
     pub inventory: Inventory,
     pub camera_controller: CameraController,
     pub voxel_selector: ItemHotbar,
-    pub move_speed: f32,
-    pub voxel_reach: f32,
-    pub size: f32,
     pub velocity: Vec3,
-    pub jump_velocity: f32,
     pub is_in_water: bool,
     pub is_head_in_water: bool,
 }
 impl PlayerInfo {
+    pub const PLAYER_MOVE_SPEED: f32 = 9.0;
+    pub const PLAYER_SIZE: f32 = 0.3;
+    pub const VOXEL_REACH: f32 = 7.0;
+    pub const JUMP_VELOCITY: f32 = -15.0;
+
     pub fn new(position: Vec3) -> Self {
         Self {
             camera_controller: CameraController::new(position),
-            move_speed: PLAYER_MOVE_SPEED,
-            voxel_reach: VOXEL_REACH,
             velocity: Vec3::ZERO,
-            jump_velocity: JUMP_VELOCITY,
-            size: PLAYER_SIZE,
             voxel_selector: ItemHotbar::new(),
             inventory: Inventory::default(),
             is_in_water: false,
@@ -74,11 +67,7 @@ impl From<PlayerInfoDTO> for PlayerInfo {
 
         Self {
             camera_controller,
-            move_speed: PLAYER_MOVE_SPEED,
-            voxel_reach: VOXEL_REACH,
             velocity,
-            jump_velocity: JUMP_VELOCITY,
-            size: PLAYER_SIZE,
             voxel_selector: value.voxel_selector,
             inventory: value.inventory,
             is_in_water: false,

@@ -57,7 +57,7 @@ pub fn collides(creature: &impl Creature, world: &mut World) -> Option<Vec3> {
 
 pub fn collides_with_player(creature: &impl Creature, player_info: &PlayerInfo) -> bool {
     let player_pos = player_info.camera_controller.get_bottom_position();
-    let player_half_size = player_info.size;
+    let player_half_size = PlayerInfo::PLAYER_SIZE;
     let player_height = 1.0;
 
     let position = creature.get_position();
