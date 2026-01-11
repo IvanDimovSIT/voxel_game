@@ -441,6 +441,8 @@ impl VoxelEngine {
             );
         } else if self.show_ui {
             set_default_camera();
+            self.world_map
+                .draw_comapass(&self.asset_manager.texture_manager);
             self.tutorial_messages.draw(height, &self.asset_manager);
         }
 

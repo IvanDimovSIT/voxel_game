@@ -45,12 +45,14 @@ async fn main() {
     initialise_save_directory();
     let asset_manager_result = AssetManager::new().await;
     let user_settings = read_or_initialise_user_settings();
-    if user_settings.is_fullscreen {
-        set_fullscreen(true);
-    }
 
     let mut state = match asset_manager_result {
-        Ok(asset_manager) => GameState::new(asset_manager, user_settings),
+        Ok(asset_manager) => {
+            if user_settings.is_fullscreen {
+                set_fullscreen(true);
+            }
+            GameState::new(asset_manager, user_settings)
+        }
         Err(errors) => GameState::error(errors),
     };
 

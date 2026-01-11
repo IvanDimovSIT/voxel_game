@@ -2,11 +2,14 @@ use std::f32::consts::{PI, TAU};
 
 use macroquad::{
     camera::Camera3D,
-    math::{Vec3, vec3},
-    window::clear_background,
+    color::WHITE,
+    math::{Vec2, Vec3, vec3},
+    texture::{DrawTextureParams, draw_texture_ex},
+    window::{clear_background, screen_height},
 };
 
 use crate::{
+    graphics::texture_manager::{PlainTextureId, TextureManager},
     interface::style::BACKGROUND_COLOR,
     model::{area::AREA_HEIGHT, player_info::PlayerInfo},
 };
@@ -107,6 +110,24 @@ impl WorldMap {
             fovy: WORLD_VIEW_SIZE * map_fov,
             ..Default::default()
         }
+    }
+
+    /// draws the compass 2D visual
+    pub fn draw_comapass(&self, texture_manager: &TextureManager) {
+        const COMPASS_RELATIVE_SIZE: f32 = 0.15;
+        let rotation = 0.5 * PI - self.left_right_angle;
+        let height = screen_height();
+        let compass_size = COMPASS_RELATIVE_SIZE * height;
+        let x = 0.0;
+        let y = height - compass_size;
+        let compass_texture = texture_manager.get_plain_texture(PlainTextureId::Compass);
+        let params = DrawTextureParams {
+            dest_size: Some(Vec2::splat(compass_size)),
+            rotation,
+            ..Default::default()
+        };
+
+        draw_texture_ex(&compass_texture, x, y, WHITE, params);
     }
 
     pub fn draw_background(&self) {
