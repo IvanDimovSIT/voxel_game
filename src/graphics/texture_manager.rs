@@ -7,7 +7,11 @@ use macroquad::{
 
 use crate::{
     graphics::mesh_manager::MeshId,
-    model::voxel::{MAX_VOXEL_VARIANTS, Voxel},
+    model::{
+        inventory::{Item, ItemType},
+        item_id::ItemId,
+        voxel::{MAX_VOXEL_VARIANTS, Voxel},
+    },
     service::asset_manager::{AssetError, AssetLoadingErrors},
 };
 
@@ -74,6 +78,12 @@ const PLAIN_TEXTURES: [(PlainTextureId, &str, FilterMode); 7] = [
     (PlainTextureId::Compass, "compass.png", FilterMode::Nearest),
 ];
 
+const ITEM_ICON_TEXTURES: [(ItemId, &str); 3] = [
+    (ItemId::Compass, "compass-item-icon.png"),
+    (ItemId::DayClock, "day-clock-item-icon.png"),
+    (ItemId::NightClock, "night-clock-item-icon.png"),
+];
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum PlainTextureId {
     Sun,
@@ -89,6 +99,7 @@ pub struct TextureManager {
     textures: Vec<Option<Texture2D>>,
     mesh_textures: HashMap<MeshId, Texture2D>,
     voxel_icons: HashMap<Voxel, Texture2D>,
+    item_icons: Box<[Texture2D]>,
     plain_textures: HashMap<PlainTextureId, Texture2D>,
 }
 impl TextureManager {
@@ -107,6 +118,7 @@ impl TextureManager {
         let voxel_icons = Self::load_voxel_icon_textures().await;
         let mesh_textures = Self::load_mesh_textures().await;
         let plain_textures = Self::load_plain_textures().await;
+        let item_icons = Self::load_item_icons().await;
 
         let mut errors = vec![];
 
@@ -122,6 +134,9 @@ impl TextureManager {
         if let Err(err) = &plain_textures {
             errors.extend(err.errors.clone());
         }
+        if let Err(err) = &item_icons {
+            errors.extend(err.errors.clone());
+        }
 
         if !errors.is_empty() {
             return Err(AssetLoadingErrors::new(errors));
@@ -132,7 +147,34 @@ impl TextureManager {
             voxel_icons: voxel_icons.unwrap(),
             mesh_textures: mesh_textures.unwrap(),
             plain_textures: plain_textures.unwrap(),
+            item_icons: item_icons.unwrap(),
         })
+    }
+
+    async fn load_item_icons() -> Result<Box<[Texture2D]>, AssetLoadingErrors> {
+        let mut textures = vec![None; ITEM_ICON_TEXTURES.len()];
+        let mut missing_textures = vec![];
+
+        for (id, texture_path) in ITEM_ICON_TEXTURES {
+            let full_path = format!("{BASE_ICON_TEXTURES_PATH}{texture_path}");
+            if let Some(texture) = Self::load_image(&full_path).await {
+                texture.set_filter(FilterMode::Nearest);
+                textures[id.index()] = Some(texture);
+                info!("Loaded texture for {:?} from '{}'", id, texture_path);
+            } else {
+                missing_textures.push(AssetError::MissingImage { path: full_path });
+            }
+        }
+
+        if missing_textures.is_empty() {
+            Ok(textures
+                .into_iter()
+                .flatten()
+                .collect::<Vec<_>>()
+                .into_boxed_slice())
+        } else {
+            Err(AssetLoadingErrors::new(missing_textures))
+        }
     }
 
     async fn load_plain_textures() -> Result<HashMap<PlainTextureId, Texture2D>, AssetLoadingErrors>
@@ -274,8 +316,15 @@ impl TextureManager {
             .weak_clone()
     }
 
+    pub fn get_icon(&self, item: Item) -> Texture2D {
+        match item.item_type {
+            ItemType::Voxel(voxel) => self.get_voxel_icon(voxel),
+            ItemType::Item(item_id) => self.item_icons[item_id.index()].weak_clone(),
+        }
+    }
+
     /// returns the icon texture of the voxel, could be the same as the regular texture
-    pub fn get_icon(&self, voxel: Voxel) -> Texture2D {
+    fn get_voxel_icon(&self, voxel: Voxel) -> Texture2D {
         self.voxel_icons
             .get(&voxel)
             .map(Texture2D::weak_clone)

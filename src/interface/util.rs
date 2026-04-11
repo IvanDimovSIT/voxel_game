@@ -37,7 +37,11 @@ pub fn draw_item_name_box(
     const TEXT_BOX_X_OFFSET: f32 = 3.0;
     const TEXT_BOX_Y_OFFSET: f32 = -5.0;
     use_str_buffer(|buffer| {
-        write!(buffer, "{voxel_name} ({count})").expect("error writing to text buffer");
+        if count > 1 {
+            write!(buffer, "{voxel_name} ({count})").expect("error writing to text buffer");
+        } else {
+            write!(buffer, "{voxel_name}").expect("error writing to text buffer");
+        }
         draw_rectangle(
             x,
             y - font_size,

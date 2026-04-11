@@ -30,7 +30,13 @@ use crate::{
         interface_context::InterfaceContext,
         tutorial_messages::{TutorialMessage, TutorialMessages},
     },
-    model::{inventory::Item, player_info::PlayerInfo, user_settings::UserSettings, world::World},
+    model::{
+        inventory::{Item, ItemType},
+        item_id::ItemId,
+        player_info::PlayerInfo,
+        user_settings::UserSettings,
+        world::World,
+    },
     service::{
         active_zone::{
             get_load_zone, get_load_zone_on_world_load, get_render_zone,
@@ -56,7 +62,7 @@ use crate::{
         sound_manager::SoundId,
         world_actions::{
             DestroyActionEvent, destroy_voxel, initialise_world_systems, place_voxel,
-            replace_voxel, update_player_in_water,
+            put_player_on_ground, replace_voxel, update_player_in_water,
         },
         world_time::WorldTime,
     },
@@ -595,40 +601,59 @@ impl VoxelEngine {
     }
 
     fn try_place_voxel(&mut self, raycast_result: RaycastResult) {
-        match raycast_result {
-            RaycastResult::NoneHit => {}
-            RaycastResult::Hit {
-                first_non_empty: _,
-                last_empty,
-            } => {
-                let selected_index = self.player_info.voxel_selector.get_selected_index();
-                let selected_item = self.player_info.inventory.selected[selected_index];
-                if selected_item.is_none() {
-                    return;
-                }
+        let selected_index = self.player_info.voxel_selector.get_selected_index();
+        let selected_item = if let Some(item) = self.player_info.inventory.selected[selected_index]
+        {
+            item
+        } else {
+            return;
+        };
 
-                let has_placed = place_voxel(
+        match selected_item.item_type {
+            ItemType::Voxel(voxel) => match raycast_result {
+                RaycastResult::NoneHit => {}
+                RaycastResult::Hit {
+                    first_non_empty: _,
                     last_empty,
-                    selected_item.unwrap().voxel,
-                    &self.player_info,
-                    &mut self.world,
-                    &mut self.renderer,
-                    &mut self.voxel_simulator,
-                    &self.creature_manager,
-                );
-                if !has_placed {
-                    return;
+                } => {
+                    let has_placed = place_voxel(
+                        last_empty,
+                        voxel,
+                        &self.player_info,
+                        &mut self.world,
+                        &mut self.renderer,
+                        &mut self.voxel_simulator,
+                        &self.creature_manager,
+                    );
+                    if !has_placed {
+                        return;
+                    }
+                    self.player_info
+                        .inventory
+                        .reduce_selected_at(selected_index);
+
+                    self.asset_manager
+                        .sound_manager
+                        .play_sound(SoundId::Place, &self.user_settings);
+
+                    self.tutorial_messages.show(TutorialMessage::Replacing);
                 }
-                self.player_info
-                    .inventory
-                    .reduce_selected_at(selected_index);
+            },
+            ItemType::Item(item_id) => self.handle_item(item_id),
+        }
+    }
 
-                self.asset_manager
-                    .sound_manager
-                    .play_sound(SoundId::Place, &self.user_settings);
-
-                self.tutorial_messages.show(TutorialMessage::Replacing);
+    fn handle_item(&mut self, item_id: ItemId) {
+        self.asset_manager
+            .sound_manager
+            .play_sound(SoundId::Click, &self.user_settings);
+        match item_id {
+            ItemId::Compass => {
+                self.player_info.camera_controller.set_position(Vec3::ZERO);
+                put_player_on_ground(&mut self.player_info, &mut self.world);
             }
+            ItemId::DayClock => self.world_time.set_day(),
+            ItemId::NightClock => self.world_time.set_night(),
         }
     }
 
@@ -649,7 +674,9 @@ impl VoxelEngine {
                 match destroy_event {
                     DestroyActionEvent::None => {}
                     DestroyActionEvent::GainVoxel(destroyed) => {
-                        self.player_info.inventory.add_item(Item::new(destroyed, 1));
+                        self.player_info
+                            .inventory
+                            .add_item(Item::new_voxel(destroyed, 1));
                         self.asset_manager
                             .sound_manager
                             .play_sound(SoundId::Destroy, &self.user_settings);
@@ -671,33 +698,35 @@ impl VoxelEngine {
     }
 
     fn try_replace_voxel(&mut self, raycast_result: RaycastResult) {
-        match raycast_result {
-            RaycastResult::NoneHit => {}
-            RaycastResult::Hit {
-                first_non_empty,
-                last_empty: _,
-            } => {
-                let index = self.player_info.voxel_selector.get_selected_index();
-                let selected_item = self.player_info.inventory.selected[index];
-                if selected_item.is_none() {
-                    return;
-                }
-
-                let maybe_replaced = replace_voxel(
+        let index = self.player_info.voxel_selector.get_selected_index();
+        let selected_item = if let Some(item) = self.player_info.inventory.selected[index] {
+            item
+        } else {
+            return;
+        };
+        if let ItemType::Voxel(voxel) = selected_item.item_type {
+            match raycast_result {
+                RaycastResult::NoneHit => {}
+                RaycastResult::Hit {
                     first_non_empty,
-                    selected_item.unwrap().voxel,
-                    &mut self.world,
-                    &mut self.renderer,
-                    &mut self.voxel_simulator,
-                );
-                if let Some(replaced_voxel) = maybe_replaced {
-                    self.player_info.inventory.reduce_selected_at(index);
-                    self.player_info
-                        .inventory
-                        .add_item(Item::new(replaced_voxel, 1));
-                    self.asset_manager
-                        .sound_manager
-                        .play_sound(SoundId::Destroy, &self.user_settings);
+                    last_empty: _,
+                } => {
+                    let maybe_replaced = replace_voxel(
+                        first_non_empty,
+                        voxel,
+                        &mut self.world,
+                        &mut self.renderer,
+                        &mut self.voxel_simulator,
+                    );
+                    if let Some(replaced_voxel) = maybe_replaced {
+                        self.player_info.inventory.reduce_selected_at(index);
+                        self.player_info
+                            .inventory
+                            .add_item(Item::new_voxel(replaced_voxel, 1));
+                        self.asset_manager
+                            .sound_manager
+                            .play_sound(SoundId::Destroy, &self.user_settings);
+                    }
                 }
             }
         }

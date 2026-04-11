@@ -35,7 +35,7 @@ impl PlayerInfo {
             camera_controller: CameraController::new(position),
             velocity: Vec3::ZERO,
             voxel_selector: ItemHotbar::new(),
-            inventory: Inventory::default(),
+            inventory: Inventory::new_initial(),
             is_in_water: false,
             is_head_in_water: false,
             destroy_progress: ActivityTimer::new(0.0, DESTROY_VOXEL_DELAY),

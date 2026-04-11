@@ -205,19 +205,19 @@ impl CraftingMenuContext {
 
         for (index, input) in crafting_recipe.get_inputs().enumerate() {
             let item_y = item_y_start + index as f32 * (item_size + ROW_PADDING);
-            let available = self.all_items.get(input.voxel);
+            let available = self.all_items.get(input.item_type);
             Self::draw_item_input(
                 item_x_start,
                 item_y,
                 item_size,
                 input,
                 available,
-                asset_manager.texture_manager.get_icon(input.voxel),
+                asset_manager.texture_manager.get_icon(*input),
                 &asset_manager.font,
             );
         }
 
-        let already_have = self.all_items.get(crafting_recipe.output.voxel);
+        let already_have = self.all_items.get(crafting_recipe.output.item_type);
         Self::draw_output_item(
             card_x + card_width - item_size * OUTPUT_ITEM_OFFSET_X_COEF,
             item_y_start,
@@ -272,7 +272,7 @@ impl CraftingMenuContext {
         already_have: u32,
         asset_manager: &AssetManager,
     ) {
-        let texture = asset_manager.texture_manager.get_icon(item.voxel);
+        let texture = asset_manager.texture_manager.get_icon(*item);
         const TEXT_X_OFFSET: f32 = 5.0;
         let (mouse_x, mouse_y) = mouse_position();
         let font_size = size * CARD_FONT_SIZE_COEF;
@@ -334,7 +334,7 @@ impl CraftingMenuContext {
             draw_item_name_box(
                 mouse_x,
                 mouse_y,
-                item.voxel.display_name(),
+                item.display_name(),
                 item.count,
                 font_size,
                 &asset_manager.font,
@@ -396,7 +396,7 @@ impl CraftingMenuContext {
             draw_item_name_box(
                 mouse_x,
                 mouse_y,
-                item.voxel.display_name(),
+                item.display_name(),
                 item.count,
                 font_size,
                 font,

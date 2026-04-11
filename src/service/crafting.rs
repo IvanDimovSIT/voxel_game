@@ -1,12 +1,15 @@
 use crate::model::{
-    inventory::{AvailableItems, Inventory, Item},
+    inventory::{AvailableItems, Inventory, Item, ItemType},
     voxel::Voxel,
 };
 
 impl Item {
     /// const constructor
     const fn new_c(voxel: Voxel, count: u8) -> Self {
-        Self { voxel, count }
+        Self {
+            item_type: ItemType::Voxel(voxel),
+            count,
+        }
     }
 }
 
@@ -101,16 +104,16 @@ pub fn find_craftable(available_items: &AvailableItems) -> Vec<(CraftingRecipe, 
 /// crafts the recipe a number of times
 pub fn craft_recipe(recipe: &CraftingRecipe, inventory: &mut Inventory, craft_count: u8) {
     for input in recipe.get_inputs() {
-        inventory.remove_item(Item::new(input.voxel, input.count * craft_count));
+        inventory.remove_item(Item::new(input.item_type, input.count * craft_count));
     }
-    let output = Item::new(recipe.output.voxel, recipe.output.count * craft_count);
+    let output = Item::new(recipe.output.item_type, recipe.output.count * craft_count);
     inventory.add_item(output);
 }
 
 fn find_max_times_craftable(recipe: &CraftingRecipe, available_items: &AvailableItems) -> u32 {
     recipe
         .get_inputs()
-        .map(|item| available_items.get(item.voxel) / item.count as u32)
+        .map(|item| available_items.get(item.item_type) / item.count as u32)
         .min()
         .unwrap_or(0)
 }
@@ -122,36 +125,57 @@ mod tests {
     #[test]
     fn test_find_craftable_some() {
         let mut available = AvailableItems::new_empty();
-        available.add(Voxel::Wood, 10u32);
-        available.add(Voxel::Stone, 10u32);
-        available.add(Voxel::Clay, 10u32);
-        available.add(Voxel::Glass, 1u32);
+        available.add(ItemType::Voxel(Voxel::Wood), 10u32);
+        available.add(ItemType::Voxel(Voxel::Stone), 10u32);
+        available.add(ItemType::Voxel(Voxel::Clay), 10u32);
+        available.add(ItemType::Voxel(Voxel::Glass), 1u32);
 
         let craftable = find_craftable(&available);
         assert_eq!(craftable.len(), 7);
-        assert_eq!(craftable[0].0.output.voxel, Voxel::Boards);
+        assert_eq!(
+            craftable[0].0.output.item_type,
+            ItemType::Voxel(Voxel::Boards)
+        );
         assert_eq!(craftable[0].1, 10);
-        assert_eq!(craftable[1].0.output.voxel, Voxel::Cobblestone);
+        assert_eq!(
+            craftable[1].0.output.item_type,
+            ItemType::Voxel(Voxel::Cobblestone)
+        );
         assert_eq!(craftable[1].1, 10);
-        assert_eq!(craftable[2].0.output.voxel, Voxel::Brick);
+        assert_eq!(
+            craftable[2].0.output.item_type,
+            ItemType::Voxel(Voxel::Brick)
+        );
         assert_eq!(craftable[2].1, 3);
-        assert_eq!(craftable[3].0.output.voxel, Voxel::StoneBrick);
+        assert_eq!(
+            craftable[3].0.output.item_type,
+            ItemType::Voxel(Voxel::StoneBrick)
+        );
         assert_eq!(craftable[3].1, 10);
-        assert_eq!(craftable[4].0.output.voxel, Voxel::StonePillar);
+        assert_eq!(
+            craftable[4].0.output.item_type,
+            ItemType::Voxel(Voxel::StonePillar)
+        );
         assert_eq!(craftable[4].1, 10);
-        assert_eq!(craftable[5].0.output.voxel, Voxel::Lamp);
+        assert_eq!(
+            craftable[5].0.output.item_type,
+            ItemType::Voxel(Voxel::Lamp)
+        );
         assert_eq!(craftable[5].1, 1);
-        assert_eq!(craftable[6].0.output.voxel, Voxel::Trampoline);
+        assert_eq!(
+            craftable[6].0.output.item_type,
+            ItemType::Voxel(Voxel::Trampoline)
+        );
         assert_eq!(craftable[6].1, 1);
     }
 
     #[test]
     fn test_find_craftable_none() {
         let mut available = AvailableItems::new_empty();
-        available.add(Voxel::Boards, 10u32);
-        available.add(Voxel::Glass, 220u32);
-        available.add(Voxel::Clay, 10u32);
-        available.add(Voxel::Grass, 50u32);
+        available.add(ItemType::Voxel(Voxel::Boards), 10u32);
+        available.add(ItemType::Voxel(Voxel::Glass), 220u32);
+        available.add(ItemType::Voxel(Voxel::Clay), 10u32);
+        available.add(ItemType::Voxel(Voxel::Grass), 50u32);
         let craftable = find_craftable(&available);
         assert_eq!(craftable.len(), 0);
     }
@@ -182,16 +206,16 @@ mod tests {
                     ..*input
                 });
             }
-            inventory.add_item(Item::new(recipe.output.voxel, 1));
+            inventory.add_item(Item::new(recipe.output.item_type, 1));
             craft_recipe(&recipe, &mut inventory, count);
 
             let items = inventory.create_all_items_map();
             for input in recipe.get_inputs() {
-                assert_eq!(items.get(input.voxel), 0);
+                assert_eq!(items.get(input.item_type), 0);
             }
 
             assert_eq!(
-                items.get(recipe.output.voxel),
+                items.get(recipe.output.item_type),
                 (recipe.output.count * count) as u32 + 1
             );
         }

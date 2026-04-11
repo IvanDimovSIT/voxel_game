@@ -1,41 +1,89 @@
+use std::collections::HashMap;
+
 use bincode::{Decode, Encode};
 
-use crate::model::voxel::{MAX_VOXEL_VARIANTS, Voxel};
+use crate::model::{item_id::ItemId, voxel::Voxel};
 
 pub const MAX_ITEMS_PER_SLOT: u8 = 100;
 
 /// stores the quantity of all inventory items
 #[derive(Debug, Clone)]
 pub struct AvailableItems {
-    counts: Box<[u32; MAX_VOXEL_VARIANTS]>,
+    counts: HashMap<ItemType, u32>,
 }
 impl AvailableItems {
     pub fn new_empty() -> Self {
         Self {
-            counts: Box::new([0; MAX_VOXEL_VARIANTS]),
+            counts: HashMap::new(),
         }
     }
 
-    pub fn add(&mut self, voxel: Voxel, count: impl Into<u32>) {
-        self.counts[voxel.index()] += count.into();
+    pub fn add(&mut self, item_type: ItemType, count: impl Into<u32>) {
+        {
+            let item = self.counts.get_mut(&item_type);
+            if let Some(i) = item {
+                *i += count.into();
+                return;
+            }
+        }
+
+        self.counts.insert(item_type, count.into());
     }
 
-    pub fn get(&self, voxel: Voxel) -> u32 {
-        self.counts[voxel.index()]
+    pub fn get(&self, item_type: ItemType) -> u32 {
+        self.counts.get(&item_type).copied().unwrap_or(0)
     }
+}
+
+#[derive(Debug, Clone, Copy, Encode, Decode, PartialEq, Eq, Hash)]
+pub enum ItemType {
+    Voxel(Voxel),
+    Item(ItemId),
 }
 
 #[derive(Debug, Clone, Copy, Encode, Decode)]
 pub struct Item {
-    pub voxel: Voxel,
+    pub item_type: ItemType,
     pub count: u8,
 }
 impl Item {
-    pub fn new(voxel: Voxel, count: u8) -> Item {
+    pub fn is_same_type(self, other: Self) -> bool {
+        self.item_type == other.item_type
+    }
+
+    pub fn new(item_type: ItemType, count: u8) -> Item {
+        if let ItemType::Voxel(voxel) = item_type {
+            debug_assert!(voxel != Voxel::None)
+        }
+        debug_assert!(count > 0);
+        debug_assert!(count <= MAX_ITEMS_PER_SLOT);
+        Item { item_type, count }
+    }
+
+    pub fn new_voxel(voxel: Voxel, count: u8) -> Item {
         debug_assert!(voxel != Voxel::None);
         debug_assert!(count > 0);
         debug_assert!(count <= MAX_ITEMS_PER_SLOT);
-        Item { voxel, count }
+        Item {
+            item_type: ItemType::Voxel(voxel),
+            count,
+        }
+    }
+
+    pub fn new_item(item_id: ItemId, count: u8) -> Item {
+        debug_assert!(count > 0);
+        debug_assert!(count <= MAX_ITEMS_PER_SLOT);
+        Item {
+            item_type: ItemType::Item(item_id),
+            count,
+        }
+    }
+
+    pub fn display_name(self) -> &'static str {
+        match self.item_type {
+            ItemType::Voxel(voxel) => voxel.display_name(),
+            ItemType::Item(item_id) => item_id.display_name(),
+        }
     }
 }
 
@@ -48,6 +96,16 @@ impl Inventory {
     pub const INVENTORY_SIZE: usize = 40;
     pub const SELECTED_SIZE: usize = 8;
 
+    /// creates the initial inventory
+    pub fn new_initial() -> Self {
+        let mut inventory = Self::default();
+        inventory.items[0] = Some(Item::new_item(ItemId::Compass, 1));
+        inventory.items[1] = Some(Item::new_item(ItemId::DayClock, 1));
+        inventory.items[2] = Some(Item::new_item(ItemId::NightClock, 1));
+
+        inventory
+    }
+
     pub fn add_item(&mut self, mut item: Item) {
         let items_iterator = self
             .selected
@@ -56,7 +114,7 @@ impl Inventory {
             .flatten();
 
         for inventory_item in items_iterator {
-            if inventory_item.voxel == item.voxel {
+            if inventory_item.is_same_type(item) {
                 let to_add = (MAX_ITEMS_PER_SLOT - inventory_item.count).min(item.count);
                 inventory_item.count += to_add;
                 item.count -= to_add;
@@ -79,7 +137,7 @@ impl Inventory {
     pub fn create_all_items_map(&self) -> AvailableItems {
         let mut map = AvailableItems::new_empty();
         for item in self.selected.iter().chain(self.items.iter()).flatten() {
-            map.add(item.voxel, item.count);
+            map.add(item.item_type, item.count);
         }
 
         map
@@ -91,7 +149,7 @@ impl Inventory {
             .items
             .iter_mut()
             .chain(self.selected.iter_mut())
-            .filter(|i| i.is_some() && i.unwrap().voxel == item.voxel);
+            .filter(move |i| i.is_some() && i.unwrap().is_same_type(item));
 
         for slot in iterator {
             let amount_to_remove = slot.unwrap().count.min(item.count);
@@ -139,40 +197,40 @@ mod tests {
 
     impl Item {
         pub fn some(voxel: Voxel, count: u8) -> Option<Item> {
-            Some(Self::new(voxel, count))
+            Some(Self::new_voxel(voxel, count))
         }
     }
 
     #[test]
     fn test_add_item_into_empty() {
         let mut inventory = Inventory::default();
-        inventory.add_item(Item::new(Voxel::Brick, 10));
+        inventory.add_item(Item::new_voxel(Voxel::Brick, 10));
 
         assert!(inventory.selected[0].is_some());
         assert!(inventory.selected[0].unwrap().count == 10);
-        assert!(inventory.selected[0].unwrap().voxel == Voxel::Brick);
+        assert!(inventory.selected[0].unwrap().item_type == ItemType::Voxel(Voxel::Brick));
     }
 
     #[test]
     fn test_add_item_into_same_stack() {
         let mut inventory = Inventory::default();
         inventory.selected[1] = Item::some(Voxel::Brick, 20);
-        inventory.add_item(Item::new(Voxel::Brick, 10));
+        inventory.add_item(Item::new_voxel(Voxel::Brick, 10));
 
         assert!(inventory.selected[1].is_some());
         assert!(inventory.selected[1].unwrap().count == 30);
-        assert!(inventory.selected[1].unwrap().voxel == Voxel::Brick);
+        assert!(inventory.selected[1].unwrap().item_type == ItemType::Voxel(Voxel::Brick));
     }
 
     #[test]
     fn test_add_item_into_prexisting() {
         let mut inventory = Inventory::default();
         inventory.selected[0] = Item::some(Voxel::Grass, 20);
-        inventory.add_item(Item::new(Voxel::Brick, 10));
+        inventory.add_item(Item::new_voxel(Voxel::Brick, 10));
 
         assert!(inventory.selected[1].is_some());
         assert!(inventory.selected[1].unwrap().count == 10);
-        assert!(inventory.selected[1].unwrap().voxel == Voxel::Brick);
+        assert!(inventory.selected[1].unwrap().item_type == ItemType::Voxel(Voxel::Brick));
     }
 
     #[test]
@@ -182,25 +240,25 @@ mod tests {
             .selected
             .iter_mut()
             .for_each(|slot| *slot = Item::some(Voxel::Grass, 100));
-        inventory.add_item(Item::new(Voxel::Brick, 10));
+        inventory.add_item(Item::new_voxel(Voxel::Brick, 10));
 
         assert!(inventory.items[0].is_some());
         assert!(inventory.items[0].unwrap().count == 10);
-        assert!(inventory.items[0].unwrap().voxel == Voxel::Brick);
+        assert!(inventory.items[0].unwrap().item_type == ItemType::Voxel(Voxel::Brick));
     }
 
     #[test]
     fn test_add_item_partial_join() {
         let mut inventory = Inventory::default();
         inventory.selected[0] = Item::some(Voxel::Brick, 80);
-        inventory.add_item(Item::new(Voxel::Brick, 30));
+        inventory.add_item(Item::new_voxel(Voxel::Brick, 30));
 
         assert!(inventory.selected[0].is_some());
         assert!(inventory.selected[0].unwrap().count == 100);
-        assert!(inventory.selected[0].unwrap().voxel == Voxel::Brick);
+        assert!(inventory.selected[0].unwrap().item_type == ItemType::Voxel(Voxel::Brick));
         assert!(inventory.selected[1].is_some());
         assert!(inventory.selected[1].unwrap().count == 10);
-        assert!(inventory.selected[1].unwrap().voxel == Voxel::Brick);
+        assert!(inventory.selected[1].unwrap().item_type == ItemType::Voxel(Voxel::Brick));
     }
 
     #[test]
@@ -213,22 +271,21 @@ mod tests {
         inventory.items[4] = Item::some(Voxel::Brick, 10);
         let map = inventory.create_all_items_map();
 
-        assert_eq!(map.get(Voxel::Brick), 130);
-        assert_eq!(map.get(Voxel::Sand), 80);
-        assert_eq!(map.get(Voxel::Stone), 100);
+        assert_eq!(map.get(ItemType::Voxel(Voxel::Brick)), 130);
+        assert_eq!(map.get(ItemType::Voxel(Voxel::Sand)), 80);
+        assert_eq!(map.get(ItemType::Voxel(Voxel::Stone)), 100);
         let other_items_count: u32 = map
             .counts
             .iter()
-            .enumerate()
-            .filter(|(voxel_index, _)| {
+            .filter(|(item_type, _count)| {
                 ![
-                    Voxel::Brick.index(),
-                    Voxel::Sand.index(),
-                    Voxel::Stone.index(),
+                    ItemType::Voxel(Voxel::Brick),
+                    ItemType::Voxel(Voxel::Sand),
+                    ItemType::Voxel(Voxel::Stone),
                 ]
-                .contains(voxel_index)
+                .contains(item_type)
             })
-            .map(|(_, count)| *count)
+            .map(|(_type, count)| *count)
             .sum();
         assert_eq!(other_items_count, 0);
     }
@@ -238,7 +295,7 @@ mod tests {
         let mut inventory = Inventory::default();
         inventory.selected[0] = Item::some(Voxel::Brick, 60);
         inventory.selected[1] = Item::some(Voxel::Brick, 40);
-        inventory.remove_item(Item::new(Voxel::Brick, 70));
+        inventory.remove_item(Item::new_voxel(Voxel::Brick, 70));
 
         assert!(inventory.selected[0].is_none());
         assert!(inventory.selected[1].is_some());
@@ -250,7 +307,7 @@ mod tests {
     fn test_remove_item_insufficient_quantity() {
         let mut inventory = Inventory::default();
         inventory.selected[0] = Item::some(Voxel::Brick, 60);
-        inventory.remove_item(Item::new(Voxel::Brick, 70));
+        inventory.remove_item(Item::new_voxel(Voxel::Brick, 70));
     }
 
     #[test]
@@ -258,6 +315,6 @@ mod tests {
     fn test_remove_item_not_found() {
         let mut inventory = Inventory::default();
         inventory.selected[0] = Item::some(Voxel::Brick, 60);
-        inventory.remove_item(Item::new(Voxel::Stone, 10));
+        inventory.remove_item(Item::new_voxel(Voxel::Stone, 10));
     }
 }

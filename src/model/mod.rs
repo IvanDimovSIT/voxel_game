@@ -1,5 +1,6 @@
 pub mod area;
 pub mod inventory;
+pub mod item_id;
 pub mod location;
 pub mod player_info;
 pub mod user_settings;

@@ -26,6 +26,16 @@ impl WorldTime {
         self.light = Self::to_light_level(self.delta);
     }
 
+    pub fn set_day(&mut self) {
+        self.delta = PI / 2.0;
+        self.light = Self::to_light_level(self.delta);
+    }
+
+    pub fn set_night(&mut self) {
+        self.delta = 0.0;
+        self.light = Self::to_light_level(self.delta);
+    }
+
     pub fn get_delta(&self) -> f32 {
         self.delta
     }

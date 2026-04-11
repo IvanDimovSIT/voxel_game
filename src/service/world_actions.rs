@@ -191,7 +191,7 @@ pub fn initialise_world_systems(
     }
 }
 
-fn put_player_on_ground(player_info: &mut PlayerInfo, world: &mut World) {
+pub fn put_player_on_ground(player_info: &mut PlayerInfo, world: &mut World) {
     loop {
         let bottom_position = player_info.camera_controller.get_bottom_position();
         let bottom_location = vector_to_location(bottom_position);

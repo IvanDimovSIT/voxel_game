@@ -2,7 +2,7 @@ use bincode::{Decode, Encode};
 use macroquad::{
     camera::Camera3D,
     color::{Color, WHITE},
-    math::{vec2, vec3},
+    math::{Vec2, vec2, vec3},
     miniquad::window::screen_size,
     models::draw_cube_wires,
     shapes::{draw_circle, draw_rectangle},
@@ -14,7 +14,7 @@ use std::fmt::Write;
 use crate::{
     interface::{style::TEXT_COLOR, text::draw_game_text},
     model::{
-        inventory::{Inventory, Item},
+        inventory::{Inventory, Item, ItemType},
         location::Location,
     },
     service::asset_manager::AssetManager,
@@ -85,36 +85,34 @@ impl ItemHotbar {
         let y = screen_height - border_size;
 
         for (index, item) in items_on_hotbar.iter().enumerate() {
-            let texture_with_count = item.as_ref().map(|non_empty| {
-                (
-                    asset_manager.texture_manager.get_icon(non_empty.voxel),
-                    non_empty.count,
-                )
-            });
             let is_selected = self.selected == index;
             let x = x_start + index as f32 * border_size;
 
-            Self::draw_voxel(
+            Self::draw_item_icon(
+                asset_manager,
                 border_size,
                 picture_size,
-                texture_with_count,
-                x,
-                y,
+                *item,
+                vec2(x, y),
                 is_selected,
                 &asset_manager.font,
             );
         }
     }
 
-    fn draw_voxel(
+    fn draw_item_icon(
+        asset_manager: &AssetManager,
         border_size: f32,
         picture_size: f32,
-        texture_with_count: Option<(Texture2D, u8)>,
-        x: f32,
-        y: f32,
+        item_slot: Option<Item>,
+        pos: Vec2,
         is_selected: bool,
         font: &Font,
     ) {
+        let texture_with_count = item_slot
+            .as_ref()
+            .map(|non_empty| get_item_icon_with_count(asset_manager, *non_empty));
+
         let border_color = if is_selected {
             TEXT_COLOR
         } else {
@@ -122,12 +120,23 @@ impl ItemHotbar {
         };
         let offset = (border_size - picture_size) / 2.0;
 
-        draw_rectangle(x, y, border_size, border_size, border_color);
+        draw_rectangle(pos.x, pos.y, border_size, border_size, border_color);
         if let Some((texture, count)) = texture_with_count {
+            if item_slot.is_some()
+                && let ItemType::Item(_) = item_slot.unwrap().item_type
+            {
+                draw_rectangle(
+                    pos.x + offset,
+                    pos.y + offset,
+                    picture_size,
+                    picture_size,
+                    Color::from_rgba(0, 0, 0, 100),
+                );
+            }
             draw_texture_ex(
                 &texture,
-                x + offset,
-                y + offset,
+                pos.x + offset,
+                pos.y + offset,
                 WHITE,
                 DrawTextureParams {
                     dest_size: Some(vec2(picture_size, picture_size)),
@@ -136,25 +145,33 @@ impl ItemHotbar {
             );
 
             let font_size = BASE_COUNT_FONT_SIZE * border_size;
-            use_str_buffer(|buffer| {
-                write!(buffer, "{count}").expect("error writing to text buffer");
-                draw_game_text(
-                    buffer,
-                    x + offset,
-                    y + font_size * 1.7,
-                    font_size,
-                    TEXT_COLOR,
-                    font,
-                );
-            });
+            if count > 1 {
+                use_str_buffer(|buffer| {
+                    write!(buffer, "{count}").expect("error writing to text buffer");
+                    draw_game_text(
+                        buffer,
+                        pos.x + offset,
+                        pos.y + font_size * 1.7,
+                        font_size,
+                        TEXT_COLOR,
+                        font,
+                    );
+                });
+            }
         } else {
             draw_rectangle(
-                x + offset,
-                y + offset,
+                pos.x + offset,
+                pos.y + offset,
                 picture_size,
                 picture_size,
                 Color::from_rgba(0, 0, 0, 100),
             );
         }
     }
+}
+
+fn get_item_icon_with_count(asset_manager: &AssetManager, item: Item) -> (Texture2D, u8) {
+    let count = item.count;
+    let icon = asset_manager.texture_manager.get_icon(item);
+    (icon, count)
 }
