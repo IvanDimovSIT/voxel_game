@@ -349,7 +349,12 @@ impl VoxelEngine {
         let render_size = self.user_settings.get_render_distance();
         self.renderer
             .update_loaded_areas(&get_render_zone(camera_location.into(), render_size));
-        self.renderer.load_areas_in_queue(&mut self.world);
+        self.renderer.load_areas_in_queue(
+            &mut self.world,
+            self.player_info
+                .camera_controller
+                .get_camera_voxel_location(),
+        );
         self.world
             .retain_areas(&get_load_zone(camera_location.into(), render_size));
     }

@@ -286,19 +286,24 @@ impl Renderer {
     }
 
     /// loads the next areas in the load queue
-    pub fn load_areas_in_queue(&mut self, world: &mut World) {
+    pub fn load_areas_in_queue(&mut self, world: &mut World, player_location: Location) {
+        let player_area_location = AreaLocation::from(player_location);
         let number_of_areas_to_load = if self.render_set.len() >= BACKLOG_THRESHOLD {
             INCREASED_AREAS_TO_LOAD_PER_FRAME
         } else {
             AREAS_TO_LOAD_PER_FRAME
         };
 
-        let to_load: Vec<_> = self
-            .render_set
-            .iter()
-            .copied()
-            .take(number_of_areas_to_load)
-            .collect();
+        let compare_area_locations_by_manhattan_distance =
+            |area_location1: &AreaLocation, area_location2: &AreaLocation| {
+                let dist1 = player_area_location.manhattan_distance(*area_location1);
+                let dist2 = player_area_location.manhattan_distance(*area_location2);
+                dist1.cmp(&dist2)
+            };
+
+        let mut render_vec: Vec<_> = self.render_set.iter().copied().collect();
+        render_vec.sort_unstable_by(compare_area_locations_by_manhattan_distance);
+        let to_load = render_vec.into_iter().take(number_of_areas_to_load);
 
         for area_location in to_load {
             self.render_set.remove(&area_location);

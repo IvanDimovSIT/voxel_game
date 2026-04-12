@@ -92,6 +92,13 @@ impl AreaLocation {
     pub const fn new(x: u32, y: u32) -> Self {
         Self { x, y }
     }
+
+    pub fn manhattan_distance(self, other: Self) -> u32 {
+        let dist_x = (self.x as i32 - other.x as i32).unsigned_abs();
+        let dist_y = (self.y as i32 - other.y as i32).unsigned_abs();
+
+        dist_x + dist_y
+    }
 }
 impl From<InternalLocation> for AreaLocation {
     fn from(value: InternalLocation) -> Self {
@@ -101,5 +108,26 @@ impl From<InternalLocation> for AreaLocation {
 impl From<Location> for AreaLocation {
     fn from(value: Location) -> Self {
         World::convert_global_to_area_location(value.into())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_manhattan_distance() {
+        let test_list = [
+            (AreaLocation::new(1, 1), AreaLocation::new(1, 1), 0),
+            (AreaLocation::new(1, 1), AreaLocation::new(1, 2), 1),
+            (AreaLocation::new(1, 1), AreaLocation::new(3, 5), 6),
+            (AreaLocation::new(1, 1), AreaLocation::new(3, 5), 6),
+            (AreaLocation::new(5, 6), AreaLocation::new(3, 8), 4),
+        ];
+
+        for (loc1, loc2, expected) in test_list {
+            assert_eq!(expected, loc1.manhattan_distance(loc2));
+            assert_eq!(expected, loc2.manhattan_distance(loc1));
+        }
     }
 }
