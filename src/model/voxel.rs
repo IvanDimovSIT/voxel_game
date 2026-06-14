@@ -4,8 +4,9 @@ use bincode::{Decode, Encode};
 /// used for performance optimisations
 pub const MAX_VOXEL_VARIANTS: usize = 32;
 
-#[derive(Debug, Clone, Copy, Encode, Decode, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, Encode, Decode, PartialEq, Eq, Hash, Default)]
 pub enum Voxel {
+    #[default]
     None,
     Cobblestone,
     Sand,
@@ -125,10 +126,5 @@ impl Voxel {
                 | Voxel::Water3
                 | Voxel::Water4
         )
-    }
-}
-impl Default for Voxel {
-    fn default() -> Self {
-        Self::None
     }
 }

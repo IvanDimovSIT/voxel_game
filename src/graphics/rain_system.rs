@@ -31,11 +31,11 @@ const MAX_SKY_MODIFIER: f32 = 1.0;
 const MIN_SKY_MODIFIER: f32 = 0.6;
 
 const REMOVE_RAINDROPS_ACTIVITY_COOLDOWN: f32 = 0.1;
-const CHANGE_STATE_ACTIVITY_COOLDOWN: f32 = 60.0;
+const CHANGE_STATE_ACTIVITY_COOLDOWN: f32 = 90.0;
 
 const LIGHTNING_DURATION_S: f32 = 0.8;
-const MIN_LIGHTNING_ACTIVITY_COOLDOWN: f32 = 10.0;
-const MAX_LIGHTNING_ACTIVITY_COOLDOWN: f32 = 25.0;
+const MIN_LIGHTNING_ACTIVITY_COOLDOWN: f32 = 15.0;
+const MAX_LIGHTNING_ACTIVITY_COOLDOWN: f32 = 45.0;
 const LIGHNING_FLASH_DURATION_S: f32 = 0.3;
 
 fn random_lightning_cooldown() -> f32 {
@@ -288,7 +288,7 @@ impl RainSystem {
     }
 
     fn update_change_raining_state(&mut self) {
-        const START_RAINING_CHANCE: u32 = 20;
+        const START_RAINING_CHANCE: u32 = 10;
         const STOP_RAINING_CHANCE: u32 = 50;
         let random_percent = rand() % 100;
 

@@ -38,6 +38,7 @@ pub struct ListInput {
 }
 impl ListInput {
     pub fn new(values: Vec<String>, rows: usize) -> Self {
+        assert!(rows > 0);
         Self {
             values,
             selected: None,
@@ -81,13 +82,7 @@ impl ListInput {
         if let Some(selected) = self.selected {
             self.selected = Some(selected.min(self.values.len()));
         };
-        draw_rect_with_shadow(
-            x,
-            y,
-            w,
-            draw_params.y_offset * self.rows as f32,
-            BUTTON_COLOR,
-        );
+        draw_rect_with_shadow(x, y, w, self.get_height(font_size), BUTTON_COLOR);
 
         for (index, value) in values_on_page.iter().enumerate() {
             let is_mouseover =
@@ -157,17 +152,17 @@ impl ListInput {
     }
 
     fn scroll(&mut self) {
-        let total_pages = self.values.len() / self.rows;
-        self.current_page = self.current_page.clamp(0, total_pages);
+        let max_page_index = self.values.len().saturating_sub(1) / self.rows;
+        self.current_page = self.current_page.clamp(0, max_page_index);
 
         match get_scroll_direction() {
             ScrollDirection::Up => {
                 if self.current_page > 0 {
-                    self.current_page = (self.current_page - 1).min(total_pages);
+                    self.current_page = (self.current_page - 1).min(max_page_index);
                 }
             }
             ScrollDirection::Down => {
-                self.current_page = (self.current_page + 1).min(total_pages);
+                self.current_page = (self.current_page + 1).min(max_page_index);
             }
             ScrollDirection::None => {}
         }
@@ -175,5 +170,14 @@ impl ListInput {
 
     pub fn len(&self) -> usize {
         self.values.len()
+    }
+
+    pub fn get_current_page_index(&self) -> usize {
+        self.current_page
+    }
+
+    /// returns UI element height in pixels
+    pub fn get_height(&self, font_size: f32) -> f32 {
+        self.rows as f32 * font_size * ROW_HEIGHT_MULTIPLIER
     }
 }

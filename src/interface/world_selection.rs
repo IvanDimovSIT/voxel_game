@@ -6,7 +6,7 @@ use macroquad::{
     math::{Rect, Vec2, vec2},
     miniquad::window::screen_size,
     prelude::info,
-    text::Font,
+    text::{Font, measure_text},
     window::next_frame,
 };
 
@@ -175,6 +175,24 @@ impl WorldSelectionContext {
         if let Some(selection) = possible_selection {
             self.world_name_input.set_text(selection);
         }
+        self.draw_world_list_page_number(world_list_x, world_list_y, font);
+    }
+
+    fn draw_world_list_page_number(&self, world_list_x: f32, world_list_y: f32, font: &Font) {
+        let current_page = self.world_list.get_current_page_index() + 1;
+        let pages = (self.world_list.len().saturating_sub(1) / WORLD_LIST_ROWS) + 1;
+        if pages <= 1 {
+            return;
+        }
+
+        let text = format!("{current_page}/{pages}");
+        let page_number_height =
+            measure_text(&text, Some(font), WORLD_LIST_FONT_SIZE as u16, 1.0).height;
+        let page_number_offset = page_number_height * 1.2;
+        let x = world_list_x;
+        let y =
+            world_list_y + self.world_list.get_height(WORLD_LIST_FONT_SIZE) + page_number_offset;
+        draw_game_text(&text, x, y, WORLD_LIST_FONT_SIZE, TEXT_COLOR, font);
     }
 
     fn draw_notification_text(&mut self, width: f32, height: f32, font: &Font) {
