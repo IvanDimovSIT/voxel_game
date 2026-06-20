@@ -11,11 +11,13 @@ use crate::{
     graphics::screen_effects::darken_background,
     interface::{
         button::draw_button,
-        game_menu::crafting_menu::CraftingMenuHandle,
+        game_menu::{
+            crafting_menu::CraftingMenuHandle, voxel_selection_menu::VoxelSelectionMenuState,
+        },
         style::{BACKGROUND_COLOR, BUTTON_COLOR},
         text::draw_game_text,
     },
-    model::{inventory::Item, user_settings::UserSettings},
+    model::user_settings::UserSettings,
     service::asset_manager::AssetManager,
 };
 
@@ -29,9 +31,9 @@ const BUTTON_TEXT_SIZE: u16 = 30;
 pub enum MenuSelection {
     None,
     BackToGame,
-    ToWorldSelection,
-    ToOptions,
     ToMainMenu,
+    ToOptions,
+    ToMainInGameMenu,
     Exit,
 }
 
@@ -40,15 +42,18 @@ pub enum MenuState {
     Hidden,
     Main,
     Options,
-    ItemSelection {
-        currently_selected_item: Option<Item>,
-    },
+    ItemSelection { state: VoxelSelectionMenuState },
     Crafting(CraftingMenuHandle),
 }
 impl MenuState {
     /// returns true if a menu is being displayed
     pub fn is_in_menu(&self) -> bool {
         !matches!(self, Self::Hidden)
+    }
+
+    /// returns true if a the main or options menu is being displayed
+    pub fn is_in_non_gameplay_menu(&self) -> bool {
+        matches!(self, Self::Main | Self::Options)
     }
 }
 
@@ -75,26 +80,26 @@ pub fn draw_main_menu(asset_manager: &AssetManager, user_settings: &UserSettings
         asset_manager,
         user_settings,
     );
-    let is_to_world_selection = draw_button(
+    let is_options = draw_button(
         Rect {
             x: button_x,
             y: button_y_start + BUTTON_HEIGHT * 1.5,
             w: BUTTON_WIDTH,
             h: BUTTON_HEIGHT,
         },
-        "To world selection",
+        "Options",
         BUTTON_TEXT_SIZE,
         asset_manager,
         user_settings,
     );
-    let is_options = draw_button(
+    let is_main_menu = draw_button(
         Rect {
             x: button_x,
             y: button_y_start + BUTTON_HEIGHT * 3.0,
             w: BUTTON_WIDTH,
             h: BUTTON_HEIGHT,
         },
-        "Options",
+        "Exit to menu",
         BUTTON_TEXT_SIZE,
         asset_manager,
         user_settings,
@@ -116,8 +121,8 @@ pub fn draw_main_menu(asset_manager: &AssetManager, user_settings: &UserSettings
         MenuSelection::Exit
     } else if is_back_to_game {
         MenuSelection::BackToGame
-    } else if is_to_world_selection {
-        MenuSelection::ToWorldSelection
+    } else if is_main_menu {
+        MenuSelection::ToMainMenu
     } else if is_options {
         MenuSelection::ToOptions
     } else {
@@ -205,7 +210,7 @@ pub fn draw_options_menu<F: FnMut(&UserSettings)>(
     }
 
     if should_go_back {
-        MenuSelection::ToMainMenu
+        MenuSelection::ToMainInGameMenu
     } else {
         MenuSelection::None
     }

@@ -22,7 +22,10 @@ use crate::{
         inventory::{Inventory, Item, ItemType, MAX_ITEMS_PER_SLOT},
         player_info::PlayerInfo,
     },
-    service::{asset_manager::AssetManager, input::exit_focus},
+    service::{
+        asset_manager::AssetManager,
+        input::{exit_focus, is_enter_inventory},
+    },
     utils::use_str_buffer,
 };
 
@@ -72,12 +75,26 @@ impl HoveredItem {
     }
 }
 
+#[derive(Debug, Clone)]
+pub struct VoxelSelectionMenuState {
+    selected: Option<Item>,
+    just_entered: bool,
+}
+impl VoxelSelectionMenuState {
+    pub fn new() -> Self {
+        Self {
+            selected: None,
+            just_entered: true,
+        }
+    }
+}
+
 /// returns the new menu state and voxel selection
 pub fn draw_voxel_selection_menu(
     asset_manager: &AssetManager,
     player_info: &mut PlayerInfo,
-    mut selected: Option<Item>,
-) -> (Option<Item>, MenuSelection) {
+    mut state: VoxelSelectionMenuState,
+) -> (VoxelSelectionMenuState, MenuSelection) {
     let (width, height) = screen_size();
     darken_background(width, height);
 
@@ -93,22 +110,28 @@ pub fn draw_voxel_selection_menu(
     draw_selected_voxels(asset_manager, player_info, voxel_size, menu_x, menu_y);
     draw_hovered_item_name(player_info, voxel_size, menu_x, menu_y, &asset_manager.font);
 
-    if let Some(selected_item) = selected {
+    if let Some(selected_item) = state.selected {
         draw_held_item(asset_manager, voxel_size, selected_item);
     }
 
     if is_mouse_button_released(MouseButton::Left) {
-        if let Some(some_item) = selected {
-            selected = set_voxel_in_selection(menu_x, menu_y, voxel_size, player_info, some_item);
+        if let Some(some_item) = state.selected {
+            state.selected =
+                set_voxel_in_selection(menu_x, menu_y, voxel_size, player_info, some_item);
         } else {
-            selected = get_item_from_menu(menu_x, menu_y, voxel_size, player_info);
+            state.selected = get_item_from_menu(menu_x, menu_y, voxel_size, player_info);
         }
     }
 
-    if exit_focus() {
-        (selected, MenuSelection::BackToGame)
+    if exit_focus() || (!state.just_entered && is_enter_inventory()) {
+        if let Some(selected_item) = state.selected {
+            player_info.inventory.add_item(selected_item);
+            state.selected = None;
+        }
+        (state, MenuSelection::BackToGame)
     } else {
-        (selected, MenuSelection::None)
+        state.just_entered = false;
+        (state, MenuSelection::None)
     }
 }
 

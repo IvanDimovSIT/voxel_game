@@ -27,7 +27,7 @@ use crate::{
     service::{
         asset_manager::AssetManager,
         crafting::{CraftingRecipe, craft_recipe, find_craftable},
-        input::{ScrollDirection, get_scroll_direction},
+        input::{ScrollDirection, exit_focus, get_scroll_direction, is_enter_crafting},
         sound_manager::SoundId,
     },
     utils::use_str_buffer,
@@ -72,6 +72,7 @@ pub struct CraftingMenuContext {
     available_recipes: Vec<(CraftingRecipe, u32)>,
     all_items: AvailableItems,
     current_page: usize,
+    just_entered: bool,
 }
 impl CraftingMenuContext {
     pub fn new(inventory: &Inventory) -> CraftingMenuHandle {
@@ -80,6 +81,7 @@ impl CraftingMenuContext {
             available_recipes: find_craftable(&all_items),
             current_page: 0,
             all_items,
+            just_entered: true,
         }))
     }
 
@@ -112,7 +114,12 @@ impl CraftingMenuContext {
             self.craft_item(recipe, inventory, count);
         }
 
-        MenuSelection::None
+        if exit_focus() || (!self.just_entered && is_enter_crafting()) {
+            MenuSelection::BackToGame
+        } else {
+            self.just_entered = false;
+            MenuSelection::None
+        }
     }
 
     fn craft_item(&mut self, recipe: CraftingRecipe, inventory: &mut Inventory, count: u32) {

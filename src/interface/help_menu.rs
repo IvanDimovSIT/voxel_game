@@ -21,7 +21,7 @@ use crate::{
         title_screen::TitleScreenContext,
     },
     model::user_settings::UserSettings,
-    service::asset_manager::AssetManager,
+    service::{asset_manager::AssetManager, input::exit_focus},
 };
 
 const FONT_SIZE_COEF: f32 = 0.055;
@@ -58,7 +58,7 @@ impl HelpMenuContext {
         self.draw_controls_image(width, height, asset_manager);
         Self::draw_help_title(width, height, &asset_manager.font);
         Self::draw_help_text(width, height, asset_manager);
-        let should_go_back = draw_back_button(asset_manager, user_settings);
+        let should_go_back = draw_back_button(asset_manager, user_settings) || exit_focus();
 
         next_frame().await;
 

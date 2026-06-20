@@ -19,7 +19,8 @@ use crate::{
     },
     model::user_settings::{ShadowType, UserSettings},
     service::{
-        asset_manager::AssetManager, persistence::user_settings_persistence::write_user_settings,
+        asset_manager::AssetManager, input::exit_focus,
+        persistence::user_settings_persistence::write_user_settings,
     },
 };
 
@@ -64,7 +65,7 @@ impl SettingsContext {
         Self::handle_toggle_dynamic_light(asset_manager, user_settings, x_start, y_start);
         draw_version_number(height, &asset_manager.font);
 
-        let should_exit = draw_back_button(asset_manager, user_settings);
+        let should_exit = draw_back_button(asset_manager, user_settings) || exit_focus();
         next_frame().await;
 
         if should_exit {

@@ -23,17 +23,6 @@ pub struct InterfaceContext {
     user_settings: UserSettings,
 }
 impl InterfaceContext {
-    pub fn new_world_selection(
-        asset_manager: Rc<AssetManager>,
-        user_settings: UserSettings,
-    ) -> Self {
-        Self {
-            current_screen: InterfaceScreen::WorldSelection(WorldSelectionContext::new()),
-            asset_manager,
-            user_settings,
-        }
-    }
-
     pub fn new_title_screen(asset_manager: Rc<AssetManager>, user_settings: UserSettings) -> Self {
         Self {
             current_screen: InterfaceScreen::TitleScreen(TitleScreenContext::new()),

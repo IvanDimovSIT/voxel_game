@@ -25,7 +25,7 @@ use crate::{
         game_menu::{
             crafting_menu::{CraftingMenuContext, CraftingMenuHandle},
             game_menu_context::{MenuSelection, MenuState, draw_main_menu, draw_options_menu},
-            voxel_selection_menu::draw_voxel_selection_menu,
+            voxel_selection_menu::{VoxelSelectionMenuState, draw_voxel_selection_menu},
         },
         interface_context::InterfaceContext,
         tutorial_messages::{TutorialMessage, TutorialMessages},
@@ -45,7 +45,7 @@ use crate::{
         activity_timer::ActivityTimer,
         asset_manager::AssetManager,
         creatures::creature_manager::CreatureManager,
-        input::{self, ScrollDirection, move_right},
+        input::{self, ScrollDirection, exit_focus, move_right},
         persistence::{
             player_persistence::save_player_info,
             user_settings_persistence::write_user_settings_blocking,
@@ -160,7 +160,7 @@ impl VoxelEngine {
         if self.menu_state.is_in_menu() {
             return raycast_result;
         }
-        if input::is_show_map() {
+        if (self.world_map.active && exit_focus()) || input::is_show_map() {
             self.tutorial_messages.show(TutorialMessage::Map);
             self.world_map.active = !self.world_map.active;
         }
@@ -173,7 +173,7 @@ impl VoxelEngine {
         if input::is_enter_inventory() {
             self.player_info.camera_controller.set_focus(false);
             self.menu_state = MenuState::ItemSelection {
-                currently_selected_item: None,
+                state: VoxelSelectionMenuState::new(),
             };
         } else if input::is_enter_crafting() {
             self.player_info.camera_controller.set_focus(false);
@@ -278,10 +278,10 @@ impl VoxelEngine {
     }
 
     fn manage_menu_state(&mut self) {
-        if input::exit_focus() && !self.menu_state.is_in_menu() {
+        if input::exit_focus() && !self.menu_state.is_in_menu() && !self.world_map.active {
             self.menu_state = MenuState::Main;
             self.player_info.camera_controller.set_focus(false);
-        } else if input::exit_focus() {
+        } else if input::exit_focus() && self.menu_state.is_in_non_gameplay_menu() {
             self.menu_state = MenuState::Hidden;
             self.player_info.camera_controller.set_focus(true);
         }
@@ -511,9 +511,7 @@ impl VoxelEngine {
             MenuState::Hidden => None,
             MenuState::Main => self.process_main_menu(),
             MenuState::Options => self.process_options_menu(),
-            MenuState::ItemSelection {
-                currently_selected_item,
-            } => self.process_voxel_selection_menu(currently_selected_item),
+            MenuState::ItemSelection { state } => self.process_voxel_selection_menu(state),
             MenuState::Crafting(handle) => self.process_crafting_menu(handle),
         }
     }
@@ -533,20 +531,15 @@ impl VoxelEngine {
 
     fn process_voxel_selection_menu(
         &mut self,
-        currently_selected_item: Option<Item>,
+        voxel_selection_state: VoxelSelectionMenuState,
     ) -> Option<GameState> {
-        let (selected_item, menu_selection) = draw_voxel_selection_menu(
+        let (new_state, menu_selection) = draw_voxel_selection_menu(
             &self.asset_manager,
             &mut self.player_info,
-            currently_selected_item,
+            voxel_selection_state,
         );
-        if let MenuState::ItemSelection {
-            currently_selected_item: _,
-        } = self.menu_state
-        {
-            self.menu_state = MenuState::ItemSelection {
-                currently_selected_item: selected_item,
-            }
+        if let MenuState::ItemSelection { state: _ } = self.menu_state {
+            self.menu_state = MenuState::ItemSelection { state: new_state }
         }
 
         self.handle_menu_selection(menu_selection)
@@ -587,8 +580,8 @@ impl VoxelEngine {
                 self.menu_state = MenuState::Hidden;
                 None
             }
-            MenuSelection::ToWorldSelection => Some(GameState::Menu {
-                context: Box::new(InterfaceContext::new_world_selection(
+            MenuSelection::ToMainMenu => Some(GameState::Menu {
+                context: Box::new(InterfaceContext::new_title_screen(
                     self.asset_manager.clone(),
                     self.user_settings.clone(),
                 )),
@@ -598,7 +591,7 @@ impl VoxelEngine {
                 self.menu_state = MenuState::Options;
                 None
             }
-            MenuSelection::ToMainMenu => {
+            MenuSelection::ToMainInGameMenu => {
                 self.menu_state = MenuState::Main;
                 None
             }

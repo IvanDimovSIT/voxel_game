@@ -22,6 +22,7 @@ use crate::{
     model::user_settings::UserSettings,
     service::{
         asset_manager::AssetManager,
+        input::exit_focus,
         persistence::{
             world_list_persistence::{read_world_list, write_world_list},
             world_persistence,
@@ -99,7 +100,7 @@ impl WorldSelectionContext {
         self.handle_world_list(width, height, &asset_manager.font);
         self.handle_play_button(asset_manager, user_settings, width, height);
 
-        let should_go_back = draw_back_button(asset_manager, user_settings);
+        let should_go_back = draw_back_button(asset_manager, user_settings) || exit_focus();
 
         self.handle_delete_button(asset_manager, user_settings, width, height);
 
