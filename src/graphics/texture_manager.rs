@@ -60,7 +60,7 @@ const MESH_TEXTURES: [(MeshId, &str); MeshId::VARIANTS] = [
 const MAX_TEXTURE_COUNT: usize = MAX_VOXEL_VARIANTS;
 
 const BASE_PLAIN_TEXTURES: &str = "assets/images/others/";
-const PLAIN_TEXTURES: [(PlainTextureId, &str, FilterMode); 7] = [
+const PLAIN_TEXTURES: [(PlainTextureId, &str, FilterMode); 8] = [
     (PlainTextureId::Sun, "sun.png", FilterMode::Linear),
     (PlainTextureId::Moon, "moon.png", FilterMode::Linear),
     (PlainTextureId::Clouds, "clouds.png", FilterMode::Nearest),
@@ -76,6 +76,11 @@ const PLAIN_TEXTURES: [(PlainTextureId, &str, FilterMode); 7] = [
         FilterMode::Linear,
     ),
     (PlainTextureId::Compass, "compass.png", FilterMode::Nearest),
+    (
+        PlainTextureId::TrashCan,
+        "trashcan.png",
+        FilterMode::Nearest,
+    ),
 ];
 
 const ITEM_ICON_TEXTURES: [(ItemId, &str); 3] = [
@@ -93,6 +98,7 @@ pub enum PlainTextureId {
     Controls,
     Lightning,
     Compass,
+    TrashCan,
 }
 
 pub struct TextureManager {

@@ -1,9 +1,9 @@
 use std::fmt::Write;
 
 use macroquad::{
-    color::WHITE,
+    color::{Color, WHITE},
     input::{MouseButton, is_mouse_button_released, mouse_position},
-    math::vec2,
+    math::{Rect, vec2},
     miniquad::window::screen_size,
     shapes::draw_rectangle,
     text::Font,
@@ -11,7 +11,7 @@ use macroquad::{
 };
 
 use crate::{
-    graphics::screen_effects::darken_background,
+    graphics::{screen_effects::darken_background, texture_manager::PlainTextureId},
     interface::{
         game_menu::game_menu_context::MenuSelection,
         style::{BACKGROUND_COLOR, SHADOW_COLOR, TEXT_COLOR},
@@ -109,6 +109,7 @@ pub fn draw_voxel_selection_menu(
     draw_inventory_voxels(asset_manager, player_info, voxel_size, menu_x, menu_y);
     draw_selected_voxels(asset_manager, player_info, voxel_size, menu_x, menu_y);
     draw_hovered_item_name(player_info, voxel_size, menu_x, menu_y, &asset_manager.font);
+    draw_trash_can(asset_manager, voxel_size, menu_x, menu_y, menu_height);
 
     if let Some(selected_item) = state.selected {
         draw_held_item(asset_manager, voxel_size, selected_item);
@@ -116,8 +117,13 @@ pub fn draw_voxel_selection_menu(
 
     if is_mouse_button_released(MouseButton::Left) {
         if let Some(some_item) = state.selected {
-            state.selected =
-                set_voxel_in_selection(menu_x, menu_y, voxel_size, player_info, some_item);
+            let trash_slot = get_trash_slot_position(voxel_size, menu_x, menu_y, menu_height);
+            let (mouse_x, mouse_y) = mouse_position();
+            state.selected = if trash_slot.contains(vec2(mouse_x, mouse_y)) {
+                None
+            } else {
+                set_voxel_in_selection(menu_x, menu_y, voxel_size, player_info, some_item)
+            };
         } else {
             state.selected = get_item_from_menu(menu_x, menu_y, voxel_size, player_info);
         }
@@ -297,34 +303,20 @@ fn draw_selected_voxels(
         &asset_manager.font,
     );
 
+    let draw_y_pos = y + voxel_size * BORDER_VOXELS_MULTIPLIER;
     for x in 0..VOXELS_IN_ROW {
         let option_item = player_info.inventory.selected[x];
+        let draw_x_pos = x as f32 * voxel_size + menu_x + voxel_size * BORDER_VOXELS_MULTIPLIER;
+        draw_inner_empty_slot(voxel_size, draw_x_pos, draw_y_pos);
         if let Some(item) = option_item {
             let texture = asset_manager.texture_manager.get_icon(item);
-            if let ItemType::Item(_item_id) = item.item_type {
-                draw_rectangle(
-                    x as f32 * voxel_size + menu_x + voxel_size * BORDER_VOXELS_MULTIPLIER,
-                    y + voxel_size * BORDER_VOXELS_MULTIPLIER,
-                    voxel_size * INNER_VOXELS_MULTIPLIER,
-                    voxel_size * INNER_VOXELS_MULTIPLIER,
-                    SHADOW_COLOR,
-                );
-            }
             draw_item(
                 &texture,
                 item.count,
                 voxel_size,
-                x as f32 * voxel_size + menu_x + voxel_size * BORDER_VOXELS_MULTIPLIER,
-                y + voxel_size * BORDER_VOXELS_MULTIPLIER,
+                draw_x_pos,
+                draw_y_pos,
                 &asset_manager.font,
-            );
-        } else {
-            draw_rectangle(
-                x as f32 * voxel_size + menu_x + voxel_size * BORDER_VOXELS_MULTIPLIER,
-                y + voxel_size * BORDER_VOXELS_MULTIPLIER,
-                voxel_size * INNER_VOXELS_MULTIPLIER,
-                voxel_size * INNER_VOXELS_MULTIPLIER,
-                SHADOW_COLOR,
             );
         }
     }
@@ -349,7 +341,7 @@ fn draw_inventory_voxels(
             if let Some(item) = player_info.inventory.items[index] {
                 let texture = asset_manager.texture_manager.get_icon(item);
                 if let ItemType::Item(_item_id) = item.item_type {
-                    draw_empty_slot(voxel_size, x_pos, y_pos);
+                    draw_inner_empty_slot(voxel_size, x_pos, y_pos);
                 }
                 draw_item(
                     &texture,
@@ -360,13 +352,69 @@ fn draw_inventory_voxels(
                     &asset_manager.font,
                 );
             } else {
-                draw_empty_slot(voxel_size, x_pos, y_pos);
+                draw_inner_empty_slot(voxel_size, x_pos, y_pos);
             }
         }
     }
 }
 
-fn draw_empty_slot(voxel_size: f32, x_pos: f32, y_pos: f32) {
+fn draw_trash_can(
+    asset_manager: &AssetManager,
+    voxel_size: f32,
+    menu_x: f32,
+    menu_y: f32,
+    menu_height: f32,
+) {
+    let trash_slot = get_trash_slot_position(voxel_size, menu_x, menu_y, menu_height);
+    let trash_border = voxel_size * 0.15;
+    let trash_menu_x = trash_slot.x - trash_border;
+    let trash_menu_y = trash_slot.y - trash_border;
+    let trash_menu_width = trash_slot.w + trash_border * 2.0;
+    let trash_menu_height = trash_slot.h + trash_border * 2.0;
+
+    draw_rect_with_shadow(
+        trash_menu_x,
+        trash_menu_y,
+        trash_menu_width,
+        trash_menu_height,
+        BACKGROUND_COLOR,
+    );
+
+    draw_empty_slot(trash_slot.w, trash_slot.x, trash_slot.y);
+    let trash_can_texture = asset_manager
+        .texture_manager
+        .get_plain_texture(PlainTextureId::TrashCan);
+    draw_texture_ex(
+        &trash_can_texture,
+        trash_slot.x,
+        trash_slot.y,
+        WHITE,
+        DrawTextureParams {
+            dest_size: Some(vec2(trash_slot.w, trash_slot.h)),
+            ..Default::default()
+        },
+    );
+}
+
+fn get_trash_slot_position(voxel_size: f32, menu_x: f32, menu_y: f32, menu_height: f32) -> Rect {
+    let trash_slot_size = voxel_size * 1.1;
+    let x = menu_x - trash_slot_size * 1.3;
+    let y = menu_y + (menu_height - trash_slot_size) / 2.0;
+
+    Rect::new(x, y, trash_slot_size, trash_slot_size)
+}
+
+fn draw_inner_empty_slot(voxel_size: f32, x_pos: f32, y_pos: f32) {
     let empty_slot_size = voxel_size * INNER_VOXELS_MULTIPLIER;
-    draw_rectangle(x_pos, y_pos, empty_slot_size, empty_slot_size, SHADOW_COLOR);
+    draw_empty_slot(empty_slot_size, x_pos, y_pos);
+}
+
+fn draw_empty_slot(voxel_size: f32, x_pos: f32, y_pos: f32) {
+    const HOVERED_COLOR: Color = Color::from_rgba(0, 0, 0, 30);
+
+    let (mouse_x, mouse_y) = mouse_position();
+    let hovered = Rect::new(x_pos, y_pos, voxel_size, voxel_size).contains(vec2(mouse_x, mouse_y));
+    let color = if hovered { HOVERED_COLOR } else { SHADOW_COLOR };
+
+    draw_rectangle(x_pos, y_pos, voxel_size, voxel_size, color);
 }
