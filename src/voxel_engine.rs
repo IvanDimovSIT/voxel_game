@@ -501,8 +501,11 @@ impl VoxelEngine {
             creature_manager: &self.creature_manager,
             rendered_creatures: creatures_drawn,
         };
-        self.debug_display
-            .draw_debug_display(debug_info, &self.asset_manager.font);
+        self.debug_display.draw_debug_display(
+            debug_info,
+            &self.asset_manager.font,
+            &self.user_settings,
+        );
     }
 
     /// returns the new game context only if changed
@@ -536,6 +539,7 @@ impl VoxelEngine {
         let (new_state, menu_selection) = draw_voxel_selection_menu(
             &self.asset_manager,
             &mut self.player_info,
+            &self.user_settings,
             voxel_selection_state,
         );
         if let MenuState::ItemSelection { state: _ } = self.menu_state {

@@ -1,7 +1,5 @@
 use bincode::{Decode, Encode};
 
-const MIN_RENDER_DISTANCE: u32 = 3;
-const MAX_RENDER_DISTANCE: u32 = 16;
 const DEFAULT_RENDER_DISTANCE: u32 = 8;
 
 #[derive(Debug, Clone, Copy, Encode, Decode)]
@@ -19,12 +17,15 @@ pub struct UserSettings {
     pub shadow_type: ShadowType,
 }
 impl UserSettings {
+    pub const MIN_RENDER_DISTANCE: u32 = 3;
+    pub const MAX_RENDER_DISTANCE: u32 = 16;
+
     pub fn get_render_distance(&self) -> u32 {
         self.render_distance
     }
 
     pub fn increase_render_distance(&mut self) -> bool {
-        if self.render_distance < MAX_RENDER_DISTANCE {
+        if self.render_distance < Self::MAX_RENDER_DISTANCE {
             self.render_distance += 1;
             true
         } else {
@@ -33,7 +34,7 @@ impl UserSettings {
     }
 
     pub fn decrease_render_distance(&mut self) -> bool {
-        if self.render_distance > MIN_RENDER_DISTANCE {
+        if self.render_distance > Self::MIN_RENDER_DISTANCE {
             self.render_distance -= 1;
             true
         } else {

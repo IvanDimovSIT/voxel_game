@@ -21,10 +21,12 @@ use crate::{
     model::{
         inventory::{Inventory, Item, ItemType, MAX_ITEMS_PER_SLOT},
         player_info::PlayerInfo,
+        user_settings::UserSettings,
     },
     service::{
         asset_manager::AssetManager,
         input::{exit_focus, is_enter_inventory},
+        sound_manager::SoundId,
     },
     utils::use_str_buffer,
 };
@@ -93,6 +95,7 @@ impl VoxelSelectionMenuState {
 pub fn draw_voxel_selection_menu(
     asset_manager: &AssetManager,
     player_info: &mut PlayerInfo,
+    user_settings: &UserSettings,
     mut state: VoxelSelectionMenuState,
 ) -> (VoxelSelectionMenuState, MenuSelection) {
     let (width, height) = screen_size();
@@ -120,6 +123,9 @@ pub fn draw_voxel_selection_menu(
             let trash_slot = get_trash_slot_position(voxel_size, menu_x, menu_y, menu_height);
             let (mouse_x, mouse_y) = mouse_position();
             state.selected = if trash_slot.contains(vec2(mouse_x, mouse_y)) {
+                asset_manager
+                    .sound_manager
+                    .play_sound(SoundId::Trash, user_settings);
                 None
             } else {
                 set_voxel_in_selection(menu_x, menu_y, voxel_size, player_info, some_item)

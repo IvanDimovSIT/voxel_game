@@ -24,10 +24,11 @@ pub enum SoundId {
     Music,
     Explosion,
     LightFuse,
+    Trash,
 }
 
 const BASE_SOUNDS_PATH: &str = "assets/sounds/";
-const SOUNDS: [(SoundId, &str); 9] = [
+const SOUNDS: [(SoundId, &str); 10] = [
     (SoundId::Fall, "fall.wav"),
     (SoundId::Destroy, "destroy.wav"),
     (SoundId::Place, "place.wav"),
@@ -37,6 +38,7 @@ const SOUNDS: [(SoundId, &str); 9] = [
     (SoundId::Music, "music.ogg"),
     (SoundId::Explosion, "explosion.wav"),
     (SoundId::LightFuse, "light_fuse.wav"),
+    (SoundId::Trash, "trash.wav"),
 ];
 
 pub struct SoundManager {

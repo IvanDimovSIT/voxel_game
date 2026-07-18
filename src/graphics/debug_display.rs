@@ -16,6 +16,7 @@ use crate::{
     },
     model::{
         area::{AREA_HEIGHT, AREA_SIZE, VOXELS_IN_AREA},
+        user_settings::UserSettings,
         voxel::Voxel,
         world::World,
     },
@@ -54,7 +55,12 @@ impl DebugDisplay {
         info!("Debug display:{}", self.should_display);
     }
 
-    pub fn draw_debug_display(&self, debug_info: DebugInfo, font: &Font) {
+    pub fn draw_debug_display(
+        &self,
+        debug_info: DebugInfo,
+        font: &Font,
+        user_settings: &UserSettings,
+    ) {
         if !self.should_display {
             return;
         }
@@ -69,6 +75,7 @@ impl DebugDisplay {
         let areas_voxels_bytes = loaded_areas * size_of::<Voxel>() * VOXELS_IN_AREA;
         let areas_memory_kb = (areas_max_height_bytes + areas_voxels_bytes) / KILOBYTE;
         let waiting_to_be_rendered = debug_info.renderer.get_areas_waiting_to_be_rendered();
+        let max_creatures = CreatureManager::get_max_creatures(user_settings);
 
         Self::draw_background();
         draw_game_text(
@@ -143,9 +150,10 @@ impl DebugDisplay {
         );
         draw_game_text(
             &format!(
-                "Creatures: {} ({} visible)",
+                "Creatures: {} ({} visible, {} max)",
                 debug_info.creature_manager.creature_count(),
-                debug_info.rendered_creatures
+                debug_info.rendered_creatures,
+                max_creatures
             ),
             LEFT_MARGIN,
             8.0 * FONT_SIZE,

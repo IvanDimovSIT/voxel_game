@@ -2,7 +2,7 @@ use std::rc::Rc;
 
 use macroquad::{
     camera::set_default_camera,
-    input::clear_input_queue,
+    input::{KeyCode, clear_input_queue, is_key_released},
     math::{Rect, Vec2, vec2},
     miniquad::window::screen_size,
     prelude::info,
@@ -125,7 +125,7 @@ impl WorldSelectionContext {
     ) {
         let play_button_pressed =
             self.draw_play_button(width, height, asset_manager, user_settings);
-        if play_button_pressed {
+        if play_button_pressed || is_key_released(KeyCode::Enter) {
             self.validate();
             self.should_enter = self.error.is_empty();
         }

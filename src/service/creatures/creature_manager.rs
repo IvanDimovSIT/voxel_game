@@ -28,7 +28,8 @@ use crate::{
 };
 
 const CHECK_UPDATES_TIME: f32 = 2.0;
-const MAX_CREATURES: usize = 10;
+const MAX_CREATURES_UPPER_BOUND: usize = 20;
+const MAX_CREATURES_LOWER_BOUND: usize = 8;
 const SPAWN_SIZE_EXTRA_RANGE: f32 = AREA_SIZE as f32 * 0.75;
 const MIN_CULL_DISTANCE: f32 = 3.0;
 const SPAWN_CREATURES_MAX_FOV: f32 = 0.15;
@@ -48,13 +49,13 @@ pub struct CreatureDTO {
 
 pub struct CreatureManager {
     creatures: Vec<Box<dyn Creature>>,
-    activity_timer: ActivityTimer,
+    create_creature_activity_timer: ActivityTimer,
 }
 impl CreatureManager {
     pub fn new() -> Self {
         Self {
             creatures: vec![],
-            activity_timer: ActivityTimer::new(0.0, CHECK_UPDATES_TIME),
+            create_creature_activity_timer: ActivityTimer::new(0.0, CHECK_UPDATES_TIME),
         }
     }
 
@@ -67,7 +68,10 @@ impl CreatureManager {
 
         Self {
             creatures,
-            activity_timer: ActivityTimer::new(dto.activity_delta, CHECK_UPDATES_TIME),
+            create_creature_activity_timer: ActivityTimer::new(
+                dto.create_creature_activity_delta,
+                CHECK_UPDATES_TIME,
+            ),
         }
     }
 
@@ -89,7 +93,9 @@ impl CreatureManager {
             creature_spawn_distance,
         );
 
-        if self.activity_timer.tick(delta) && self.creatures.len() < MAX_CREATURES {
+        if self.create_creature_activity_timer.tick(delta)
+            && self.creatures.len() < Self::get_max_creatures(user_settings)
+        {
             let camera = player_info.camera_controller.create_camera();
             let camera_look = (camera.target - camera.position).normalize_or_zero();
             self.add_creature(
@@ -173,7 +179,7 @@ impl CreatureManager {
 
         CreatureManagerDTO {
             creatures,
-            activity_delta: self.activity_timer.get_delta(),
+            create_creature_activity_delta: self.create_creature_activity_timer.get_delta(),
         }
     }
 
@@ -213,6 +219,19 @@ impl CreatureManager {
                 None
             }
         }
+    }
+
+    pub fn get_max_creatures(user_settings: &UserSettings) -> usize {
+        const RENDER_DISTANCE_STEPS: f32 =
+            (UserSettings::MAX_RENDER_DISTANCE - UserSettings::MIN_RENDER_DISTANCE) as f32;
+        const STEP_SIZE: f32 =
+            (MAX_CREATURES_UPPER_BOUND - MAX_CREATURES_LOWER_BOUND) as f32 / RENDER_DISTANCE_STEPS;
+
+        let extra_render_distance_levels_from_min =
+            (user_settings.get_render_distance() - UserSettings::MIN_RENDER_DISTANCE) as f32;
+
+        (MAX_CREATURES_LOWER_BOUND as f32 + extra_render_distance_levels_from_min * STEP_SIZE)
+            .round() as usize
     }
 
     fn remove_distant_creatures(&mut self, camera_pos: Vec3, creature_spawn_distance: f32) {
@@ -281,5 +300,25 @@ impl CreatureManager {
 #[derive(Debug, Clone, Encode, Decode)]
 pub struct CreatureManagerDTO {
     creatures: Vec<CreatureDTO>,
-    activity_delta: f32,
+    create_creature_activity_delta: f32,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_get_max_creatures() {
+        let mut user_settings = UserSettings::default();
+        while user_settings.decrease_render_distance() {}
+
+        let mut last_max_creatures = CreatureManager::get_max_creatures(&user_settings);
+        while user_settings.increase_render_distance() {
+            let max_creatures = CreatureManager::get_max_creatures(&user_settings);
+            assert!(max_creatures >= last_max_creatures);
+            assert!(max_creatures <= MAX_CREATURES_UPPER_BOUND);
+            assert!(max_creatures >= MAX_CREATURES_LOWER_BOUND);
+            last_max_creatures = max_creatures;
+        }
+    }
 }
