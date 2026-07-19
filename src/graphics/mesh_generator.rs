@@ -489,10 +489,13 @@ impl MeshGenerator {
 
     fn get_partial_height_offset(voxel: Voxel) -> f32 {
         match voxel {
-            Voxel::Water1 => 1.0 / 5.0,
-            Voxel::Water2 => 2.0 / 5.0,
-            Voxel::Water3 => 3.0 / 5.0,
-            Voxel::Water4 => 4.0 / 5.0,
+            Voxel::WaterSource => 3.0 / 16.0,
+            Voxel::Water1 => 5.0 / 16.0,
+            Voxel::Water2 => 7.0 / 16.0,
+            Voxel::Water3 => 9.0 / 16.0,
+            Voxel::Water4 => 11.0 / 16.0,
+            Voxel::Water5 => 13.0 / 16.0,
+            Voxel::Water6 => 15.0 / 16.0,
             _ => 0.0,
         }
     }

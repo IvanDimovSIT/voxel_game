@@ -66,7 +66,11 @@ impl LakeGenerator {
             if column_samples.biome_type == BiomeType::Cold && z_inverted == LAKE_MAX_Z_INVERTED {
                 Some(Voxel::Ice)
             } else {
-                Some(Voxel::WaterSource)
+                if z_inverted == LAKE_MAX_Z_INVERTED {
+                    Some(Voxel::WaterSource)
+                } else {
+                    Some(Voxel::WaterSourceFull)
+                }
             }
         } else {
             None

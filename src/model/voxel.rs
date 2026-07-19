@@ -22,11 +22,14 @@ pub enum Voxel {
     Trampoline,
     Cactus,
     WaterSource,
+    WaterSourceFull,
     WaterDown,
     Water1,
     Water2,
     Water3,
     Water4,
+    Water5,
+    Water6,
     StoneBrick,
     StonePillar,
     Snow,
@@ -37,39 +40,55 @@ pub enum Voxel {
 }
 impl Voxel {
     /// voxels that are fully or partially transparent
-    pub const TRANSPARENT: [Self; 9] = [
+    pub const TRANSPARENT: [Self; 12] = [
         Self::None,
         Self::Glass,
         Self::WaterSource,
+        Self::WaterSourceFull,
         Self::WaterDown,
         Self::Water1,
         Self::Water2,
         Self::Water3,
         Self::Water4,
+        Self::Water5,
+        Self::Water6,
         Self::Ice,
     ];
 
     /// voxels that can fall down
     pub const FALLING: [Self; 4] = [Self::Sand, Self::Dirt, Self::Grass, Self::Snow];
 
-    pub const WATER: [Self; 6] = [
+    pub const WATER: [Self; 9] = [
         Self::WaterSource,
+        Self::WaterSourceFull,
         Self::WaterDown,
         Self::Water1,
         Self::Water2,
         Self::Water3,
         Self::Water4,
+        Self::Water5,
+        Self::Water6,
     ];
 
-    pub const NON_SOURCE_WATER: [Self; 5] = [
+    pub const NON_SOURCE_WATER: [Self; 7] = [
         Self::WaterDown,
         Self::Water1,
         Self::Water2,
         Self::Water3,
         Self::Water4,
+        Self::Water5,
+        Self::Water6,
     ];
 
-    pub const PARTIAL_HEIGHT: [Self; 4] = [Self::Water1, Self::Water2, Self::Water3, Self::Water4];
+    pub const PARTIAL_HEIGHT: [Self; 7] = [
+        Self::WaterSource,
+        Self::Water1,
+        Self::Water2,
+        Self::Water3,
+        Self::Water4,
+        Self::Water5,
+        Self::Water6,
+    ];
     pub const SIZE: f32 = 1.0;
     pub const HALF_SIZE: f32 = Self::SIZE / 2.0;
 
@@ -101,11 +120,14 @@ impl Voxel {
             Self::Glass => "Glass",
             Self::Cactus => "Cactus",
             Self::WaterSource => "Water",
+            Self::WaterSourceFull => "Water (Full)",
             Self::WaterDown => "Water (Flowing down)",
             Self::Water1 => "Water (Level 1)",
             Self::Water2 => "Water (Level 2)",
             Self::Water3 => "Water (Level 3)",
             Self::Water4 => "Water (Level 4)",
+            Self::Water5 => "Water (Level 5)",
+            Self::Water6 => "Water (Level 6)",
             Self::StoneBrick => "Stone Brick",
             Self::StonePillar => "Stone Pillar",
             Self::Snow => "Snow",
@@ -120,11 +142,14 @@ impl Voxel {
             self,
             Voxel::None
                 | Voxel::WaterSource
+                | Voxel::WaterSourceFull
                 | Voxel::WaterDown
                 | Voxel::Water1
                 | Voxel::Water2
                 | Voxel::Water3
                 | Voxel::Water4
+                | Voxel::Water5
+                | Voxel::Water6
         )
     }
 }

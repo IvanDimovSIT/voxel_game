@@ -12,7 +12,7 @@ use crate::{
 
 const WATER_SPEED: f32 = 0.5;
 
-const LOWEST_WATER: Voxel = Voxel::Water4;
+const LOWEST_WATER: Voxel = Voxel::Water6;
 
 #[derive(Debug, Clone, Encode, Decode)]
 pub struct WaterSimulator {
@@ -42,37 +42,83 @@ impl WaterSimulator {
         self.check_locations.insert(internal_location.offset_y(1));
         self.check_locations.insert(internal_location.offset_y(-1));
 
-        if internal_location.z - 1 < AREA_HEIGHT {
+        if internal_location.z > 0 {
             self.check_locations.insert(internal_location.offset_z(-1));
         }
 
-        if internal_location.z > 0 {
+        if internal_location.z < AREA_HEIGHT - 1 {
             self.check_locations.insert(internal_location.offset_z(1));
         }
+        println!("check_locations: {:?}", self.check_locations.len());
     }
 
     fn simulate_voxels(&mut self, world: &mut World, renderer: &mut Renderer) {
         let locations_to_check = mem::take(&mut self.check_locations);
+        debug_assert!(self.check_locations.is_empty());
         for location in locations_to_check {
             let voxel = world.get(location);
             if !Voxel::WATER.contains(&voxel) {
                 continue;
             }
             let mut bordering = StackVec::new();
-            let down = Self::get_bordering(location, world, &mut bordering);
+            let (down_voxel, up_voxel) = Self::get_bordering(location, world, &mut bordering);
 
+            self.update_water_source(voxel, location, up_voxel, world, renderer);
             if self.check_flow_stopped(voxel, location, bordering.iter()) {
                 world.set(location, Voxel::None);
                 renderer.update_location(world, location);
+                debug_assert!(voxel != Voxel::None);
                 self.location_updated(location);
                 continue;
             }
 
-            if self.flow_down(location, down, world, renderer) {
+            if self.flow_down(location, down_voxel, world, renderer) {
                 continue;
             }
 
-            self.flow_sides(voxel, down, bordering, world, renderer);
+            self.flow_sides(voxel, down_voxel, bordering, world, renderer);
+        }
+    }
+
+    fn update_water_source(
+        &mut self,
+        voxel: Voxel,
+        current_location: InternalLocation,
+        up_voxel: Option<Voxel>,
+        world: &mut World,
+        renderer: &mut Renderer,
+    ) {
+        match voxel {
+            Voxel::WaterSource => {
+                if current_location.z == 0 {
+                    return;
+                }
+                if let Some(up_voxel) = up_voxel
+                    && Voxel::WATER.contains(&up_voxel)
+                {
+                    world.set(current_location, Voxel::WaterSourceFull);
+                    renderer.update_location(world, current_location);
+                    debug_assert!(voxel != Voxel::WaterSourceFull);
+                    self.location_updated(current_location);
+                };
+            }
+            Voxel::WaterSourceFull => {
+                if current_location.z == 0 {
+                    world.set(current_location, Voxel::WaterSource);
+                    renderer.update_location(world, current_location);
+                    self.location_updated(current_location);
+                    return;
+                }
+                if let Some(up_voxel) = up_voxel
+                    && !Voxel::WATER.contains(&up_voxel)
+                {
+                    world.set(current_location, Voxel::WaterSource);
+                    renderer.update_location(world, current_location);
+                    debug_assert!(voxel != Voxel::WaterSource);
+                    self.location_updated(current_location);
+                };
+            }
+            _ => {}
         }
     }
 
@@ -83,7 +129,7 @@ impl WaterSimulator {
         bordering: impl Iterator<Item = &'a (InternalLocation, Voxel)>,
     ) -> bool {
         debug_assert!(Voxel::WATER.contains(&voxel));
-        if voxel == Voxel::WaterSource {
+        if voxel == Voxel::WaterSource || voxel == Voxel::WaterSourceFull {
             return false;
         }
         let current_level = Self::get_water_level(voxel);
@@ -127,28 +173,33 @@ impl WaterSimulator {
         }
 
         let sides = bordering.into_iter().take(4);
-        let current_level = Self::get_water_level(voxel);
+        let voxel_to_set = Self::reduce_water_level(voxel);
+        let new_level = Self::get_water_level(voxel_to_set);
 
         for (side, side_voxel) in sides {
             let side_level = Self::get_water_level(side_voxel);
-            if current_level <= side_level {
+            if new_level <= side_level {
                 continue;
             }
 
-            let voxel_to_set = Self::reduce_water_level(voxel);
             world.set(side, voxel_to_set);
             renderer.update_location(world, side);
-            self.check_locations.insert(side);
+            if voxel_to_set != side_voxel {
+                self.location_updated(side);
+            }
         }
     }
 
     fn reduce_water_level(voxel: Voxel) -> Voxel {
         match voxel {
             Voxel::WaterSource => Voxel::Water1,
+            Voxel::WaterSourceFull => Voxel::Water1,
             Voxel::WaterDown => Voxel::Water1,
             Voxel::Water1 => Voxel::Water2,
             Voxel::Water2 => Voxel::Water3,
             Voxel::Water3 => Voxel::Water4,
+            Voxel::Water4 => Voxel::Water5,
+            Voxel::Water5 => Voxel::Water6,
             _ => {
                 error!(
                     "Received non water voxel '{:?}' for 'reduce_water_level'",
@@ -162,11 +213,14 @@ impl WaterSimulator {
     fn get_water_level(voxel: Voxel) -> i32 {
         match voxel {
             Voxel::WaterSource => 100,
+            Voxel::WaterSourceFull => 100,
             Voxel::WaterDown => 99,
             Voxel::Water1 => 98,
             Voxel::Water2 => 97,
             Voxel::Water3 => 96,
             Voxel::Water4 => 95,
+            Voxel::Water5 => 94,
+            Voxel::Water6 => 93,
             Voxel::None => 0,
             _ => 1000,
         }
@@ -191,24 +245,28 @@ impl WaterSimulator {
         };
 
         let can_flow_down = down_voxel == Voxel::None
-            || (down_voxel != Voxel::WaterSource && Voxel::WATER.contains(&down_voxel));
+            || (down_voxel != Voxel::WaterSource
+                && down_voxel != Voxel::WaterSourceFull
+                && Voxel::WATER.contains(&down_voxel));
         if !can_flow_down {
             return false;
         }
 
         world.set(down_location, Voxel::WaterDown);
         renderer.update_location(world, down_location);
-        self.check_locations.insert(down_location);
+        if down_voxel != Voxel::WaterDown {
+            self.location_updated(down_location);
+        }
 
         true
     }
 
-    /// returns the bottom location, first 4 locations are always the sides
+    /// returns the (bottom location voxel, up location voxel), first 4 locations are always the sides
     fn get_bordering(
         location: InternalLocation,
         world: &mut World,
         vec: &mut StackVec<(InternalLocation, Voxel), 6>,
-    ) -> Option<Voxel> {
+    ) -> (Option<Voxel>, Option<Voxel>) {
         let offset_location = location.offset_x(1);
         vec.push((offset_location, world.get(offset_location)));
 
@@ -221,12 +279,16 @@ impl WaterSimulator {
         let offset_location = location.offset_y(-1);
         vec.push((offset_location, world.get(offset_location)));
 
-        if location.z > 0 {
+        let up_voxel = if location.z > 0 {
             let offset_location = location.offset_z(-1);
             vec.push((offset_location, world.get(offset_location)));
-        }
 
-        if location.z + 1 < AREA_HEIGHT {
+            Some(world.get(offset_location))
+        } else {
+            None
+        };
+
+        let down_voxel = if location.z + 1 < AREA_HEIGHT {
             let offset_location = location.offset_z(1);
             let bottom_voxel = world.get(offset_location);
             vec.push((offset_location, bottom_voxel));
@@ -234,6 +296,8 @@ impl WaterSimulator {
             Some(bottom_voxel)
         } else {
             None
-        }
+        };
+
+        (down_voxel, up_voxel)
     }
 }

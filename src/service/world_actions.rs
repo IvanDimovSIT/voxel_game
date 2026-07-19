@@ -105,13 +105,25 @@ pub fn destroy_voxel(
 }
 
 pub fn update_player_in_water(player_info: &mut PlayerInfo, world: &mut World) {
+    const DEEP_WATER: [Voxel; 5] = [
+        Voxel::WaterSource,
+        Voxel::WaterSourceFull,
+        Voxel::WaterDown,
+        Voxel::Water1,
+        Voxel::Water2,
+    ];
     let player_location_head = player_info.camera_controller.get_camera_voxel_location();
     let player_location_legs = Location {
         z: player_location_head.z + 1,
         ..player_location_head
     };
-    player_info.is_in_water = Voxel::WATER.contains(&world.get(player_location_legs));
+    // TODO: Change is_in_water to enum??
     player_info.is_head_in_water = Voxel::WATER.contains(&world.get(player_location_head));
+    player_info.is_in_water = if player_info.is_head_in_water {
+        true
+    } else {
+        DEEP_WATER.contains(&world.get(player_location_legs))
+    };
 }
 
 /// struct containing the loaded systems for the voxel engine
