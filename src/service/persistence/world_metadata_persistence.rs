@@ -13,7 +13,7 @@ use crate::{
         },
         physics::{
             falling_voxel_simulator::SimulatedVoxelDTO, voxel_simulator::VoxelSimulator,
-            water_simulator::WaterSimulator,
+            water_simulator::WaterSimulatorDTO,
         },
         world_time::WorldTime,
     },
@@ -25,7 +25,7 @@ const IS_COMPRESSED: bool = false;
 pub struct WorldMetadata {
     pub delta: f32,
     pub simulated_voxels: Vec<SimulatedVoxelDTO>,
-    pub water_simulator: WaterSimulator,
+    pub water_simulator_dto: WaterSimulatorDTO,
     pub creature_manager: CreatureManagerDTO,
     pub sky_dto: SkyDTO,
     pub tutorial_messages_dto: TutorialMessagesDTO,
@@ -40,11 +40,11 @@ impl WorldMetadata {
         tutorial_messages: &TutorialMessages,
         rain_system: &RainSystem,
     ) -> Self {
-        let (simulated_voxels, water_simulator) = voxel_simulator.create_dtos();
+        let (simulated_voxels, water_simulator_dto) = voxel_simulator.create_dtos();
         Self {
             delta: world_time.get_delta(),
             simulated_voxels,
-            water_simulator,
+            water_simulator_dto,
             creature_manager: creature_manager.create_dto(),
             sky_dto: sky.create_dto(),
             tutorial_messages_dto: tutorial_messages.create_dto(),

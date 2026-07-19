@@ -49,7 +49,7 @@ impl CaveGenerator {
         y: u32,
         z: u32,
     ) -> bool {
-        if !column_samples.is_cave_zone || voxel == Voxel::None || voxel == Voxel::WaterSource {
+        if !column_samples.is_cave_zone || voxel == Voxel::None || Voxel::WATER.contains(&voxel) {
             return false;
         }
 

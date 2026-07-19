@@ -19,7 +19,7 @@ use crate::{
     model::{
         area::{AREA_HEIGHT, AREA_SIZE, Area},
         location::{AreaLocation, InternalLocation, LOCATION_OFFSET, Location},
-        player_info::PlayerInfo,
+        player_info::{PlayerInfo, PlayerWaterStatus},
         user_settings::UserSettings,
         voxel::{MAX_VOXEL_VARIANTS, Voxel},
         world::World,
@@ -536,7 +536,8 @@ impl Renderer {
             .par_iter()
             .flat_map(|(_, y)| &y.mesh_map)
             .filter(|(location, (_face_count, voxel, _mesh))| {
-                !(player_info.is_head_in_water && Voxel::WATER.contains(voxel))
+                !(player_info.water_status == PlayerWaterStatus::FullyInWater
+                    && Voxel::WATER.contains(voxel))
                     && Self::is_voxel_visible(location, look, camera_position, render_distance)
             })
             .collect()

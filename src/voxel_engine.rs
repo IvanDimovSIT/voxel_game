@@ -33,7 +33,7 @@ use crate::{
     model::{
         inventory::{Item, ItemType},
         item_id::ItemId,
-        player_info::PlayerInfo,
+        player_info::{PlayerInfo, PlayerWaterStatus},
         user_settings::UserSettings,
         world::World,
     },
@@ -484,7 +484,7 @@ impl VoxelEngine {
 
         // set 2D camera and draw 2D elements
         set_default_camera();
-        if self.player_info.is_head_in_water {
+        if self.player_info.water_status == PlayerWaterStatus::FullyInWater {
             draw_water_effect(width, height, &self.asset_manager.texture_manager);
         }
         draw_crosshair(width, height);
@@ -500,6 +500,7 @@ impl VoxelEngine {
             rendered_areas_faces: rendered,
             creature_manager: &self.creature_manager,
             rendered_creatures: creatures_drawn,
+            voxel_simulator: &self.voxel_simulator,
         };
         self.debug_display.draw_debug_display(
             debug_info,

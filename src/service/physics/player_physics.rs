@@ -82,7 +82,7 @@ pub fn process_collisions(
 
                 let mut collision_type = CollisionType::Weak;
                 let is_strong_collision =
-                    !player_info.is_in_water && player_info.velocity.z >= STRONG_COLLISION_SPEED;
+                    !player_info.is_in_water() && player_info.velocity.z >= STRONG_COLLISION_SPEED;
                 if is_strong_collision {
                     collision_type = CollisionType::Strong { voxel: voxel_hit };
                 }
@@ -111,7 +111,7 @@ pub fn process_collisions(
 }
 
 fn calculate_fall_velocity(player_info: &PlayerInfo, delta: f32) -> f32 {
-    let (water_modifier, max_fall_speed) = if player_info.is_in_water {
+    let (water_modifier, max_fall_speed) = if player_info.is_in_water() {
         (IN_WATER_FALL_SPEED_MODIFIER, IN_WATER_MAX_FALL_SPEED)
     } else {
         (1.0, MAX_FALL_SPEED)
@@ -130,7 +130,7 @@ fn should_bounce_from_trampoline(player_info: &mut PlayerInfo) -> bool {
 }
 
 pub fn try_jump(player_info: &mut PlayerInfo, world: &mut World) {
-    if player_info.is_in_water {
+    if player_info.is_in_water() {
         return;
     }
 
@@ -152,7 +152,7 @@ pub fn try_jump(player_info: &mut PlayerInfo, world: &mut World) {
 }
 
 pub fn try_swim(player_info: &mut PlayerInfo, delta: f32) {
-    if !player_info.is_in_water {
+    if !player_info.is_in_water() {
         return;
     }
 
@@ -288,7 +288,7 @@ fn dampen_horizontal_velocity(player_info: &mut PlayerInfo, delta: f32) {
 }
 
 fn modify_displacement_in_water(displacement: Vec3, player_info: &PlayerInfo) -> Vec3 {
-    if !player_info.is_in_water {
+    if !player_info.is_in_water() {
         return displacement;
     }
 

@@ -20,7 +20,10 @@ use crate::{
         voxel::Voxel,
         world::World,
     },
-    service::{camera_controller::CameraController, creatures::creature_manager::CreatureManager},
+    service::{
+        camera_controller::CameraController, creatures::creature_manager::CreatureManager,
+        physics::voxel_simulator::VoxelSimulator,
+    },
     utils::vector_to_location,
 };
 
@@ -38,6 +41,7 @@ pub struct DebugInfo<'a> {
     pub rendered_areas_faces: (usize, usize),
     pub creature_manager: &'a CreatureManager,
     pub rendered_creatures: u32,
+    pub voxel_simulator: &'a VoxelSimulator,
 }
 
 pub struct DebugDisplay {
@@ -161,6 +165,17 @@ impl DebugDisplay {
             TEXT_COLOR,
             font,
         );
+        draw_game_text(
+            &format!(
+                "Water simulation checks: {}",
+                debug_info.voxel_simulator.get_water_simulation_checks()
+            ),
+            LEFT_MARGIN,
+            9.0 * FONT_SIZE,
+            FONT_SIZE,
+            TEXT_COLOR,
+            font,
+        );
     }
 
     pub fn draw_area_border(&self, camera_controller: &CameraController) {
@@ -198,6 +213,6 @@ impl DebugDisplay {
     }
 
     fn draw_background() {
-        draw_rectangle(0.0, 0.0, 530.0, FONT_SIZE * 9.0, CLEAR_SCREEN_COLOR);
+        draw_rectangle(0.0, 0.0, 530.0, FONT_SIZE * 10.0, CLEAR_SCREEN_COLOR);
     }
 }
