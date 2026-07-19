@@ -10,11 +10,11 @@ use crate::{
     utils::StackVec,
 };
 
-const WATER_SPEED: f32 = 0.5;
+const WATER_ACTIVITY_DELAY_S: f32 = 0.3;
 
 const LOWEST_WATER: Voxel = Voxel::Water6;
 
-#[derive(Debug, Clone, Encode, Decode)]
+#[derive(Debug, Clone)]
 pub struct WaterSimulator {
     check_locations: HashSet<InternalLocation>,
     activity_timer: ActivityTimer,
@@ -23,7 +23,7 @@ impl WaterSimulator {
     pub fn new() -> Self {
         Self {
             check_locations: HashSet::new(),
-            activity_timer: ActivityTimer::new(0.0, WATER_SPEED),
+            activity_timer: ActivityTimer::new(0.0, WATER_ACTIVITY_DELAY_S),
         }
     }
 
@@ -49,7 +49,17 @@ impl WaterSimulator {
         if internal_location.z < AREA_HEIGHT - 1 {
             self.check_locations.insert(internal_location.offset_z(1));
         }
-        println!("check_locations: {:?}", self.check_locations.len());
+    }
+
+    pub fn get_simulation_checks(&self) -> usize {
+        self.check_locations.len()
+    }
+
+    pub fn create_dto(&self) -> WaterSimulatorDTO {
+        WaterSimulatorDTO {
+            check_locations: self.check_locations.clone(),
+            check_delta: self.activity_timer.get_delta(),
+        }
     }
 
     fn simulate_voxels(&mut self, world: &mut World, renderer: &mut Renderer) {
@@ -184,9 +194,8 @@ impl WaterSimulator {
 
             world.set(side, voxel_to_set);
             renderer.update_location(world, side);
-            if voxel_to_set != side_voxel {
-                self.location_updated(side);
-            }
+            debug_assert!(voxel_to_set != side_voxel);
+            self.location_updated(side);
         }
     }
 
@@ -300,4 +309,18 @@ impl WaterSimulator {
 
         (down_voxel, up_voxel)
     }
+}
+impl From<WaterSimulatorDTO> for WaterSimulator {
+    fn from(value: WaterSimulatorDTO) -> Self {
+        Self {
+            check_locations: value.check_locations,
+            activity_timer: ActivityTimer::new(value.check_delta, WATER_ACTIVITY_DELAY_S),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Encode, Decode)]
+pub struct WaterSimulatorDTO {
+    check_locations: HashSet<InternalLocation>,
+    check_delta: f32,
 }

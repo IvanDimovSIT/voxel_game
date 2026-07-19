@@ -10,7 +10,7 @@ use crate::{
         physics::{
             bomb_simulator::BombSimulator,
             falling_voxel_simulator::{FallingVoxelSimulator, SimulatedVoxelDTO},
-            water_simulator::WaterSimulator,
+            water_simulator::{WaterSimulator, WaterSimulatorDTO},
         },
     },
 };
@@ -92,14 +92,18 @@ impl VoxelSimulator {
             || self.bomb_simulator.location_has_bomb(location)
     }
 
-    pub fn create_dtos(&self) -> (Vec<SimulatedVoxelDTO>, WaterSimulator) {
+    pub fn create_dtos(&self) -> (Vec<SimulatedVoxelDTO>, WaterSimulatorDTO) {
         (
             self.falling_voxel_simulator.create_simulated_voxel_dtos(),
-            self.water_simulator.clone(),
+            self.water_simulator.create_dto(),
         )
     }
 
     pub fn add_bomb(&mut self, location: Location) {
         self.bomb_simulator.add_active_bomb(location);
+    }
+
+    pub fn get_water_simulation_checks(&self) -> usize {
+        self.water_simulator.get_simulation_checks()
     }
 }

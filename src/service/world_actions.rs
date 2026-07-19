@@ -9,7 +9,11 @@ use crate::{
     },
     interface::tutorial_messages::TutorialMessages,
     model::{
-        area::AREA_HEIGHT, location::Location, player_info::PlayerInfo, voxel::Voxel, world::World,
+        area::AREA_HEIGHT,
+        location::Location,
+        player_info::{PlayerInfo, PlayerWaterStatus},
+        voxel::Voxel,
+        world::World,
     },
     service::{
         asset_manager::AssetManager,
@@ -117,13 +121,14 @@ pub fn update_player_in_water(player_info: &mut PlayerInfo, world: &mut World) {
         z: player_location_head.z + 1,
         ..player_location_head
     };
-    // TODO: Change is_in_water to enum??
-    player_info.is_head_in_water = Voxel::WATER.contains(&world.get(player_location_head));
-    player_info.is_in_water = if player_info.is_head_in_water {
-        true
+
+    if Voxel::WATER.contains(&world.get(player_location_head)) {
+        player_info.water_status = PlayerWaterStatus::FullyInWater;
+    } else if DEEP_WATER.contains(&world.get(player_location_legs)) {
+        player_info.water_status = PlayerWaterStatus::PartiallyInWater;
     } else {
-        DEEP_WATER.contains(&world.get(player_location_legs))
-    };
+        player_info.water_status = PlayerWaterStatus::Dry;
+    }
 }
 
 /// struct containing the loaded systems for the voxel engine
@@ -162,7 +167,7 @@ pub fn initialise_world_systems(
         (
             WorldTime::new(world_metadata.delta),
             world_metadata.simulated_voxels,
-            world_metadata.water_simulator,
+            world_metadata.water_simulator_dto.into(),
             CreatureManager::from_dto(world_metadata.creature_manager, &asset_manager.mesh_manager),
             Sky::from_dto(&asset_manager.texture_manager, world_metadata.sky_dto),
             world_metadata.tutorial_messages_dto.into(),

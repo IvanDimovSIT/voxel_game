@@ -21,8 +21,7 @@ pub struct PlayerInfo {
     pub camera_controller: CameraController,
     pub voxel_selector: ItemHotbar,
     pub velocity: Vec3,
-    pub is_in_water: bool,
-    pub is_head_in_water: bool,
+    pub water_status: PlayerWaterStatus,
 }
 impl PlayerInfo {
     pub const PLAYER_MOVE_SPEED: f32 = 9.0;
@@ -36,8 +35,7 @@ impl PlayerInfo {
             velocity: Vec3::ZERO,
             voxel_selector: ItemHotbar::new(),
             inventory: Inventory::new_initial(),
-            is_in_water: false,
-            is_head_in_water: false,
+            water_status: PlayerWaterStatus::Dry,
             destroy_progress: ActivityTimer::new(0.0, DESTROY_VOXEL_DELAY),
             place_progress: ActivityTimer::new(0.0, PLACE_VOXEL_DELAY),
             replace_progress: ActivityTimer::new(0.0, REPLACE_VOXEL_DELAY),
@@ -56,6 +54,10 @@ impl PlayerInfo {
             inventory: self.inventory.clone(),
         }
     }
+
+    pub fn is_in_water(&self) -> bool {
+        self.water_status != PlayerWaterStatus::Dry
+    }
 }
 impl From<PlayerInfoDTO> for PlayerInfo {
     fn from(value: PlayerInfoDTO) -> Self {
@@ -70,13 +72,19 @@ impl From<PlayerInfoDTO> for PlayerInfo {
             velocity,
             voxel_selector: value.voxel_selector,
             inventory: value.inventory,
-            is_in_water: false,
-            is_head_in_water: false,
+            water_status: PlayerWaterStatus::Dry,
             destroy_progress: ActivityTimer::new(0.0, DESTROY_VOXEL_DELAY),
             place_progress: ActivityTimer::new(0.0, PLACE_VOXEL_DELAY),
             replace_progress: ActivityTimer::new(0.0, REPLACE_VOXEL_DELAY),
         }
     }
+}
+
+#[derive(Debug, Clone, Copy, Encode, Decode, PartialEq, Eq)]
+pub enum PlayerWaterStatus {
+    Dry,
+    PartiallyInWater,
+    FullyInWater,
 }
 
 #[derive(Debug, Clone, Encode, Decode)]
