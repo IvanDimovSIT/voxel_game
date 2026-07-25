@@ -23,6 +23,15 @@ struct SimulatedVoxel {
     velocity: f32,
 }
 impl SimulatedVoxel {
+    fn new(position: Vec3, voxel_type: Voxel, mesh_generator: &MeshGenerator) -> Self {
+        Self {
+            voxel_type,
+            mesh: mesh_generator.generate_mesh_for_falling_voxel(voxel_type, position),
+            position,
+            velocity: 0.0,
+        }
+    }
+
     fn from_dto(dto: SimulatedVoxelDTO, mesh_generator: &MeshGenerator) -> Self {
         let position = arr_to_vec3(dto.position);
         let mesh = mesh_generator.generate_mesh_for_falling_voxel(dto.voxel_type, position);
@@ -71,33 +80,15 @@ impl FallingVoxelSimulator {
         debug_assert!(surrounding_locations.is_empty());
 
         surrounding_locations.push(location);
-        surrounding_locations.push(Location {
-            x: location.x + 1,
-            ..location
-        });
-        surrounding_locations.push(Location {
-            x: location.x - 1,
-            ..location
-        });
-        surrounding_locations.push(Location {
-            y: location.y + 1,
-            ..location
-        });
-        surrounding_locations.push(Location {
-            y: location.y - 1,
-            ..location
-        });
+        surrounding_locations.push(location.offset_x(1));
+        surrounding_locations.push(location.offset_x(-1));
+        surrounding_locations.push(location.offset_y(1));
+        surrounding_locations.push(location.offset_y(-1));
         if location.z > 0 {
-            surrounding_locations.push(Location {
-                z: location.z - 1,
-                ..location
-            });
+            surrounding_locations.push(location.offset_z(-1));
         }
         if location.z + 1 < AREA_HEIGHT as i32 {
-            surrounding_locations.push(Location {
-                z: location.z + 1,
-                ..location
-            });
+            surrounding_locations.push(location.offset_z(1));
         }
     }
 
@@ -117,10 +108,7 @@ impl FallingVoxelSimulator {
             if !Voxel::FALLING.contains(&voxel) || location.z + 1 >= AREA_HEIGHT as i32 {
                 continue;
             }
-            let lower = Location {
-                z: location.z + 1,
-                ..location
-            };
+            let lower = location.offset_z(1);
             if world.get(lower).is_solid() {
                 continue;
             }
@@ -129,20 +117,14 @@ impl FallingVoxelSimulator {
             world.set(location, Voxel::None);
             renderer.update_location(world, location);
             water_simulator.location_updated(location);
-            self.simulated_voxels.push(SimulatedVoxel {
-                voxel_type: voxel,
-                mesh: renderer
-                    .get_mesh_generator()
-                    .generate_mesh_for_falling_voxel(voxel, position),
+            self.simulated_voxels.push(SimulatedVoxel::new(
                 position,
-                velocity: 0.0,
-            });
+                voxel,
+                renderer.get_mesh_generator(),
+            ));
 
             // recursive call
-            let up_location = Location {
-                z: location.z - 1,
-                ..location
-            };
+            let up_location = location.offset_z(-1);
             if up_location.z >= 0 && Voxel::FALLING.contains(&world.get(up_location)) {
                 self.update_voxels(world, renderer, water_simulator, up_location);
             }
@@ -214,10 +196,7 @@ impl FallingVoxelSimulator {
         if location.z <= 0 {
             return false;
         }
-        let up_location = Location {
-            z: location.z - 1,
-            ..location
-        };
+        let up_location = location.offset_z(-1);
         let up_voxel = world.get(up_location);
         if !up_voxel.is_solid() {
             world.set(up_location, voxel.voxel_type);

@@ -52,6 +52,11 @@ impl WorldTime {
         sigmoid(delta.sin(), LIGHT_LEVEL_COEF).clamp(Self::MIN_LIGHT_LEVEL, Self::MAX_LIGHT_LEVEL)
     }
 }
+impl Default for WorldTime {
+    fn default() -> Self {
+        Self::new(std::f32::consts::PI * 0.5)
+    }
+}
 
 /// smoothing function
 fn sigmoid(x: f32, coef: f32) -> f32 {

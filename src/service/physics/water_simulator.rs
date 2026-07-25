@@ -75,10 +75,8 @@ impl WaterSimulator {
 
             self.update_water_source(voxel, location, up_voxel, world, renderer);
             if self.check_flow_stopped(voxel, location, bordering.iter()) {
-                world.set(location, Voxel::None);
-                renderer.update_location(world, location);
+                self.set_voxel(location, Voxel::None, world, renderer);
                 debug_assert!(voxel != Voxel::None);
-                self.location_updated(location);
                 continue;
             }
 
@@ -106,26 +104,20 @@ impl WaterSimulator {
                 if let Some(up_voxel) = up_voxel
                     && Voxel::WATER.contains(&up_voxel)
                 {
-                    world.set(current_location, Voxel::WaterSourceFull);
-                    renderer.update_location(world, current_location);
+                    self.set_voxel(current_location, Voxel::WaterSourceFull, world, renderer);
                     debug_assert!(voxel != Voxel::WaterSourceFull);
-                    self.location_updated(current_location);
                 };
             }
             Voxel::WaterSourceFull => {
                 if current_location.z == 0 {
-                    world.set(current_location, Voxel::WaterSource);
-                    renderer.update_location(world, current_location);
-                    self.location_updated(current_location);
+                    self.set_voxel(current_location, Voxel::WaterSource, world, renderer);
                     return;
                 }
                 if let Some(up_voxel) = up_voxel
                     && !Voxel::WATER.contains(&up_voxel)
                 {
-                    world.set(current_location, Voxel::WaterSource);
-                    renderer.update_location(world, current_location);
+                    self.set_voxel(current_location, Voxel::WaterSource, world, renderer);
                     debug_assert!(voxel != Voxel::WaterSource);
-                    self.location_updated(current_location);
                 };
             }
             _ => {}
@@ -192,11 +184,22 @@ impl WaterSimulator {
                 continue;
             }
 
-            world.set(side, voxel_to_set);
-            renderer.update_location(world, side);
+            self.set_voxel(side, voxel_to_set, world, renderer);
             debug_assert!(voxel_to_set != side_voxel);
-            self.location_updated(side);
         }
+    }
+
+    /// sets the voxel in a location, updates the renderer and adds a location to check
+    fn set_voxel(
+        &mut self,
+        location: InternalLocation,
+        voxel: Voxel,
+        world: &mut World,
+        renderer: &mut Renderer,
+    ) {
+        world.set(location, voxel);
+        renderer.update_location(world, location);
+        self.location_updated(location);
     }
 
     fn reduce_water_level(voxel: Voxel) -> Voxel {

@@ -29,12 +29,11 @@ impl World {
         }
     }
 
-    pub fn load_area(&mut self, area_location: AreaLocation) {
-        if self.areas.contains_key(&area_location) {
-            return;
-        }
-        let area = world_persistence::load_blocking(area_location, &self.world_name);
-        self.areas.insert(area_location, area);
+    /// ensures the area is loaded and returns a reference
+    pub fn load_area(&mut self, area_location: AreaLocation) -> &mut Area {
+        self.areas
+            .entry(area_location)
+            .or_insert_with(|| world_persistence::load_blocking(area_location, &self.world_name))
     }
 
     pub fn convert_global_to_local_location(location: InternalLocation) -> InternalLocation {
@@ -71,8 +70,8 @@ impl World {
     pub fn get_height(&mut self, location: impl Into<InternalLocation>) -> u8 {
         let (area_location, local_location) =
             Self::convert_global_to_area_and_local_location(location.into());
-        self.load_area(area_location);
-        self.areas[&area_location].sample_height(local_location.x, local_location.y)
+        self.load_area(area_location)
+            .sample_height(local_location.x, local_location.y)
     }
 
     /// returns the min z of the column, treats transparent voxels as solid, doesn't force area load,
@@ -149,9 +148,7 @@ impl World {
     pub fn get(&mut self, location: impl Into<InternalLocation>) -> Voxel {
         let (area_location, local_location) =
             Self::convert_global_to_area_and_local_location(location.into());
-        self.load_area(area_location);
-        let area = &self.areas[&area_location];
-        area.get(local_location)
+        self.load_area(area_location).get(local_location)
     }
 
     pub fn get_with_cache(
@@ -168,9 +165,7 @@ impl World {
             return area.get(local_location);
         }
 
-        self.load_area(area_location);
-        let area = &self.areas[&area_location];
-        area.get(local_location)
+        self.load_area(area_location).get(local_location)
     }
 
     pub fn get_without_loading(&self, location: impl Into<InternalLocation>) -> Option<Voxel> {
@@ -184,8 +179,7 @@ impl World {
     pub fn set(&mut self, location: impl Into<InternalLocation>, voxel: Voxel) {
         let (area_location, local_location) =
             Self::convert_global_to_area_and_local_location(location.into());
-        self.load_area(area_location);
-        let area = self.areas.get_mut(&area_location).expect("Area not loaded");
+        let area = self.load_area(area_location);
         area.has_changed = true;
         area.set(local_location, voxel);
     }

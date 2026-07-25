@@ -7,7 +7,7 @@ use macroquad::{
 };
 
 use crate::{
-    model::{area::AREA_HEIGHT, location::Location},
+    model::{area::AREA_HEIGHT, location::Location, player_info::PlayerInfo},
     utils::vector_to_location,
 };
 
@@ -108,7 +108,7 @@ impl CameraController {
     }
 
     pub fn get_bottom_position(&self) -> Vec3 {
-        self.position + vec3(0.0, 0.0, 1.5)
+        self.position + vec3(0.0, 0.0, PlayerInfo::PLAYER_HEIGHT)
     }
 
     pub fn set_position(&mut self, position: Vec3) {

@@ -135,65 +135,23 @@ impl Area {
         }
 
         let current_voxel = self.get(location);
-        if MeshGenerator::should_generate_face(
-            current_voxel,
-            self.get(InternalLocation::new(
-                location.x + 1,
-                location.y,
-                location.z,
-            )),
-        ) {
+        if MeshGenerator::should_generate_face(current_voxel, self.get(location.offset_x(1))) {
             return false;
         }
-        if MeshGenerator::should_generate_face(
-            current_voxel,
-            self.get(InternalLocation::new(
-                location.x - 1,
-                location.y,
-                location.z,
-            )),
-        ) {
+        if MeshGenerator::should_generate_face(current_voxel, self.get(location.offset_x(-1))) {
             return false;
         }
-        if MeshGenerator::should_generate_face(
-            current_voxel,
-            self.get(InternalLocation::new(
-                location.x,
-                location.y + 1,
-                location.z,
-            )),
-        ) {
+        if MeshGenerator::should_generate_face(current_voxel, self.get(location.offset_y(1))) {
             return false;
         }
-        if MeshGenerator::should_generate_face(
-            current_voxel,
-            self.get(InternalLocation::new(
-                location.x,
-                location.y - 1,
-                location.z,
-            )),
-        ) {
+        if MeshGenerator::should_generate_face(current_voxel, self.get(location.offset_y(-1))) {
             return false;
         }
-        if MeshGenerator::should_generate_face(
-            current_voxel,
-            self.get(InternalLocation::new(
-                location.x,
-                location.y,
-                location.z + 1,
-            )),
-        ) {
+        if MeshGenerator::should_generate_face(current_voxel, self.get(location.offset_z(1))) {
             return false;
         }
         // not using should_generate_top_face - skips unnecessary check
-        if MeshGenerator::should_generate_face(
-            current_voxel,
-            self.get(InternalLocation::new(
-                location.x,
-                location.y,
-                location.z - 1,
-            )),
-        ) {
+        if MeshGenerator::should_generate_face(current_voxel, self.get(location.offset_z(-1))) {
             return false;
         }
 

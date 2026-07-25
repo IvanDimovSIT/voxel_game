@@ -24,6 +24,7 @@ pub struct PlayerInfo {
     pub water_status: PlayerWaterStatus,
 }
 impl PlayerInfo {
+    pub const PLAYER_HEIGHT: f32 = 1.5;
     pub const PLAYER_MOVE_SPEED: f32 = 9.0;
     pub const PLAYER_SIZE: f32 = 0.3;
     pub const VOXEL_REACH: f32 = 7.0;

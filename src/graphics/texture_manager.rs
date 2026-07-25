@@ -270,21 +270,10 @@ impl TextureManager {
 
     /// loads the texture once and reuses it for all water voxels
     async fn load_water_texture(textures: &mut [Option<Texture2D>]) -> Result<(), AssetError> {
-        let water_voxels = [
-            Voxel::WaterSource,
-            Voxel::WaterSourceFull,
-            Voxel::WaterDown,
-            Voxel::Water1,
-            Voxel::Water2,
-            Voxel::Water3,
-            Voxel::Water4,
-            Voxel::Water5,
-            Voxel::Water6,
-        ];
         let texture_path = format!("{BASE_VOXEL_TEXTURES_PATH}{WATER_TEXTURE}");
         if let Some(texture) = Self::load_image(&texture_path).await {
             texture.set_filter(FilterMode::Nearest);
-            for voxel in water_voxels {
+            for voxel in Voxel::WATER {
                 textures[voxel.index()] = Some(texture.clone());
             }
             Ok(())

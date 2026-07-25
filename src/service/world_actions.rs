@@ -1,6 +1,6 @@
 use std::rc::Rc;
 
-use macroquad::math::vec3;
+use macroquad::math::{Vec3, vec3};
 
 use crate::{
     graphics::{
@@ -117,10 +117,7 @@ pub fn update_player_in_water(player_info: &mut PlayerInfo, world: &mut World) {
         Voxel::Water2,
     ];
     let player_location_head = player_info.camera_controller.get_camera_voxel_location();
-    let player_location_legs = Location {
-        z: player_location_head.z + 1,
-        ..player_location_head
-    };
+    let player_location_legs = player_location_head.offset_z(1);
 
     if Voxel::WATER.contains(&world.get(player_location_head)) {
         player_info.water_status = PlayerWaterStatus::FullyInWater;
@@ -152,7 +149,7 @@ pub fn initialise_world_systems(
     let world_name = world_name.into();
     let (mut player_info, successful_load) = load_player_info(&world_name)
         .map(|info| (info, true))
-        .unwrap_or_else(|| (PlayerInfo::new(vec3(0.0, 0.0, 0.0)), false));
+        .unwrap_or_else(|| (PlayerInfo::new(Vec3::ZERO), false));
 
     player_info.camera_controller.set_focus(true);
     let (
@@ -175,7 +172,7 @@ pub fn initialise_world_systems(
         )
     } else {
         (
-            WorldTime::new(std::f32::consts::PI * 0.5),
+            WorldTime::default(),
             vec![],
             WaterSimulator::new(),
             CreatureManager::new(),

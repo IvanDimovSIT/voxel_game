@@ -243,39 +243,15 @@ impl Renderer {
         }
 
         let mut neighbors = StackVec::<InternalLocation, 6>::new();
-        neighbors.push(InternalLocation::new(
-            internal_location.x + 1,
-            internal_location.y,
-            internal_location.z,
-        ));
-        neighbors.push(InternalLocation::new(
-            internal_location.x - 1,
-            internal_location.y,
-            internal_location.z,
-        ));
-        neighbors.push(InternalLocation::new(
-            internal_location.x,
-            internal_location.y + 1,
-            internal_location.z,
-        ));
-        neighbors.push(InternalLocation::new(
-            internal_location.x,
-            internal_location.y - 1,
-            internal_location.z,
-        ));
+        neighbors.push(internal_location.offset_x(1));
+        neighbors.push(internal_location.offset_x(-1));
+        neighbors.push(internal_location.offset_y(1));
+        neighbors.push(internal_location.offset_y(-1));
         if internal_location.z > 0 {
-            neighbors.push(InternalLocation::new(
-                internal_location.x,
-                internal_location.y,
-                internal_location.z - 1,
-            ));
+            neighbors.push(internal_location.offset_z(-1));
         }
         if internal_location.z < (AREA_HEIGHT - 1) {
-            neighbors.push(InternalLocation::new(
-                internal_location.x,
-                internal_location.y,
-                internal_location.z + 1,
-            ));
+            neighbors.push(internal_location.offset_z(1));
         }
 
         for neighbor in neighbors {

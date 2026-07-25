@@ -15,6 +15,33 @@ impl Location {
     pub const fn new(x: i32, y: i32, z: i32) -> Self {
         Self { x, y, z }
     }
+
+    #[inline]
+    pub const fn offset_x(self, x: i32) -> Self {
+        Self {
+            x: self.x + x,
+            y: self.y,
+            z: self.z,
+        }
+    }
+
+    #[inline]
+    pub const fn offset_y(self, y: i32) -> Self {
+        Self {
+            x: self.x,
+            y: self.y + y,
+            z: self.z,
+        }
+    }
+
+    #[inline]
+    pub fn offset_z(self, z: i32) -> Self {
+        Self {
+            x: self.x,
+            y: self.y,
+            z: self.z + z,
+        }
+    }
 }
 impl From<InternalLocation> for Location {
     fn from(value: InternalLocation) -> Self {
@@ -49,6 +76,7 @@ impl InternalLocation {
         Self { x, y, z }
     }
 
+    #[inline]
     pub const fn offset_x(self, x: i32) -> Self {
         Self {
             x: (self.x as i32 + x) as _,
@@ -57,6 +85,7 @@ impl InternalLocation {
         }
     }
 
+    #[inline]
     pub const fn offset_y(self, y: i32) -> Self {
         Self {
             x: self.x,
@@ -65,6 +94,7 @@ impl InternalLocation {
         }
     }
 
+    #[inline]
     pub fn offset_z(self, z: i32) -> Self {
         Self {
             x: self.x,

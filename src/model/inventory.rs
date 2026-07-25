@@ -19,15 +19,7 @@ impl AvailableItems {
     }
 
     pub fn add(&mut self, item_type: ItemType, count: impl Into<u32>) {
-        {
-            let item = self.counts.get_mut(&item_type);
-            if let Some(i) = item {
-                *i += count.into();
-                return;
-            }
-        }
-
-        self.counts.insert(item_type, count.into());
+        *self.counts.entry(item_type).or_insert(0) += count.into();
     }
 
     pub fn get(&self, item_type: ItemType) -> u32 {

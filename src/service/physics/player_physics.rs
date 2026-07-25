@@ -59,7 +59,7 @@ pub fn process_collisions(
 
     let top_position = player_info.camera_controller.get_position()
         + vec3(0.0, 0.0, player_info.velocity.z * delta);
-    let down_position = top_position + vec3(0.0, 0.0, 1.5);
+    let down_position = top_position + vec3(0.0, 0.0, PlayerInfo::PLAYER_HEIGHT);
 
     let mut down_locations = StackVec::new();
     let mut top_locations = StackVec::new();
