@@ -34,8 +34,8 @@ const SUN_AND_MOON_SIZE: f32 = 400.0;
 const CLOUDS_SIZE: f32 = 500.0;
 const CLOUDS_MIN_X: f32 = 2000.0;
 const CLOUDS_MAX_X: f32 = -2000.0;
-const CLOUDS_MIN_Z: f32 = -250.0;
-const CLOUDS_MAX_Z: f32 = -500.0;
+const CLOUDS_MAX_Z: f32 = -250.0;
+const CLOUDS_MIN_Z: f32 = -500.0;
 const CLOUDS_SPAWN_DELAY: f32 = 20.0;
 const CLOUDS_SPAWN_Y: f32 = -2000.0;
 const CLOUDS_DESPAWN_Y: f32 = 2000.0;
@@ -140,6 +140,7 @@ pub struct CloudsManager {
     add_clouds_activity: ActivityTimer,
     clouds_texture: Texture2D,
     cloud_positions: Vec<Vec3>,
+    clound_z: f32,
 }
 impl CloudsManager {
     pub fn new(texture_manager: &TextureManager) -> Self {
@@ -147,6 +148,7 @@ impl CloudsManager {
             clouds_texture: texture_manager.get_plain_texture(PlainTextureId::Clouds),
             cloud_positions: vec![],
             add_clouds_activity: ActivityTimer::new(0.0, CLOUDS_SPAWN_DELAY),
+            clound_z: CLOUDS_MIN_Z,
         };
 
         clouds.initialise_clouds();
@@ -161,6 +163,7 @@ impl CloudsManager {
             add_clouds_activity: ActivityTimer::new(dto.clouds_spawn_delta, CLOUDS_SPAWN_DELAY),
             clouds_texture: texture_manager.get_plain_texture(PlainTextureId::Clouds),
             cloud_positions,
+            clound_z: dto.clound_z,
         }
     }
 
@@ -174,6 +177,7 @@ impl CloudsManager {
         CloudsDTO {
             clouds_spawn_delta: self.add_clouds_activity.get_delta(),
             cloud_positions,
+            clound_z: self.clound_z,
         }
     }
 
@@ -205,9 +209,20 @@ impl CloudsManager {
 
         let x = gen_range(CLOUDS_MIN_X, CLOUDS_MAX_X);
         let y = CLOUDS_SPAWN_Y;
-        let z = gen_range(CLOUDS_MIN_Z, CLOUDS_MAX_Z).round();
+        let z = self.get_new_cloud_z();
         self.cloud_positions.push(vec3(x, y, z));
         self.sort_clouds_by_height();
+    }
+
+    fn get_new_cloud_z(&mut self) -> f32 {
+        const DELTA: f32 = (CLOUDS_MAX_Z - CLOUDS_MIN_Z) / 8.0;
+        let z = self.clound_z;
+        self.clound_z += DELTA;
+        if self.clound_z > CLOUDS_MAX_Z {
+            self.clound_z = CLOUDS_MIN_Z;
+        }
+
+        z
     }
 
     /// to keep transparency
@@ -232,4 +247,5 @@ impl CloudsManager {
 pub struct CloudsDTO {
     clouds_spawn_delta: f32,
     cloud_positions: Vec<[f32; 3]>,
+    clound_z: f32,
 }
